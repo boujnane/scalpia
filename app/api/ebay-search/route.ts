@@ -1,7 +1,41 @@
-// app/api/search/ebay/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import puppeteer from 'puppeteer';
 import { setTimeout as sleep } from 'node:timers/promises';
+import * as cheerio from 'cheerio'; // ← correction ici
+
+export interface EbayCleaned {
+  priceFilters: { label: string | null; url: string | null }[];
+  priceRangeInputs: { minLabel: string | null; maxLabel: string | null };
+  histogram: { min: number; max: number; count: number }[];
+}
+
+export function cleanEbayHtml(rawHtml: string): EbayCleaned {
+  const $ = cheerio.load(rawHtml);
+
+  const priceFilters = $('.x-refine__multi-select-link')
+    .map((_, el) => ({
+      label: $(el).find('.x-refine__multi-select-cbx').text().trim() || null,
+      url: $(el).attr('href') || null
+    }))
+    .get();
+
+  const minLabel = $('input[aria-label*="min"]').attr('aria-label') || null;
+  const maxLabel = $('input[aria-label*="max"]').attr('aria-label') || null;
+
+  const histogram = $('.price__graph__chart span')
+    .map((_, el) => ({
+      min: Number($(el).attr('data-min')),
+      max: Number($(el).attr('data-max')),
+      count: Number($(el).attr('data-count')),
+    }))
+    .get();
+
+  return {
+    priceFilters,
+    priceRangeInputs: { minLabel, maxLabel },
+    histogram,
+  };
+}
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -24,7 +58,7 @@ export async function GET(req: NextRequest) {
     );
     await page.setViewport({ width: 1280, height: 800 });
 
-    // Stealth manuel simple
+    // Stealth simple
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => false });
       Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
@@ -37,7 +71,9 @@ export async function GET(req: NextRequest) {
     await sleep(2000);
 
     const html = await page.content();
-    return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
+    const cleaned = cleanEbayHtml(html);
+
+    return NextResponse.json(cleaned);
   } catch (err: any) {
     console.error(err);
     return new NextResponse(`Erreur: ${err?.message ?? err}`, { status: 500 });
