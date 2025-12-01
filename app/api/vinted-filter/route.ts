@@ -6,7 +6,7 @@ const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
 export async function POST(req: Request) {
   const body = await req.json();
   const { query, items } = body;
-
+ 
   const prompt = `
 Tu es un expert en produits Pokémon : cartes à l’unité, cartes gradées et produits scellés (boosters, displays, ETB, coffrets, tins).
 

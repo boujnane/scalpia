@@ -41,14 +41,19 @@ await handleRes(res);
 return res.text();
 };
 
-
 export const postVintedFilter = async (query: string, items: any[], signal?: AbortSignal) => {
-const res = await fetch('/api/vinted-filter', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ query, items }),
-signal,
-});
-await handleRes(res);
-return res.json();
+  const res = await fetch('/api/vinted-filter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, items }),
+    signal,
+  });
+  await handleRes(res);
+  return res.json();
+};
+
+export const fetchCardmarketSearch = async (q: string, signal?: AbortSignal) => {
+    const res = await fetch(`/api/cardmarket-search?q=${encodeURIComponent(q)}`, { signal });
+    if (!res.ok) throw new Error("Erreur API");
+    return res.json(); // <-- renvoie un objet JSON directement
 };

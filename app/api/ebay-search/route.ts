@@ -43,7 +43,6 @@ export async function GET(req: NextRequest) {
   if (!q) return new NextResponse('Missing query', { status: 400 });
 
   const url = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(q)}&_sop=13`;
-  console.log('URL utilisée :', url);
 
   let browser;
   try {
