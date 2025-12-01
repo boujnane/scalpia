@@ -1,0 +1,44 @@
+// components/icons.tsx
+
+import {
+    User,
+    Notebook,
+    Loader2,
+    Plus,
+    Trash,
+    Pencil,
+    Save,
+    X,
+    Check,
+    ChevronDown,
+    ChevronUp,
+    Search,
+    Upload,
+    Image as ImageIcon,
+    RefreshCcw,
+    ExternalLink,
+    Package,
+    ShoppingBag,
+  } from "lucide-react";
+  
+  export const Icons = {
+    user: User,
+    note: Notebook,
+    spinner: Loader2,
+    add: Plus,
+    delete: Trash,
+    edit: Pencil,
+    save: Save,
+    close: X,
+    check: Check,
+    chevronDown: ChevronDown,
+    chevronUp: ChevronUp,
+    search: Search,
+    upload: Upload,
+    image: ImageIcon,
+    refresh: RefreshCcw,
+    external: ExternalLink,
+    package: Package,
+    bag: ShoppingBag,
+  };
+  

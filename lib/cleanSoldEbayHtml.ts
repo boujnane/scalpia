@@ -16,7 +16,6 @@ export interface CleanSoldItem {
     const doc = parser.parseFromString(rawHtml, "text/html");
   
     const items = Array.from(doc.querySelectorAll("li.s-card"));
-    console.log("Nombre total de li.s-card trouvés :", items.length);
   
     const mappedItems = items.map((item, index) => {
       // Récupération du lien
@@ -49,13 +48,10 @@ export interface CleanSoldItem {
   
       // Vendeur
       const seller = item.querySelector(".su-card-container__attributes__secondary span.su-styled-text.primary.large")?.textContent?.trim() ?? null;
-  
-      console.log(`Item #${index} extrait :`, { title, url, img, price, soldDate, condition, shipping, seller });
-  
+    
       return { title, url, img, price, soldDate, condition, shipping, seller };
     });
   
-    console.log("Nombre d'items après extraction :", mappedItems.length);
     return mappedItems.slice(2, 14);
   }
   
