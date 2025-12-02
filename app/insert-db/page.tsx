@@ -4,10 +4,8 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
-import { useSearch } from "@/hooks/useSearch";
 import { insertPriceInDB } from "@/lib/insert-price";
-
-import { Icons } from "@/components/icons";
+import { useSearchVinted } from "@/hooks/useSearchVinted";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +23,7 @@ type ItemEntry = {
   name?: string;
   type?: string;
   series?: string;
+  cardmarketUrl?: string | null;
 };
 
 export default function InsertDbPage() {
@@ -42,9 +41,12 @@ export default function InsertDbPage() {
   const [openVinted, setOpenVinted] = useState(true);
   const [openCardmarket, setOpenCardmarket] = useState(true);
 
-  const { run, loading: searchLoading } = useSearch();
+  const { run, loading: searchLoading } = useSearchVinted();
 
   const [itemsWithPriceToday, setItemsWithPriceToday] = useState<Set<string>>(new Set());
+
+  const [yesterdayPrice, setYesterdayPrice] = useState<number | null>(null);
+  const [yesterdayDate, setYesterdayDate] = useState<string | null>(null);
 
   // Load items from Firestore
   useEffect(() => {
@@ -57,6 +59,7 @@ export default function InsertDbPage() {
           name: data.name ?? data.title ?? "",
           type: data.type ?? "",
           series: data.series ?? "",
+          cardmarketUrl: data.cardmarketUrl ?? null,
         };
       });
       setItems(list);
@@ -85,88 +88,118 @@ export default function InsertDbPage() {
 
   const currentItem = items[currentIndex] || null;
 
-  // Load Cardmarket URL
   useEffect(() => {
     if (!currentItem) return;
+    setCardmarketUrl(currentItem.cardmarketUrl ?? null);
+  }, [currentIndex, currentItem]);
+
+  useEffect(() => {
+    const fetchYesterdayPrice = async () => {
+      if (!currentItem) return;
   
-    const fetchCardmarketUrl = async () => {
-      try {
-        const res = await fetch(
-          `/api/google-search?q=${encodeURIComponent(
-            `${currentItem.type} ${currentItem.name} cardmarket`
-          )}`
-        );
-        const data = await res.json();
-        const itemsArray = data.items ?? [];
+      // Reset avant chargement
+      setYesterdayPrice(null);
+      setYesterdayDate(null);
   
-        for (let i = 0; i < itemsArray.length; i++) {
-          const link = itemsArray[i].link;
+      // On charge la sous-collection /prices
+      const pricesSnap = await getDocs(
+        collection(db, `items/${currentItem.id}/prices`)
+      );
   
-          // Vérifier que le lien est bien Cardmarket et pas Singles
-          if (/www\.cardmarket\.com/i.test(link) && /\/Products\/(?!Singles\/)/i.test(link)) {
-            setCardmarketUrl(`${link}?language=2`);
-            return;
-          }
-        }
+      if (pricesSnap.empty) return;
   
-        setCardmarketUrl(null);
-      } catch (err) {
-        setCardmarketUrl(null);
+      // Extraire tous les prix avec date + price
+      const prices = pricesSnap.docs.map((doc) => doc.data() as any);
+  
+      // Trier du plus récent au plus ancien
+      prices.sort((a, b) => (a.date < b.date ? 1 : -1));
+  
+      // Le prix le plus récent (aujourd'hui ou autre)
+      const last = prices[0];
+  
+      // Prix de la veille = celui d’hier
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  
+      const priceYesterday = prices.find((p) => p.date === yesterdayStr);
+  
+      if (priceYesterday) {
+        setYesterdayPrice(priceYesterday.price);
+        setYesterdayDate(priceYesterday.date);
+        return;
       }
+  
+      // Sinon on affiche simplement le dernier prix connu (pas "veille" mais utile)
+      setYesterdayPrice(last.price);
+      setYesterdayDate(last.date);
     };
   
-    setCardmarketUrl(null);
-    fetchCardmarketUrl();
-  }, [currentIndex, currentItem]);
+    fetchYesterdayPrice();
+  }, [currentItem]);
+  
   
   // ------- Actions -------
 
+  const handleUseYesterdayPrice = () => {
+    if (yesterdayPrice !== null) {
+      setCurrentMinPrice(yesterdayPrice);
+    }
+  };
+
   const handleSearchCurrent = async () => {
     if (!currentItem) return;
-
+  
     const queryStr = `${currentItem.type} ${currentItem.name}`.trim();
     if (!queryStr) {
       setCurrentError("Type ou nom manquant");
       return;
     }
-
+  
     setCurrentMinPrice(null);
     setCurrentError(null);
     setVintedResults(null);
-
+  
     try {
+      const t0 = performance.now(); // ⏱ départ du timer
+  
       const result = await run(queryStr);
+  
+      const t1 = performance.now(); // ⏱ fin du timer
+      console.log(`Temps de recherche Vinted: ${(t1 - t0).toFixed(2)} ms`);
+  
       if (!result) return setCurrentError("Erreur lors de la recherche");
-
+  
       setCurrentMinPrice(result.minPrice ?? null);
       setVintedResults(result);
     } catch (err: any) {
       setCurrentError(err?.message ?? "Erreur inconnue");
     }
   };
+  
 
-const handleInsertPrice = async () => {
-  if (!currentItem || currentMinPrice === null) return;
+  const handleInsertPrice = async () => {
+    if (!currentItem || currentMinPrice === null) return;
 
-  const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
 
-  setSaving(true);
-  try {
-    await insertPriceInDB(currentItem.id, {
-      date: today,
-      price: currentMinPrice,
-    });
+    setSaving(true);
+    try {
+      await insertPriceInDB(currentItem.id, {
+        date: today,
+        price: currentMinPrice,
+      });
 
-    // --- Mettre à jour le Set pour la couleur directement ---
-    setItemsWithPriceToday((prev) => new Set(prev).add(currentItem.id));
+      // --- Mettre à jour le Set pour la couleur directement ---
+      setItemsWithPriceToday((prev) => new Set(prev).add(currentItem.id));
 
-    alert(`Prix ajouté pour ${currentItem.name}`);
-  } catch {
-    alert("Erreur lors de l'ajout");
-  } finally {
-    setSaving(false);
-  }
-};
+      alert(`Prix ajouté pour ${currentItem.name}`);
+    } catch {
+      alert("Erreur lors de l'ajout");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleNext = () => {
     setCurrentIndex((i) => (i + 1 < items.length ? i + 1 : 0));
@@ -269,12 +302,35 @@ const handleInsertPrice = async () => {
                     >
                       {cardmarketUrl}
                     </a>
-                    <CardmarketButton url={cardmarketUrl} />
+                    <CardmarketButton
+                      url={cardmarketUrl}
+                      onSelectPrice={(price) => setCurrentMinPrice(price)}
+                    />
                   </CollapsibleContent>
                 </Collapsible>
               )}
 
+              {yesterdayPrice !== null && (
+                <div
+                  onClick={handleUseYesterdayPrice}
+                  className="p-3 bg-blue-100 border-l-4 border-blue-500 rounded shadow-sm cursor-pointer hover:bg-blue-200 transition"
+                  title="Cliquer pour utiliser ce prix comme prix minimal"
+                >
+                  <div className="text-blue-800 font-semibold">Prix de la veille :</div>
+                  <div className="text-blue-900 text-lg">
+                    {yesterdayPrice} €
+                    {yesterdayDate && (
+                      <span className="text-sm text-blue-700 ml-2">
+                        (date : {yesterdayDate})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+
               <Separator />
+
 
               {/* ----- Vinted Section ----- */}
               <Collapsible open={openVinted} onOpenChange={setOpenVinted}>

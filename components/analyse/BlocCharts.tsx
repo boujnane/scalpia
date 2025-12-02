@@ -34,6 +34,15 @@ export default function BlocChart({ items }: { items: Item[] }) {
   );
   const isMobile = useIsMobile();
 
+  // Mapping stable des couleurs par item
+  const colorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    items.forEach((item, i) => {
+      map[item.name] = palette[i % palette.length];
+    });
+    return map;
+  }, [items]);
+
   // Toutes les dates
   const allDates = useMemo(() => {
     const dates = items.flatMap(i => buildChartData(i).map(p => p.date));
@@ -45,9 +54,10 @@ export default function BlocChart({ items }: { items: Item[] }) {
     end: allDates.max,
   });
 
-  // Filtrage dynamique des données selon le slider et la visibilité des séries
+  // Filtrage selon date et visibilité des séries
   const filteredData = useMemo(() => {
     return items
+      .filter(item => visibleSeries[item.name])
       .map(item => ({
         item,
         data: buildChartData(item)
@@ -63,7 +73,7 @@ export default function BlocChart({ items }: { items: Item[] }) {
     return [Math.min(...allX), Math.max(...allX)];
   }, [filteredData, dateRange]);
 
-  // Domaine Y dynamique arrondi
+  // Domaine Y dynamique
   const yDomain = useMemo(() => {
     const allY = filteredData.flatMap(d => d.data.map(p => p.price));
     if (allY.length === 0) return [0, 100];
@@ -115,31 +125,17 @@ export default function BlocChart({ items }: { items: Item[] }) {
         </PopoverContent>
       </Popover>
 
-      {/* Slider des dates */}
-      <div className="flex flex-col gap-2">
-        <span className="text-sm text-gray-600">
-          Plage de dates : {new Date(dateRange.start).toLocaleDateString()} - {new Date(dateRange.end).toLocaleDateString()}
-        </span>
-        <Slider
-          value={[dateRange.start, dateRange.end]}
-          min={allDates.min}
-          max={allDates.max}
-          step={24 * 60 * 60 * 1000} // 1 jour
-          onValueChange={(val: [number, number]) => setDateRange({ start: val[0], end: val[1] })}
-        />
-      </div>
-    
       {/* Graphique */}
       <div className="w-full h-[500px] md:h-[600px]">
         <ResponsiveContainer width="100%" height="100%">
-            <LineChart
-                margin={{
-                top: 15,
-                right: isMobile ? 0 : 40,
-                left: isMobile ? -40 : 0,
-                bottom: 50,
-                }}
-            >
+          <LineChart
+            margin={{
+              top: 15,
+              right: isMobile ? 0 : 40,
+              left: isMobile ? -40 : 0,
+              bottom: 50,
+            }}
+          >
             <CartesianGrid strokeDasharray="3 3" />
 
             {/* Délimiteurs d'années */}
@@ -170,7 +166,6 @@ export default function BlocChart({ items }: { items: Item[] }) {
                 const formatted = isMobile
                   ? date.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "2-digit" })
                   : date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
-
                 return (
                   <text
                     key={`tick-${payload.value}`}
@@ -201,27 +196,27 @@ export default function BlocChart({ items }: { items: Item[] }) {
             />
 
             <Legend
-              verticalAlign={isMobile ? "bottom" : "top"}
-              align={isMobile ? "center" : "left"}
-              layout={isMobile ? "horizontal" : "vertical"}
-              wrapperStyle={{ fontSize: isMobile ? "0.45rem" : "0.8rem", maxHeight: isMobile ? 50 : 400, overflowY: "auto" }}
+              verticalAlign="bottom"
+              align="center"
+              layout="horizontal"
+              wrapperStyle={{ fontSize: isMobile ? "0.45rem" : "0.8rem", maxHeight: 50, overflowY: "auto" }}
             />
 
             {items[0]?.retailPrice && (
-            <ReferenceLine
+              <ReferenceLine
                 y={items[0].retailPrice}
                 stroke="red"
                 strokeWidth={2} 
                 label={{
-                value: `Prix Retail: €${items[0].retailPrice}`,
-                position: "top",
-                fill: "red",
-                fontSize: isMobile ? 10 : 12,
+                  value: `Prix Retail: €${items[0].retailPrice}`,
+                  position: "top",
+                  fill: "red",
+                  fontSize: isMobile ? 10 : 12,
                 }}
-            />
+              />
             )}
 
-            {filteredData.map(({ item, data }, idx) => {
+            {filteredData.map(({ item, data }) => {
               const normalizedData = normalize
                 ? data.map(p => ({ ...p, price: (p.price / data[0].price) * 100 }))
                 : data;
@@ -234,16 +229,30 @@ export default function BlocChart({ items }: { items: Item[] }) {
                   name={item.name}
                   type="monotone"
                   strokeWidth={2}
-                  stroke={palette[idx % palette.length]}
+                  stroke={colorMap[item.name]}
                   strokeOpacity={0.8}
                   dot={false}
                   activeDot={{ r: 4 }}
-                  strokeDasharray={idx % 2 === 0 ? "5 2" : undefined}
+                  strokeDasharray={0}
                 />
               );
             })}
           </LineChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* Slider des dates (en bas) */}
+      <div className="mb-4 flex flex-col gap-2">
+        <span className="text-sm text-gray-600">
+          Plage de dates : {new Date(dateRange.start).toLocaleDateString()} - {new Date(dateRange.end).toLocaleDateString()}
+        </span>
+        <Slider
+          value={[dateRange.start, dateRange.end]}
+          min={allDates.min}
+          max={allDates.max}
+          step={24 * 60 * 60 * 1000} // 1 jour
+          onValueChange={(val: [number, number]) => setDateRange({ start: val[0], end: val[1] })}
+        />
       </div>
     </div>
   );

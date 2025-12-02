@@ -9,6 +9,7 @@ import {
     Pencil,
     Save,
     X,
+    Info,
     Check,
     ChevronDown,
     ChevronUp,
@@ -40,5 +41,6 @@ import {
     external: ExternalLink,
     package: Package,
     bag: ShoppingBag,
+    info: Info,
   };
   

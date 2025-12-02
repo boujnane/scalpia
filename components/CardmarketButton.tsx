@@ -16,9 +16,10 @@ type Offer = {
 
 type Props = {
   url: string | null;
+  onSelectPrice?: (price: number) => void; // callback pour le prix sélectionné
 };
 
-export default function CardmarketButton({ url }: Props) {
+export default function CardmarketButton({ url, onSelectPrice }: Props) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -38,7 +39,6 @@ export default function CardmarketButton({ url }: Props) {
       const data = await res.json();
 
       if (res.ok && data.offers) {
-        // Remove first offer and keep 15
         const filteredOffers = data.offers.slice(1).slice(0, 15);
         setOffers(filteredOffers);
         setMessage(`${filteredOffers.length} offres trouvées sur Cardmarket.`);
@@ -54,22 +54,17 @@ export default function CardmarketButton({ url }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-       <br></br>
       <Button
         onClick={handleClick}
         disabled={loading}
         className="w-fit"
         variant="default"
       >
-        {loading ? (
-          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-        ) : null}
+        {loading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
         {loading ? "Chargement…" : "Charger les offres Cardmarket"}
       </Button>
 
-      {message && (
-        <p className="text-sm text-gray-600">{message}</p>
-      )}
+      {message && <p className="text-sm text-gray-600">{message}</p>}
 
       {offers.length > 0 && (
         <>
@@ -77,12 +72,20 @@ export default function CardmarketButton({ url }: Props) {
           <div className="flex gap-4 overflow-x-auto py-2">
             {offers.map((offer, i) => (
               <Card
-                key={i}
-                className="flex-shrink-0 w-[220px] hover:shadow-md transition rounded-xl border"
-              >
+              key={i}
+              className="flex-shrink-0 w-[220px] hover:shadow-md transition rounded-xl border cursor-pointer"
+              onClick={() => {
+                if (offer.price && onSelectPrice) {
+                  const numericPrice = parseFloat(
+                    offer.price.replace(',', '.').replace(/[^\d.]/g, '')
+                  );
+                  if (!isNaN(numericPrice)) {
+                    onSelectPrice(numericPrice);
+                  }
+                }
+              }}
+            >
                 <CardContent className="flex flex-col gap-3 p-4">
-
-                  {/* Price + quantity */}
                   <div className="flex justify-between items-center">
                     <span className="text-xl font-semibold text-indigo-600">
                       {offer.price ? `${offer.price}` : "—"}
@@ -92,7 +95,6 @@ export default function CardmarketButton({ url }: Props) {
                     </span>
                   </div>
 
-                  {/* Seller */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="text-sm text-gray-700 truncate cursor-default">
@@ -105,7 +107,6 @@ export default function CardmarketButton({ url }: Props) {
                     </TooltipContent>
                   </Tooltip>
 
-                  {/* Comment */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <span className="text-xs text-gray-500 truncate cursor-default">
