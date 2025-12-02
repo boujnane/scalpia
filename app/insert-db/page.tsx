@@ -104,7 +104,7 @@ export default function InsertDbPage() {
   
           // Vérifier que le lien est bien Cardmarket et pas Singles
           if (/www\.cardmarket\.com/i.test(link) && /\/Products\/(?!Singles\/)/i.test(link)) {
-            setCardmarketUrl(`${link}?sellerCountry=12&language=2`);
+            setCardmarketUrl(`${link}?language=2`);
             return;
           }
         }
