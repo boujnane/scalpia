@@ -20,9 +20,19 @@ import {
     ExternalLink,
     Package,
     ShoppingBag,
+    TrendingUp,
+    TrendingDown,
+    Minus,
+    LineChart
   } from "lucide-react";
+
   
+
   export const Icons = {
+    TrendingUp: TrendingUp,
+    TrendingDown: TrendingDown,
+    Minus: Minus,
+    LineChart: LineChart,
     user: User,
     note: Notebook,
     spinner: Loader2,
