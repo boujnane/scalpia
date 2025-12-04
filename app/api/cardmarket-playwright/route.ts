@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import puppeteer, { Browser } from "puppeteer";
-import { setTimeout as sleep } from "node:timers/promises";
+import { firefox, Browser } from "playwright";
 
 export async function GET(req: Request) {
   let browser: Browser | null = null;
@@ -16,33 +15,40 @@ export async function GET(req: Request) {
       );
     }
 
-    browser = await puppeteer.launch({
+    // Lancement du navigateur Firefox
+    browser = await firefox.launch({
       headless: false, // true si tu veux pas ouvrir le navigateur
-      args: ["--window-size=1400,900"],
     });
 
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1400, height: 900 });
+    // Création du contexte avec viewport fixe
+    const context = await browser.newContext({
+      viewport: { width: 1400, height: 900 },
+    });
 
+    const page = await context.newPage();
+
+    // Aller sur l'URL
     try {
-      await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
+      await page.goto(url, { waitUntil: "networkidle", timeout: 60000 });
     } catch (gotoErr) {
       throw new Error("Impossible de charger l'URL ou timeout dépassé");
     }
 
-    await sleep(2000);
+    // Petit délai pour laisser les scripts se charger
+    await page.waitForTimeout(2000);
 
     // Accepter les cookies si présent
     try {
       const cookieBtn = await page.$("#onetrust-accept-btn-handler");
       if (cookieBtn) {
         await cookieBtn.click();
-        await sleep(1000);
+        await page.waitForTimeout(1000);
       }
-    } catch (cookieErr) {
+    } catch {
       console.warn("Bouton de cookies non trouvé ou clic impossible.");
     }
 
+    // Sélecteur des offres
     const offerSelector = "div.col-sellerProductInfo.col";
     try {
       await page.waitForSelector(offerSelector, { timeout: 5000 });
@@ -53,28 +59,29 @@ export async function GET(req: Request) {
       );
     }
 
-    const offers = await page.evaluate(() => {
-      const rows = Array.from(document.querySelectorAll("div.col-sellerProductInfo.col"));
-      return rows.map((row) => {
+    // Extraction des offres
+    const offers = await page.$$eval(offerSelector, (rows) =>
+      rows.map((row) => {
         const priceEl = row.querySelector(
           "div.d-flex.align-items-center.justify-content-end > span.color-primary.small.text-end.text-nowrap.fw-bold"
-        ) as HTMLElement | null;
-        const countEl = row.querySelector("span.item-count") as HTMLElement | null;
-        const sellerEl = row.querySelector(".seller-name a") as HTMLElement | null;
-        const commentEl = row.querySelector(".product-comments span") as HTMLElement | null;
+        );
+        const countEl = row.querySelector("span.item-count");
+        const sellerEl = row.querySelector(".seller-name a");
+        const commentEl = row.querySelector(".product-comments span");
 
         return {
-          price: priceEl?.innerText.trim() || null,
-          count: countEl?.innerText.trim() || "1",
-          seller: sellerEl?.innerText.trim() || null,
-          comment: commentEl?.innerText.trim() || null,
+          price: priceEl?.textContent?.trim() || null,
+          count: countEl?.textContent?.trim() || "1",
+          seller: sellerEl?.textContent?.trim() || null,
+          comment: commentEl?.textContent?.trim() || null,
         };
-      });
-    });
+      })
+    );
 
     console.log("Offres trouvées :", offers);
 
-    const htmlRendered = await page.evaluate(() => document.body.innerHTML);
+    // HTML rendu complet
+    const htmlRendered = await page.content();
 
     return NextResponse.json({
       message: "Offres récupérées avec succès !",
@@ -82,7 +89,7 @@ export async function GET(req: Request) {
       html: htmlRendered,
     });
   } catch (err: any) {
-    console.error("Erreur Puppeteer :", err);
+    console.error("Erreur Playwright :", err);
     return NextResponse.json(
       { error: err.message || "Erreur inconnue" },
       { status: 500 }

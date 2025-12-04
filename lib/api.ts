@@ -51,9 +51,3 @@ export const postVintedFilter = async (query: string, items: any[], signal?: Abo
   await handleRes(res);
   return res.json();
 };
-
-export const fetchCardmarketSearch = async (q: string, signal?: AbortSignal) => {
-    const res = await fetch(`/api/cardmarket-search?q=${encodeURIComponent(q)}`, { signal });
-    if (!res.ok) throw new Error("Erreur API");
-    return res.json(); // <-- renvoie un objet JSON directement
-};
