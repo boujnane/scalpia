@@ -13,7 +13,6 @@ import {
   ReferenceLine,
 } from "recharts";
 import { Item } from "@/lib/analyse/types";
-import { buildChartData } from "@/lib/analyse/buildChartData";
 
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,10 +26,39 @@ const palette = [
   "#34D399", "#60A5FA"
 ];
 
+// Version "safe" de buildChartData
+function buildSafeChartData(item: Item) {
+  const EPSILON = 1; // 1 ms pour éviter doublons sur l'axe X
+
+  const pricesData = (item.prices ?? [])
+    .map(p => {
+      const t = new Date(p.date).getTime();
+      return isNaN(t) ? null : { date: t, price: p.price };
+    })
+    .filter(Boolean) as { date: number; price: number }[];
+
+  const releaseTime = new Date(item.releaseDate).getTime();
+  const initialPoint = isNaN(releaseTime)
+    ? null
+    : { date: releaseTime, price: item.retailPrice ?? 0 };
+
+  const fullData = [initialPoint, ...pricesData].filter(Boolean) as { date: number; price: number }[];
+
+  fullData.sort((a, b) => a.date - b.date);
+
+  for (let i = 1; i < fullData.length; i++) {
+    if (fullData[i].date <= fullData[i - 1].date) {
+      fullData[i].date = fullData[i - 1].date + EPSILON;
+    }
+  }
+
+  return fullData;
+}
+
 export default function BlocChart({ items }: { items: Item[] }) {
   const [normalize, setNormalize] = useState(false);
   const [visibleSeries, setVisibleSeries] = useState<Record<string, boolean>>(
-    Object.fromEntries(items.map((i) => [i.name, true]))
+    Object.fromEntries(items.map(i => [i.name, true]))
   );
   const isMobile = useIsMobile();
 
@@ -43,10 +71,14 @@ export default function BlocChart({ items }: { items: Item[] }) {
     return map;
   }, [items]);
 
-  // Toutes les dates
+  // Toutes les dates valides
   const allDates = useMemo(() => {
-    const dates = items.flatMap(i => buildChartData(i).map(p => p.date));
-    return { min: Math.min(...dates), max: Math.max(...dates) };
+    const dates = items.flatMap(i =>
+      buildSafeChartData(i).map(p => p.date)
+    );
+    const min = dates.length ? Math.min(...dates) : Date.now();
+    const max = dates.length ? Math.max(...dates) : Date.now();
+    return { min, max };
   }, [items]);
 
   const [dateRange, setDateRange] = useState<{ start: number; end: number }>({
@@ -60,7 +92,7 @@ export default function BlocChart({ items }: { items: Item[] }) {
       .filter(item => visibleSeries[item.name])
       .map(item => ({
         item,
-        data: buildChartData(item)
+        data: buildSafeChartData(item)
           .filter(p => p.date >= dateRange.start && p.date <= dateRange.end)
       }))
       .filter(({ data }) => data.length > 0);
@@ -69,14 +101,14 @@ export default function BlocChart({ items }: { items: Item[] }) {
   // Domaine X dynamique
   const xDomain = useMemo(() => {
     const allX = filteredData.flatMap(d => d.data.map(p => p.date));
-    if (allX.length === 0) return [dateRange.start, dateRange.end];
+    if (!allX.length) return [dateRange.start, dateRange.end];
     return [Math.min(...allX), Math.max(...allX)];
   }, [filteredData, dateRange]);
 
   // Domaine Y dynamique
   const yDomain = useMemo(() => {
     const allY = filteredData.flatMap(d => d.data.map(p => p.price));
-    if (allY.length === 0) return [0, 100];
+    if (!allY.length) return [0, 100];
     const min = Math.floor(Math.min(...allY) / 10) * 10;
     const max = Math.ceil(Math.max(...allY) / 10) * 10;
     return [min, max];
@@ -241,7 +273,7 @@ export default function BlocChart({ items }: { items: Item[] }) {
         </ResponsiveContainer>
       </div>
 
-      {/* Slider des dates (en bas) */}
+      {/* Slider des dates */}
       <div className="mb-4 flex flex-col gap-2">
         <span className="text-sm text-gray-600">
           Plage de dates : {new Date(dateRange.start).toLocaleDateString()} - {new Date(dateRange.end).toLocaleDateString()}
