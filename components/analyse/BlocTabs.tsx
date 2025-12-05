@@ -36,34 +36,42 @@ export default function BlocTabs({ items }: BlocTabsProps) {
   }
 
   return (
-    <Tabs defaultValue={defaultBloc} className="space-y-4">
+    <Tabs defaultValue={defaultBloc} className="space-y-4 bg-transparent">
       {/* Liste des onglets de blocs */}
-      <TabsList className="gap-3 p-2 flex flex-wrap">
-  {sortedBlocs.map(([bloc]) => (
-    <TabsTrigger
-      key={bloc}
-      value={bloc}
-      className="group p-5 bg-transparent border-none shadow-none rounded-none focus:outline-none"
-    >
-      <img
-        src={blocImages[bloc] ?? "/default.png"}
-        alt={bloc}
-        className="
-          h-10 w-auto object-contain transition-all duration-200
-
-          hover:scale-105
-
-          group-data-[state=active]:scale-115
-          group-data-[state=active]:ring-2
-          group-data-[state=active]:ring-indigo-500
-          group-data-[state=active]:rounded-lg
-        "
-      />
-    </TabsTrigger>
-  ))}
-</TabsList>
-
-
+      <TabsList className="gap-3 p-2 flex flex-wrap bg-transparent">
+        {sortedBlocs.map(([bloc]) => (
+          <TabsTrigger
+            key={bloc}
+            value={bloc}
+            className="
+              group
+              p-5
+              bg-transparent      /* Fond normal transparent */
+              border-none
+              shadow-none
+              focus:outline-none
+              rounded-lg
+              data-[state=active]:bg-transparent
+              data-[state=active]:shadow-none
+              data-[state=active]:border-none
+            "
+          >
+            <img
+              src={blocImages[bloc] ?? "/default.png"}
+              alt={bloc}
+              className="
+                h-10 w-auto object-contain transition-all duration-200
+                hover:scale-105
+                group-data-[state=active]:scale-125
+                group-data-[state=active]:ring-2
+                group-data-[state=active]:ring-indigo-500
+                group-data-[state=active]:rounded-lg
+                group-data-[state=active]:bg-transparent
+              "
+            />
+          </TabsTrigger>
+        ))}
+      </TabsList>
 
 
       {/* Contenu des blocs */}
