@@ -39,24 +39,32 @@ export default function BlocTabs({ items }: BlocTabsProps) {
     <Tabs defaultValue={defaultBloc} className="space-y-4">
       {/* Liste des onglets de blocs */}
       <TabsList className="gap-3 p-2 flex flex-wrap">
-        {sortedBlocs.map(([bloc]) => (
-          <TabsTrigger
-            key={bloc}
-            value={bloc}
-            className="flex items-center justify-center p-2 rounded-md border border-transparent transition-all duration-200
-                      hover:scale-105 hover:shadow-md
-                      data-[state=active]:scale-110
-                      data-[state=active]:shadow-[0_0_15px_rgba(99,102,241,0.6)]
-                      data-[state=active]:border-indigo-500"
-          >
-            <img
-              src={blocImages[bloc] ?? "/default.png"}
-              alt={bloc}
-              className="h-10 w-auto object-contain transition-transform duration-200"
-            />
-          </TabsTrigger>
-        ))}
-      </TabsList>
+  {sortedBlocs.map(([bloc]) => (
+    <TabsTrigger
+      key={bloc}
+      value={bloc}
+      className="group p-5 bg-transparent border-none shadow-none rounded-none focus:outline-none"
+    >
+      <img
+        src={blocImages[bloc] ?? "/default.png"}
+        alt={bloc}
+        className="
+          h-10 w-auto object-contain transition-all duration-200
+
+          hover:scale-105
+
+          group-data-[state=active]:scale-115
+          group-data-[state=active]:ring-2
+          group-data-[state=active]:ring-indigo-500
+          group-data-[state=active]:rounded-lg
+        "
+      />
+    </TabsTrigger>
+  ))}
+</TabsList>
+
+
+
 
       {/* Contenu des blocs */}
       {sortedBlocs.map(([bloc, blocItems]) => (

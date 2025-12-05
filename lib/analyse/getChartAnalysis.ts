@@ -21,7 +21,6 @@ export function getChartAnalysis(item: Item): ChartAnalysis {
         return { data: aggregatedData, lastPrice: lastPrice, trend7d: null };
     }
     
-    // À partir d'ici, lastPoint est garanti non-null et nous avons au moins deux points.
 
     // ✅ lastDate est maintenant basé sur lastPoint (garanti non-null)
     const lastDate = new Date(lastPoint.date); 

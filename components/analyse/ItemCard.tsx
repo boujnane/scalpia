@@ -81,7 +81,9 @@ export default function ItemCard({ item }: { item: Item }) {
                   </span>
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs text-sm sm:text-base">
-                  Les informations affichées proviennent de sources publiques...
+                Les informations affichées proviennent de sources publiques et sont fournies à titre indicatif.
+                Le prix indiqué correspond à l’offre la plus basse connue à ce jour (item scellé, sans défauts) sur le marché secondaire francophone (Vinted, Cardmarket, eBay, etc.).
+                Ces données ne constituent en aucun cas un conseil en investissement ou une recommandation d’achat ou de vente.
                 </TooltipContent>
               </Tooltip>
             </div>

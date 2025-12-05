@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Item } from "@/lib/analyse/types";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import AnalyseTabs from "@/components/analyse/analyseTabs";
+import AnalyseTabs from "@/components/analyse/AnalyseTabs";
 
 export default function AnalysePage() {
   const [items, setItems] = useState<Item[]>([]);
