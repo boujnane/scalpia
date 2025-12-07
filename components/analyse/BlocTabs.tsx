@@ -4,6 +4,7 @@ import { groupByBloc } from "@/lib/analyse/groupByBloc";
 import { blocImages } from "@/lib/analyse/blocImages";
 import BlocChart from "./BlocCharts";
 import ItemsGrid from "./ItemsGrid";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 type BlocTabsProps = {
   items?: Item[];
@@ -81,7 +82,31 @@ export default function BlocTabs({ items }: BlocTabsProps) {
             <div className="p-4 text-gray-500">Aucun item dans ce bloc.</div>
           ) : (
             <>
-              <BlocChart items={blocItems} />
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem 
+                  value="bloc-chart"
+                  className="border rounded-xl shadow-sm bg-card/40 backdrop-blur-sm transition-all"
+                >
+                  <AccordionTrigger
+                    className="
+                      px-4 py-3
+                      text-lg font-medium
+                      hover:no-underline
+                      flex items-center justify-between
+                      [&>svg]:transition-transform
+                      data-[state=open]:[&>svg]:rotate-180
+                    "
+                  >
+                    <span className="flex items-center gap-2">
+                      📊  Historique des variations de prix
+                    </span>
+                  </AccordionTrigger>
+
+                  <AccordionContent className="px-4 pb-4 pt-2">
+                    <BlocChart items={blocItems} />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
               <ItemsGrid items={blocItems} />
             </>
           )}

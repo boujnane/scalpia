@@ -11,3 +11,9 @@ export type Item = {
   retailPrice?: number;
   prices?: PricePoint[];
 };
+
+
+export type Point = { 
+  date: number; // Timestamp (getTime())
+  price: number;
+};

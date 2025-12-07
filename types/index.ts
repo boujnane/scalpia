@@ -11,9 +11,9 @@ export type CleanSoldItem = {
     };
     
     
-    export type FilterResult<T = any> = {
-        valid: T[];
-        rejected: { title: string; reason?: string }[];
-        minPrice?: number | null;
-      };
-      
+export type FilterResult<T = any> = {
+    valid: T[];
+    rejected: { title: string; reason?: string }[];
+    minPrice?: number | null;
+  };
+  
