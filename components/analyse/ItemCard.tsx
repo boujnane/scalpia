@@ -56,7 +56,7 @@ export default function ItemCard({ item }: { item: Item }) {
 
         {/* Date */}
         <Badge variant="secondary" className="mb-4">
-          {item.releaseDate}
+          Date de sortie : {item.releaseDate}
         </Badge>
 
         {/* Bloc Dernier Prix */}
