@@ -20,7 +20,7 @@ import { AnimatePresence, motion } from "framer-motion"
 const navLinks = [
   { 
     name: "Rechercher", 
-    href: "/search", 
+    href: "/rechercher", 
     icon: Icons.LineChart,
     description: "Comparez sur le marché secondaire"
   },

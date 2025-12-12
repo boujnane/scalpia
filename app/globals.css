@@ -9,44 +9,41 @@
   /* Mapping des variables couleurs standards */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  
+
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-  
+
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  
+
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
-  
+
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  
+
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  
+
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  
+
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
 
-  /* NOUVEAU : Couleur Success (Essentiel pour le Trading) */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
-  
+
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  
-  /* Charts : Palette Pokémon Types (Plante, Feu, Eau, Électrik, Psy) */
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  
-  /* Sidebar Specifics */
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -67,123 +64,196 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* --- DÉFINITION DES VALEURS OKLCH --- */
+/* --- DÉFINITION DES VALEURS OKLCH avec fallback hex --- */
 :root {
   --radius: 0.625rem;
 
-  /* BASE CLAIRE : Propre et net */
-  --background: oklch(0.985 0.01 260); /* Blanc très légèrement teinté bleu froid */
-  --foreground: oklch(0.14 0.05 260);  /* Gris sombre bleuté */
+  /* BASE CLAIRE */
+  --background: oklch(0.985 0.01 260);
+  --background: #ffffff;
+  --foreground: oklch(0.14 0.05 260);
+  --foreground: #222222;
 
   /* CARTES */
   --card: oklch(1 0 0);
+  --card: #ffffff; 
   --card-foreground: oklch(0.14 0.05 260);
+  --card-foreground: #222222;
+  
   --popover: oklch(1 0 0);
+  --popover: #ffffff;
   --popover-foreground: oklch(0.14 0.05 260);
+  --popover-foreground: #222222;
 
-  /* PRIMARY : Indigo/Violet (Type Spectre/Psy) - Marque forte */
-  --primary: oklch(0.55 0.25 285); 
+  /* PRIMARY */
+  --primary: oklch(0.55 0.25 285);
+  --primary: #4f46e5; /* FALLBACK */
   --primary-foreground: oklch(0.985 0 0);
+  --primary-foreground: #ffffff; /* FALLBACK */
 
-  /* SECONDARY : Gris doux */
+  /* SECONDARY */
   --secondary: oklch(0.96 0.01 260);
+  --secondary: #e5e7eb;
   --secondary-foreground: oklch(0.21 0.05 260);
+  --secondary-foreground: #374151;
 
-  /* MUTED : Pour les textes discrets */
+  /* MUTED */
   --muted: oklch(0.96 0.01 260);
+  --muted: #f3f4f6;
   --muted-foreground: oklch(0.55 0.05 260);
+  --muted-foreground: #6b7280;
 
-  /* ACCENT : Ambre/Jaune (Type Électrik) - Pour les pops */
-  --accent: oklch(0.88 0.18 85); 
+  /* ACCENT */
+  --accent: oklch(0.88 0.18 85);
+  --accent: #fbbf24;
   --accent-foreground: oklch(0.21 0.05 260);
+  --accent-foreground: #374151;
 
-  /* DESTRUCTIVE : Rouge (Type Feu / Bear Market) */
+  /* DESTRUCTIVE */
   --destructive: oklch(0.63 0.26 29);
+  --destructive: #dc2626;
   --destructive-foreground: oklch(0.985 0 0);
+  --destructive-foreground: #ffffff;
 
-  /* SUCCESS : Vert (Type Plante / Bull Market) - AJOUTÉ */
+  /* SUCCESS */
   --success: oklch(0.65 0.20 145);
+  --success: #22c55e;
   --success-foreground: oklch(0.985 0 0);
+  --success-foreground: #ffffff;
 
   /* BORDERS & INPUTS */
   --border: oklch(0.92 0.02 260);
+  --border: #e5e7eb;
   --input: oklch(0.92 0.02 260);
-  --ring: oklch(0.55 0.25 285); /* Ring suit la primary */
+  --input: #e5e7eb;
+  --ring: oklch(0.55 0.25 285);
+  --ring: #4f46e5;
 
-  /* CHARTS - Types Pokémon */
-  --chart-1: oklch(0.65 0.20 145); /* Plante (Vert) */
-  --chart-2: oklch(0.63 0.26 29);  /* Feu (Rouge) */
-  --chart-3: oklch(0.58 0.20 250); /* Eau (Bleu) */
-  --chart-4: oklch(0.85 0.18 85);  /* Électrik (Jaune) */
-  --chart-5: oklch(0.55 0.25 285); /* Psy (Violet) */
+  /* CHARTS */
+  --chart-1: oklch(0.65 0.20 145);
+  --chart-1: #22c55e;
+  --chart-2: oklch(0.63 0.26 29);
+  --chart-2: #dc2626;
+  --chart-3: oklch(0.58 0.20 250);
+  --chart-3: #3b82f6;
+  --chart-4: oklch(0.85 0.18 85);
+  --chart-4: #facc15;
+  --chart-5: oklch(0.55 0.25 285);
+  --chart-5: #4f46e5;
 
   /* SIDEBAR */
   --sidebar: oklch(0.985 0.01 260);
+  --sidebar: #ffffff;
   --sidebar-foreground: oklch(0.14 0.05 260);
+  --sidebar-foreground: #222222;
   --sidebar-primary: oklch(0.55 0.25 285);
+  --sidebar-primary: #4f46e5;
   --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: oklch(0.96 0.01 260);
+  --sidebar-accent: #e5e7eb;
   --sidebar-accent-foreground: oklch(0.21 0.05 260);
+  --sidebar-accent-foreground: #374151;
   --sidebar-border: oklch(0.92 0.02 260);
+  --sidebar-border: #e5e7eb;
   --sidebar-ring: oklch(0.55 0.25 285);
+  --sidebar-ring: #4f46e5;
+
+  /* DECLARATIONS TEXTE SUPPLÉMENTAIRES (Pour usage direct si nécessaire) */
+  --text-primary: var(--primary);
+  --text-primary-foreground: var(--primary-foreground);
+  --text-success: var(--success);
+  /* etc. */
 }
 
+/* --- THEME DARK --- */
 .dark {
-  /* BASE SOMBRE : Bleu nuit profond (Trading Pro) */
-  --background: oklch(0.12 0.04 260); 
+  --background: oklch(0.12 0.04 260);
+  --background: #1e1e2f;
+
   --foreground: oklch(0.98 0.01 260);
+  --foreground: #ffffff;
 
-  /* CARTES : Légèrement plus claires que le fond */
   --card: oklch(0.15 0.04 260);
+  --card: #2a2a3a;
   --card-foreground: oklch(0.98 0.01 260);
+  --card-foreground: #ffffff;
+
   --popover: oklch(0.15 0.04 260);
+  --popover: #2a2a3a;
   --popover-foreground: oklch(0.98 0.01 260);
+  --popover-foreground: #ffffff;
 
-  /* PRIMARY : Plus lumineux pour ressortir sur le sombre */
-  --primary: oklch(0.70 0.20 285); 
+  --primary: oklch(0.70 0.20 285);
+  --primary: #7c3aed;
   --primary-foreground: oklch(0.12 0.04 260);
+  --primary-foreground: #1e1e2f;
 
-  /* SECONDARY */
   --secondary: oklch(0.20 0.04 260);
+  --secondary: #374151;
   --secondary-foreground: oklch(0.98 0.01 260);
+  --secondary-foreground: #ffffff;
 
-  /* MUTED */
-  --muted: oklch(0.35 0.08 260); 
+  --muted: oklch(0.35 0.08 260);
+  --muted: #4b5563;
   --muted-foreground: oklch(0.70 0.05 260);
+  --muted-foreground: #9ca3af;
 
-  /* ACCENT */
   --accent: oklch(0.25 0.04 260);
+  --accent: #374151;
   --accent-foreground: oklch(0.98 0.01 260);
+  --accent-foreground: #ffffff;
 
-  /* DESTRUCTIVE : Rouge vif */
   --destructive: oklch(0.65 0.24 29);
+  --destructive: #dc2626;
   --destructive-foreground: oklch(0.985 0 0);
+  --destructive-foreground: #ffffff;
 
-  /* SUCCESS : Vert Lumineux */
   --success: oklch(0.72 0.18 145);
+  --success: #22c55e;
   --success-foreground: oklch(0.12 0.04 260);
+  --success-foreground: #1e1e2f;
 
-  /* BORDERS */
   --border: oklch(0.25 0.04 260);
+  --border: #4b5563;
   --input: oklch(0.25 0.04 260);
+  --input: #4b5563;
   --ring: oklch(0.70 0.20 285);
+  --ring: #7c3aed;
 
-  /* CHARTS - Ajustés pour le sombre */
-  --chart-1: oklch(0.72 0.18 145); /* Plante */
-  --chart-2: oklch(0.65 0.24 29);  /* Feu */
-  --chart-3: oklch(0.65 0.20 250); /* Eau */
-  --chart-4: oklch(0.88 0.18 85);  /* Électrik */
-  --chart-5: oklch(0.70 0.20 285); /* Psy */
+  --chart-1: oklch(0.72 0.18 145);
+  --chart-1: #22c55e;
+  --chart-2: oklch(0.65 0.24 29);
+  --chart-2: #dc2626;
+  --chart-3: oklch(0.65 0.20 250);
+  --chart-3: #3b82f6;
+  --chart-4: oklch(0.88 0.18 85);
+  --chart-4: #facc15;
+  --chart-5: oklch(0.70 0.20 285);
+  --chart-5: #7c3aed;
 
-  /* SIDEBAR */
   --sidebar: oklch(0.15 0.04 260);
+  --sidebar: #2a2a3a;
   --sidebar-foreground: oklch(0.98 0.01 260);
+  --sidebar-foreground: #ffffff;
   --sidebar-primary: oklch(0.70 0.20 285);
+  --sidebar-primary: #7c3aed;
   --sidebar-primary-foreground: oklch(0.12 0.04 260);
+  --sidebar-primary-foreground: #1e1e2f;
   --sidebar-accent: oklch(0.20 0.04 260);
+  --sidebar-accent: #4b5563;
   --sidebar-accent-foreground: oklch(0.98 0.01 260);
+  --sidebar-accent-foreground: #ffffff;
   --sidebar-border: oklch(0.25 0.04 260);
+  --sidebar-border: #4b5563;
   --sidebar-ring: oklch(0.70 0.20 285);
+  --sidebar-ring: #7c3aed;
+
+  /* DECLARATIONS TEXTE SUPPLÉMENTAIRES (Pour usage direct si nécessaire) */
+  --text-primary: var(--primary);
+  --text-primary-foreground: var(--primary-foreground);
+  --text-success: var(--success);
+  /* etc. */
 }
 
 @layer base {
