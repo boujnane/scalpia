@@ -208,6 +208,7 @@ export default function InsertDbPage() {
     setCurrentError(null);
     setVintedResults(null);
     setCardmarketUrl(null);
+    window.scrollTo(0, 0);
   };
 
   const handleDeleteItem = async () => {
@@ -274,7 +275,7 @@ export default function InsertDbPage() {
           {/* Utilisation de text-muted-foreground */}
           <div className="text-muted-foreground text-sm">
             Item {currentIndex + 1} / {items.length} —{" "}
-            <span className="text-muted">
+            <span className="text-muted-foreground">
               restants : {items.length - currentIndex - 1}
             </span>
           </div>
@@ -312,6 +313,7 @@ export default function InsertDbPage() {
                     >
                       {cardmarketUrl}
                     </a>
+                    <br></br>
                     <CardmarketButton
                       url={cardmarketUrl}
                       onSelectPrice={(price) => setCurrentMinPrice(price)}
@@ -364,11 +366,10 @@ export default function InsertDbPage() {
                     <div className="text-sm text-destructive">{currentError}</div>
                   )}
 
-                  {currentMinPrice !== null && !currentError && (
-                    <div 
-                      // Thème : Utilisation de bg-success/10 et border-success (pour le prix validé)
-                      className="flex items-center gap-3 text-base font-semibold bg-success/10 border-l-4 border-success p-3 rounded-md shadow-md"
-                    >
+                    {currentMinPrice !== null && !currentError && (
+                      <div 
+                        className="flex items-center gap-3 text-base font-semibold bg-success-light border-l-4 border-success p-3 rounded-md shadow-md"
+                      >
                       <span className="text-success">Prix minimal trouvé :</span>
                       {editingPrice ? (
                         <input

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TCGTrade | Market Analytics",
+  title: "Pokéindex | Market Analytics",
   description: "Analysez et tradez vos cartes Pokémon comme un pro.",
 };
 

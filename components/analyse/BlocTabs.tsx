@@ -44,7 +44,7 @@ export default function BlocTabs({ items }: BlocTabsProps) {
     <Tabs defaultValue={defaultBloc} className="space-y-4 bg-transparent">
       
       {/* Liste des onglets de blocs (Neutralisée) */}
-      <TabsList className="gap-3 p-2 flex flex-wrap bg-transparent">
+      <TabsList className="gap-3 p-2 flex flex-wrap bg-transparent pt-6 sm:pt-2">
         {sortedBlocs.map(([bloc]) => (
           <TabsTrigger
             key={bloc}
@@ -85,7 +85,7 @@ export default function BlocTabs({ items }: BlocTabsProps) {
 
       {/* Contenu des blocs */}
       {sortedBlocs.map(([bloc, blocItems]) => (
-        <TabsContent key={bloc} value={bloc} className="space-y-6 pt-4">
+        <TabsContent key={bloc} value={bloc} className="space-y-6 pt-4 px-4 sm:px-0">
           {blocItems.length === 0 ? (
             // Application du style thématique
             <div className="p-4 text-muted-foreground">Aucun item dans ce bloc.</div>

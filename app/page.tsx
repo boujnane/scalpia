@@ -100,7 +100,7 @@ export default function HomePage() {
                     <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] tracking-tight">
                         <span className="block">Maîtrisez le marché</span>
                         <span className="block mt-2 sm:mt-3 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent animate-gradient">
-                        Pokémon secondaire
+                        secondaire Pokémon
                         </span>
                     </h1>
                     
@@ -141,7 +141,7 @@ export default function HomePage() {
                   asChild
                   size="lg" 
                   className="h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-semibold rounded-xl
-                    shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40
+                    shadow-primary-light hover-shadow-primary
                     bg-gradient-to-r from-primary to-primary/90
                     transition-all duration-300 hover:scale-105 w-full sm:w-auto"
                 >
@@ -150,7 +150,6 @@ export default function HomePage() {
                     <Icons.search className="ml-2 h-4 sm:h-5 w-4 sm:w-5 transition-transform group-hover:scale-110" />
                   </Link>
                 </Button>
-                
                 <Button 
                   asChild
                   variant="outline" 
@@ -168,7 +167,7 @@ export default function HomePage() {
 
               {/* Trust indicators */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-6 pt-4 sm:pt-6">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-light border border-success-light">
                   <Icons.zap className="h-3 w-3 text-success" />
                   <span className="text-xs font-semibold text-success">API TCGdex Officielle</span>
                 </div>
@@ -176,7 +175,7 @@ export default function HomePage() {
                   <p className="text-sm font-semibold">Données en temps réel</p>
                   <p className="text-xs text-muted-foreground">Mises à jour continues</p>
                 </div>
-              </div>
+            </div>
             </motion.div>
 
             {/* Visual mockup pour les grands écrans (lg:block) - NON MODIFIÉ */}
@@ -531,7 +530,7 @@ export default function HomePage() {
             </nav>
 
             <p className="text-xs sm:text-sm text-muted-foreground text-center md:text-left">
-              © {new Date().getFullYear()} Pokéindex · Powered by TCGdex
+              © {new Date().getFullYear()} Pokéindex · Powered by Bubo
             </p>
           </div>
         </div>

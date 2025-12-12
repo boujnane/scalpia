@@ -65,7 +65,9 @@ export const PriceChartDisplay = ({ pricing }: PriceChartDisplayProps) => {
            </p>
         </div>
         
-        <div className={`px-2 py-1 rounded text-xs font-bold flex items-center ${isUp ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+        <div className={`px-2 py-1 rounded text-xs font-bold flex items-center ${
+          isUp ? 'badge-secondary' : 'badge-destructive'
+        }`}>
           <TrendIcon className="w-4 h-4 mr-1"/>
           {isUp ? 'HAUSSE' : 'BAISSE'}
         </div>

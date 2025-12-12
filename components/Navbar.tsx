@@ -13,7 +13,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
-import { Separator } from "@/components/ui/separator"
 import { useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
@@ -252,20 +251,15 @@ export function Navbar() {
         {/* ACTIONS DROITE */}
         <div className="flex items-center gap-2 md:gap-3">
 
-          {/* Market Indicator avec pulse */}
-          <div className={`
-            hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full 
-            bg-success/10 border border-success/20 backdrop-blur-sm
-            transition-all duration-300 hover:bg-success/15 hover:scale-105
-          `}>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
-            </span>
-            <span className="text-[11px] font-bold text-success uppercase tracking-wider">
-              Market Open
-            </span>
-          </div>
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100/50 border border-emerald-200 backdrop-blur-sm transition-all duration-300 hover:scale-105">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+          </span>
+          <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">
+            Index à jour
+          </span>
+        </div>
 
           {/* Quick Search */}
           <Button 

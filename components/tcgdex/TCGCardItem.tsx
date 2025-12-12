@@ -59,7 +59,7 @@ export const TCGCardItem = ({ card }: { card: TCGCardResult }) => {
                     {card.pricing && (
                         <>
                             <div className="flex items-center gap-2 mb-3">
-                                <div className="p-1 bg-success/10 rounded-full">
+                                <div className="p-1 bg-success-light rounded-full">
                                     <Euro className="w-4 h-4 text-success"/> 
                                 </div>
                                 <span className="font-bold text-sm text-foreground">Cardmarket Trend</span>
