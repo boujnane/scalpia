@@ -1,49 +1,30 @@
-// TCGdexSearchPage.tsx
 'use client'
 
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, useState } from 'react'
+import { useState } from 'react'
 import { fetchTCGSearch } from '@/lib/api'
-// 💡 Importation des types créés dans types.ts
-
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { TCGdexCardExtended } from '@/lib/tcgdex/types'
 import { TCGCardItem } from '@/components/tcgdex/TCGCardItem'
+import { Search, Loader2, AlertCircle } from 'lucide-react'
 
-
-// 💡 NOTE: L'interface TCGCardResult est maintenant TCGdexCardExtended
-// Nous la ré-aliasions ici pour la simplicité, mais l'interface TCGdexCardExtended
-// est utilisée pour garantir que 'pricing' est présent.
-
-// On utilise TCGdexCardExtended (le type importé) pour les résultats
 type TCGCardResult = TCGdexCardExtended;
-
-
-/**
- * Reconstruit l'URL de l'asset (Logo ou Symbole) avec l'extension recommandée.
- */
-const getAssetUrl = (baseUrl: string | null | undefined, extension: 'png' | 'webp' = 'webp'): string | null => {
-    if (!baseUrl) return null;
-    return `${baseUrl}.${extension}`;
-};
-
 
 export default function TCGdexSearchPage() {
     const [query, setQuery] = useState("")
-    // Utilise TCGCardResult (alias de TCGdexCardExtended)
     const [results, setResults] = useState<TCGCardResult[]>([]) 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
   
     const search = async () => {
+      if (!query.trim()) return;
       setLoading(true)
       setError(null)
       try {
-          // fetchTCGSearch renvoie TCGCardResult[] qui inclut maintenant 'pricing'
           const cards: TCGCardResult[] = await fetchTCGSearch(query) 
           setResults(cards)
       } catch (err: any) {
-          setError(`Erreur lors de la recherche: ${err.message}`)
+          setError(`Oups ! ${err.message}`)
           setResults([])
       } finally {
           setLoading(false)
@@ -51,42 +32,61 @@ export default function TCGdexSearchPage() {
     }
   
     return (
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold">Recherche TCGdex</h1>
+      <div className="p-6 max-w-7xl mx-auto space-y-8 min-h-screen">
+        {/* En-tête avec Branding */}
+        <div className="flex flex-col items-center space-y-2 text-center">
+            <h1 className="text-4xl font-extrabold tracking-tight text-primary">
+                TCG<span className="text-foreground">dex</span> Explorer
+            </h1>
+            <p className="text-muted-foreground max-w-lg">
+                Analysez les prix du marché et trouvez les meilleures cartes pour votre collection.
+            </p>
+        </div>
   
-        <div className="flex gap-2">
-          <Input
-            placeholder="Ex: pikachu, charizard..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { 
-              if (e.key === 'Enter' && query.trim() !== '') {
-                search();
-              }
-            }}
-          />
-          <Button onClick={search} disabled={loading || query.trim() === ''}>
-            {loading ? "Recherche..." : "Rechercher"}
+        {/* Barre de recherche */}
+        <div className="flex gap-3 max-w-xl mx-auto relative">
+          <div className="relative flex-grow">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-9 h-12 text-lg shadow-sm focus-visible:ring-primary/50"
+              placeholder="Rechercher (ex: Pikachu, Charizard...)"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { 
+                if (e.key === 'Enter') search();
+              }}
+            />
+          </div>
+          <Button 
+            onClick={search} 
+            disabled={loading || !query.trim()}
+            size="lg"
+            className="h-12 px-6 font-bold shadow-md hover:shadow-lg transition-all"
+          >
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Rechercher"}
           </Button>
         </div>
         
+        {/* Gestion d'erreur stylisée */}
         {error && (
-          <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded" role="alert">
-            <p>{error}</p>
+          <div className="p-4 bg-destructive/15 border border-destructive/20 text-destructive rounded-lg flex items-center justify-center max-w-xl mx-auto animate-in fade-in slide-in-from-top-2">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            <p className="font-medium">{error}</p>
           </div>
         )}
   
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* 💡 Utilisation du composant TCGCardItem importé */}
+        {/* Grille de résultats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
           {results.map((card) => (
               <TCGCardItem key={card.id} card={card} />
           ))}
   
-          {/* Message si pas de résultats */}
+          {/* État vide */}
           {results.length === 0 && !loading && query.trim() !== '' && !error && (
-             <p className="text-center text-gray-500 col-span-full">
-              Aucune carte trouvée pour "{query}".
-            </p>
+             <div className="col-span-full py-12 text-center text-muted-foreground">
+                <p className="text-lg">Aucune carte trouvée pour "<span className="text-foreground font-bold">{query}</span>".</p>
+                <p className="text-sm">Essayez avec le nom anglais si le français ne donne rien.</p>
+            </div>
           )}
         </div>
       </div>

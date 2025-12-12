@@ -5,6 +5,7 @@ import { Item } from "@/lib/analyse/types";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AnalyseTabs from "@/components/analyse/AnalyseTabs";
+import { Icons } from "@/components/icons"; // Ajouté pour le spinner
 
 export default function AnalysePage() {
   const [items, setItems] = useState<Item[]>([]);
@@ -30,9 +31,11 @@ export default function AnalysePage() {
   }, []);
 
   if (loading) {
+    // Application du thème au chargement
     return (
-      <div className="p-6 text-center text-lg text-gray-600">
-        Chargement des items...
+      <div className="p-6 text-center text-lg text-muted-foreground flex flex-col items-center justify-center space-y-2">
+        <Icons.spinner className="w-6 h-6 animate-spin text-primary" />
+        <p>Chargement des items...</p>
       </div>
     );
   }
@@ -40,13 +43,14 @@ export default function AnalysePage() {
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
       <header className="mb-4">
-        <h1 className="text-3xl font-bold">Analyse des Items</h1>
-        <p className="text-gray-500 mt-1">
+        {/* Application du thème au titre */}
+        <h1 className="text-3xl font-bold text-foreground">Analyse des Items</h1>
+        <p className="text-muted-foreground mt-1">
           Visualisez les prix et l’évolution des différents types d’items par bloc.
         </p>
       </header>
 
-      <section className="bg-white p-4 rounded-lg shadow-md">
+      <section className="bg-card p-4 rounded-xl shadow-lg border border-border">
         <AnalyseTabs items={items} />
       </section>
     </div>

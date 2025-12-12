@@ -25,9 +25,9 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
   }));
 
   if (isMobile) {
-    // Composant pour mobile : accordéon
+    // Composant pour mobile : accordéon (Applique les styles Shadcn par défaut qui utilisent le thème)
     return (
-      <Accordion type="multiple" className="space-y-2">
+      <Accordion type="multiple" className="space-y-2 w-full">
         {tabs.map((tab) => (
           <AccordionItem key={tab.label} value={tab.label}>
             <AccordionTrigger>{tab.label}</AccordionTrigger>
@@ -40,15 +40,19 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
     );
   }
 
-  // Composant pour desktop : tabs classiques
+  // Composant pour desktop : tabs classiques (Applique les styles Shadcn par défaut qui utilisent le thème)
   return (
     <Tabs defaultValue={tabs[0].label}>
-      <TabsList className="overflow-x-auto flex-nowrap gap-2 scrollbar-none">
+      {/* Utilisation de bg-muted/50 pour le conteneur des tabs */}
+      <TabsList className="overflow-x-auto flex-nowrap gap-2 scrollbar-none bg-muted/50 rounded-lg">
         {tabs.map((tab) => (
           <TabsTrigger
             key={tab.label}
             value={tab.label}
-            className="px-2 py-1 text-sm md:text-base flex-shrink-0"
+            className="
+              px-3 py-1.5 text-sm md:text-base flex-shrink-0
+              data-[state=active]:bg-background data-[state=active]:shadow-md
+            "
           >
             {tab.label}
           </TabsTrigger>
@@ -59,7 +63,7 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
         <TabsContent
           key={tab.label}
           value={tab.label}
-          className="w-full max-w-full overflow-x-auto"
+          className="w-full max-w-full overflow-x-auto pt-4"
         >
           <BlocTabs items={tab.data} />
         </TabsContent>

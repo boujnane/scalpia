@@ -1,8 +1,8 @@
 // file: app/page.tsx
 'use client';
-import HomePage from '@/components/HomePage';
+import SearchPage from '@/components/SearchPage';
 
 
 export default function Page() {
-return <HomePage />;
+return <SearchPage />;
 }

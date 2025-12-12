@@ -39,6 +39,7 @@ export default function CardmarketButton({ url, onSelectPrice }: Props) {
       const data = await res.json();
 
       if (res.ok && data.offers) {
+        // Exclut la première offre (souvent une offre groupée ou spéciale)
         const filteredOffers = data.offers.slice(1).slice(0, 15);
         setOffers(filteredOffers);
         setMessage(`${filteredOffers.length} offres trouvées sur Cardmarket.`);
@@ -58,24 +59,27 @@ export default function CardmarketButton({ url, onSelectPrice }: Props) {
         onClick={handleClick}
         disabled={loading}
         className="w-fit"
-        variant="default"
+        variant="default" // Utilisation de la variante thématique par défaut
       >
         {loading && <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />}
         {loading ? "Chargement…" : "Charger les offres Cardmarket"}
       </Button>
 
-      {message && <p className="text-sm text-gray-600">{message}</p>}
+      {/* Utilisation de text-muted-foreground */}
+      {message && <p className="text-sm text-muted-foreground">{message}</p>}
 
       {offers.length > 0 && (
         <>
-          <Separator />
+          <Separator className="bg-border" />
           <div className="flex gap-4 overflow-x-auto py-2">
             {offers.map((offer, i) => (
               <Card
               key={i}
-              className="flex-shrink-0 w-[220px] hover:shadow-md transition rounded-xl border cursor-pointer"
+              // Utilisation de bg-card, border-border et hover:shadow-lg
+              className="flex-shrink-0 w-[220px] bg-card hover:shadow-lg transition rounded-xl border border-border cursor-pointer"
               onClick={() => {
                 if (offer.price && onSelectPrice) {
+                  // Nettoyage du prix pour extraire une valeur numérique
                   const numericPrice = parseFloat(
                     offer.price.replace(',', '.').replace(/[^\d.]/g, '')
                   );
@@ -87,34 +91,42 @@ export default function CardmarketButton({ url, onSelectPrice }: Props) {
             >
                 <CardContent className="flex flex-col gap-3 p-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-xl font-semibold text-indigo-600">
+                    {/* Utilisation de text-primary pour le prix */}
+                    <span className="text-xl font-semibold text-primary">
                       {offer.price ? `${offer.price}` : "—"}
                     </span>
-                    <span className="text-xs text-gray-500">
+                    {/* Utilisation de text-muted-foreground */}
+                    <span className="text-xs text-muted-foreground">
                       {offer.count} dispo
                     </span>
                   </div>
 
+                  {/* Vendeur */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="text-sm text-gray-700 truncate cursor-default">
-                        <Icons.user className="inline h-3 w-3 mr-1" />
+                      {/* Utilisation de text-foreground */}
+                      <span className="text-sm text-foreground truncate cursor-default">
+                        <Icons.user className="inline h-3 w-3 mr-1 text-primary" />
                         {offer.seller || "—"}
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent side="top">
+                    {/* Utilisation de bg-popover/border-border */}
+                    <TooltipContent side="top" className="bg-popover border-border text-popover-foreground">
                       {offer.seller || "Vendeur inconnu"}
                     </TooltipContent>
                   </Tooltip>
 
+                  {/* Commentaire */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="text-xs text-gray-500 truncate cursor-default">
-                        <Icons.note className="inline h-3 w-3 mr-1" />
+                      {/* Utilisation de text-muted-foreground */}
+                      <span className="text-xs text-muted-foreground truncate cursor-default">
+                        <Icons.note className="inline h-3 w-3 mr-1 text-primary" />
                         {offer.comment || "—"}
                       </span>
                     </TooltipTrigger>
-                    <TooltipContent side="top">
+                    {/* Utilisation de bg-popover/border-border */}
+                    <TooltipContent side="top" className="bg-popover border-border text-popover-foreground">
                       {offer.comment || "Aucun commentaire"}
                     </TooltipContent>
                   </Tooltip>

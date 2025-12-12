@@ -1,103 +1,117 @@
 'use client'
 
 import { TCGdexCardExtended } from '@/lib/tcgdex/types'
-import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, YAxis } from 'recharts'
+import { TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react'
 
 interface PriceChartDisplayProps {
   pricing: TCGdexCardExtended['pricing']
 }
 
-// Fonction pour transformer les moyennes agrégées en une série chronologique simple
-const transformDataForTrend = (cardmarket: NonNullable<TCGdexCardExtended['pricing']>['cardmarket']) => {
-  const data = []
-  
-  // Point 1: Le point de départ le plus éloigné disponible (Moyenne 30 jours)
-  if (cardmarket?.avg30 != null) {
-    data.push({ name: 'J-30', price: cardmarket.avg30 })
-  }
-  
-  // Point 2: Le point intermédiaire (Moyenne 7 jours)
-  if (cardmarket?.avg7 != null) {
-    // Si on a J-30, on s'assure que J-7 vient après. Si J-30 n'existe pas, J-7 est le point de départ.
-    if (data.length === 0 || cardmarket.avg7 !== cardmarket.avg30) {
-        data.push({ name: 'J-7', price: cardmarket.avg7 })
-    }
-  }
-
-  // Point 3: Le prix le plus récent (Tendance ou Moyenne actuelle)
-  const currentPrice = cardmarket?.trend ?? cardmarket?.avg;
-  if (currentPrice != null) {
-    // Éviter de répéter le dernier point si avg/trend est identique à avg7
-    if (data.length === 0 || data[data.length - 1].price !== currentPrice) {
-        data.push({ name: 'Actuel', price: currentPrice })
-    }
-  }
-
-  return data.filter(d => d.price != null && d.price > 0)
+const pickAvg = (cm: any, key: string) => {
+  if (!cm) return undefined
+  const nonFoil = cm[key]
+  const foil = cm[`${key}-holo`]
+  const values: number[] = []
+  if (typeof nonFoil === 'number' && nonFoil > 0) values.push(nonFoil)
+  if (typeof foil === 'number' && foil > 0) values.push(foil)
+  if (!values.length) return undefined
+  return values.reduce((a, b) => a + b, 0) / values.length
 }
 
+const transformData = (cm: any) => {
+  const data: Array<{ name: string; price: number }> = []
+  const avg30 = pickAvg(cm, 'avg30')
+  const avg7 = pickAvg(cm, 'avg7')
+  const avg1 = pickAvg(cm, 'avg1')
+
+  if (typeof avg30 === 'number') data.push({ name: 'J-30', price: avg30 })
+  if (typeof avg7 === 'number' && avg7 !== avg30) data.push({ name: 'J-7', price: avg7 })
+  if (typeof avg1 === 'number' && avg1 !== avg7) data.push({ name: 'J-1', price: avg1 })
+
+  return data
+}
+
+const computeTrend = (data: Array<{ name: string; price: number }>) => {
+  if (data.length < 2) return { isUp: true }
+  const first = data[0].price
+  const last = data[data.length - 1].price
+  return { isUp: last >= first }
+}
 
 export const PriceChartDisplay = ({ pricing }: PriceChartDisplayProps) => {
-  const cardmarket = pricing?.cardmarket
+  const cm = pricing?.cardmarket
+  if (!cm) return (
+    <p className="text-xs text-muted-foreground italic flex items-center">
+      <DollarSign className="w-3 h-3 mr-1" /> Prix non disponibles.
+    </p>
+  )
 
-  if (!cardmarket) {
-    return <p className="text-xs text-gray-500 italic flex items-center"><DollarSign className="w-3 h-3 mr-1"/> Prix non disponibles.</p>
-  }
-
-  const data = transformDataForTrend(cardmarket)
-  const lastPrice = data.length > 0 ? data[data.length - 1].price : null
-  const firstPrice = data.length > 1 ? data[0].price : lastPrice
-
-  // Logique pour la couleur de tendance (UX/UI)
-  const isUpward = lastPrice != null && firstPrice != null ? lastPrice >= firstPrice : true
-  const strokeColor = isUpward ? '#16a34a' : '#ef4444' // vert-600 ou rouge-500
-  const TrendIcon = isUpward ? TrendingUp : TrendingDown
+  const data = transformData(cm)
+  const { isUp } = computeTrend(data)
+  
+  // Utilisation des variables CSS du thème pour le graphique
+  const strokeColor = isUp ? 'var(--color-success)' : 'var(--color-destructive)'
+  const TrendIcon = isUp ? TrendingUp : TrendingDown
+  const lastPrice = data.length ? data[data.length - 1].price : null
 
   return (
-    <div className="space-y-3 p-2 border rounded-lg bg-gray-50">
+    <div className="space-y-3 p-3 border border-border rounded-lg bg-muted/30">
       <div className="flex items-center justify-between">
-        {/* Affichage de la valeur actuelle et de la tendance */}
-        <p className={`text-lg font-extrabold ${isUpward ? 'text-green-700' : 'text-red-700'} flex items-center`}>
-            {lastPrice?.toFixed(2) ?? 'N/A'} €
-        </p>
-        <div className={`text-sm font-semibold ${isUpward ? 'text-green-600' : 'text-red-600'} flex items-center`}>
-            <TrendIcon className="w-4 h-4 mr-1"/>
-            {isUpward ? 'Hausse' : 'Baisse'} 
-            <br></br>(30 derniers j)
+        <div>
+           <p className="text-xs text-muted-foreground font-medium mb-1">Dernier prix connu</p>
+           <p className={`text-xl font-extrabold ${isUp ? 'text-success' : 'text-destructive'} flex items-center`}>
+            {lastPrice != null ? `${lastPrice.toFixed(2)} €` : 'N/A'}
+           </p>
+        </div>
+        
+        <div className={`px-2 py-1 rounded text-xs font-bold flex items-center ${isUp ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}`}>
+          <TrendIcon className="w-4 h-4 mr-1"/>
+          {isUp ? 'HAUSSE' : 'BAISSE'}
         </div>
       </div>
 
-      {/* Graphique en ligne (Sparkline) */}
-      {data.length > 1 ? ( // Il faut au moins 2 points pour une ligne
-        <div className="h-24 w-full -mx-2 -mb-2"> {/* On utilise des marges négatives pour que le graphique soit bien bord à bord en bas */}
+      {data.length > 1 ? (
+        <div className="h-24 w-full -mx-2">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              {/* Tooltip pour afficher le prix au survol */}
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-                    border: '1px solid #ccc', 
-                    fontSize: '12px' 
+                    backgroundColor: 'var(--color-popover)', 
+                    borderColor: 'var(--color-border)', 
+                    color: 'var(--color-popover-foreground)',
+                    borderRadius: 'var(--radius)',
+                    fontSize: '12px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                 }}
-                formatter={(value, name, props) => [`${parseFloat(value as string).toFixed(2)} €`, props.payload.name]}
+                itemStyle={{ color: 'var(--color-foreground)' }}
+                formatter={(value) => [`${parseFloat(value as string).toFixed(2)} €`, 'Prix']}
+                labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '0.25rem' }}
               />
-              {/* XAxis affichant les points de repère (J-30, J-7, Actuel) */}
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} interval="preserveStartEnd" height={20} padding={{ left: 10, right: 10 }}/>
-              {/* YAxis est retiré pour un look Sparkline épuré */}
+              <XAxis 
+                dataKey="name" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }} 
+                interval="preserveStartEnd" 
+                height={20}
+              />
               <Line 
                 type="monotone" 
                 dataKey="price" 
                 stroke={strokeColor} 
-                strokeWidth={2}
-                dot={false} // Pas de points sauf le dernier
-                name="Prix (€)"
+                strokeWidth={2.5} 
+                dot={{ r: 3, fill: strokeColor, strokeWidth: 0 }}
+                activeDot={{ r: 5, strokeWidth: 0 }}
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
       ) : (
-        <p className="text-xs text-gray-500 italic text-center">Graphique non disponible (moins de 2 points de données).</p>
+        <div className="flex flex-col items-center justify-center h-24 text-muted-foreground">
+            <Activity className="w-6 h-6 mb-1 opacity-20"/>
+            <p className="text-xs italic">Données insuffisantes</p>
+        </div>
       )}
     </div>
   )

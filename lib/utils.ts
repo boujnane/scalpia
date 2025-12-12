@@ -40,11 +40,18 @@ export const getCardImageUrl = (
   lang: 'fr' | 'en' = 'fr'
 ): string => {
   // id tronqué = partie alphabétique avant le chiffre → dossier principal
-  const idTronque = id.match(/^[a-z]+/i)?.[0] ?? ''
+  let idTronque = id.match(/^[a-z]+/i)?.[0] ?? ''
+
   // idSet = partie avant le tiret
   const idSet = id.split('-')[0]
 
+  // 🔹 Condition spéciale : si idTronque == "svp" ET idSet == "svp" alors idTronque devient "sv"
+  if (idTronque.toLowerCase() === 'svp' && idSet.toLowerCase() === 'svp') {
+    idTronque = 'sv'
+  }
+
   const url = `https://assets.tcgdex.net/${lang}/${idTronque}/${idSet}/${localId}/high.${ext}`
-  console.log(url)  // 🔹 Log de l'URL générée
+
+  console.log(url)
   return url
 }

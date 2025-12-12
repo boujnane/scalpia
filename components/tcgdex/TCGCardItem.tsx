@@ -1,114 +1,114 @@
-// components/TCGCardItem.tsx
 'use client'
 
 import { TCGdexCardExtended } from '@/lib/tcgdex/types'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator" 
-// Assurez-vous d'avoir les fonctions utilitaires nécessaires
 import { getCardImageUrl } from '@/lib/utils' 
-// 💡 IMPORTANT : Assurez-vous d'importer votre nouveau composant de graphique
-import { PriceChartDisplay } from './PriceChartDisplay' // Ajustez le chemin si nécessaire
-import { DollarSign, Euro, MapPin } from 'lucide-react'
-
+import { PriceChartDisplay } from './PriceChartDisplay'
+import { DollarSign, Euro, MapPin, Sparkles } from 'lucide-react'
 
 type TCGCardResult = TCGdexCardExtended;
 
-/**
- * Reconstruit l'URL de l'asset (Logo ou Symbole) avec l'extension recommandée.
- */
 const getAssetUrl = (baseUrl: string | null | undefined, extension: 'png' | 'webp' = 'webp'): string | null => {
     if (!baseUrl) return null;
     return `${baseUrl}.${extension}`;
 };
 
-
 export const TCGCardItem = ({ card }: { card: TCGCardResult }) => {
     const setSymbolUrl = getAssetUrl(card.set?.symbol);
 
     return (
-        // Interaction visuelle au survol (UX/UI Moderne)
-        <Card key={card.id} className="overflow-hidden flex flex-col transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer">
-            <CardHeader className="p-3 pb-0 flex flex-row justify-between items-start space-x-2">
-                <div>
-                    <CardTitle className="text-lg truncate font-extrabold text-slate-800">
+        <Card key={card.id} className="group overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/50 cursor-pointer bg-card">
+            <CardHeader className="p-4 pb-2 flex flex-row justify-between items-start space-x-2">
+                <div className="overflow-hidden">
+                    <CardTitle className="text-lg truncate font-extrabold text-primary group-hover:text-indigo-500 transition-colors">
                         {card.name} 
                     </CardTitle>
-                    <p className="text-xs text-gray-500">
-                        {card.rarity} - {card.category} {card.stage ? `(${card.stage})` : ''}
+                    <p className="text-xs text-muted-foreground font-medium mt-1 flex items-center gap-2">
+                        <span className="bg-secondary px-1.5 py-0.5 rounded text-secondary-foreground">{card.rarity}</span>
+                        <span>{card.category}</span>
                     </p>
                 </div>
                 {setSymbolUrl && (
-                    <img src={setSymbolUrl} alt={`${card.set.name} Symbol`} className="w-8 h-8 object-contain flex-shrink-0" />
+                    <div className="bg-white/50 p-1 rounded-full dark:bg-white/10">
+                        <img src={setSymbolUrl} alt={`${card.set.name} Symbol`} className="w-6 h-6 object-contain" />
+                    </div>
                 )}
             </CardHeader>
 
-            <CardContent className="flex flex-col gap-3 p-3 pt-2 flex-grow">
-                {/* Image de la carte */}
-                <div className="flex justify-center items-center">
+            <CardContent className="flex flex-col gap-4 p-4 pt-2 flex-grow">
+                {/* Image de la carte avec effet Glow au survol */}
+                <div className="flex justify-center items-center py-2 relative">
+                    <div className="absolute inset-0 bg-primary/5 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
                     <img
                         src={getCardImageUrl(card.id, card.localId)}
                         alt={card.name}
-                        className="rounded max-h-72 object-contain shadow-xl border-4 border-gray-100"
+                        className="rounded z-10 max-h-64 object-contain drop-shadow-md group-hover:drop-shadow-2xl transition-all"
+                        loading="lazy"
                     />
                 </div>
-
-                <Separator />
                 
-                {/* 1. Description de la carte (Remontée) */}
                 {card.description && (
-                    <blockquote className="text-xs italic text-gray-600 mb-1 border-l-2 pl-2">
-                        {card.description}
-                    </blockquote>
+                    <div className="text-xs text-muted-foreground italic border-l-2 border-primary/20 pl-3 py-1">
+                        "{card.description}"
+                    </div>
                 )}
                 
-                <Separator />
-
-                {/* 2. Bloc de Prix - Cardmarket (avec Graphique) */}
-                {card.pricing && (
-                    <>
-                        <h3 className="text-base font-bold text-slate-700 flex items-center mb-2">
-                            <Euro className="w-4 h-4 mr-1 text-green-700"/> Cardmarket (EUR)
-                        </h3>
-                        <PriceChartDisplay pricing={card.pricing} />
-                        
-                        {/* 3. Bloc de Prix - TCGPlayer (Affichage brut en dessous) */}
-                        {card.pricing.tcgplayer && (
-                            <div className="text-sm space-y-1 mt-4">
-                                <p className="font-semibold text-blue-800 flex items-center">
-                                    <DollarSign className="w-4 h-4 mr-1 text-blue-700"/> TCGPlayer (USD)
-                                </p>
-                                {Object.entries(card.pricing.tcgplayer).map(([variantName, variant]) => {
-                                    if (!variant || typeof variant !== 'object') return null;
-                                    const v = variant as any;
-                                    if (v.marketPrice == null) return null;
-                                    return (
-                                        <p key={variantName} className="text-xs text-gray-700 ml-2">
-                                            - {variantName} : <span className="font-mono text-blue-600">${v.marketPrice.toFixed(2)}</span>
-                                        </p>
-                                    )
-                                })}
+                {/* Section Trading */}
+                <div className="bg-muted/30 -mx-4 px-4 py-3 border-y border-border">
+                    {card.pricing && (
+                        <>
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="p-1 bg-success/10 rounded-full">
+                                    <Euro className="w-4 h-4 text-success"/> 
+                                </div>
+                                <span className="font-bold text-sm text-foreground">Cardmarket Trend</span>
                             </div>
-                        )}
-                        {(card.pricing.tcgplayer || card.pricing.cardmarket) && <Separator className="mt-4" />}
-                    </>
-                )}
-
-
-                {/* 4. Détails Secondaires */}
-                <div className="text-sm space-y-1">
-                    <p>
-                        <strong>PV :</strong> <span className="text-red-600 font-bold">{card.hp ?? 'N/A'}</span>
-                        {card.types?.length ? <span className="ml-4"><strong>Type :</strong> {card.types.join(', ')}</span> : null}
-                    </p>
-                    {card.illustrator && <p><strong>Illustrateur :</strong> {card.illustrator}</p>}
-                    {card.retreat && <p><strong>Retraite :</strong> {card.retreat}</p>}
+                            
+                            <PriceChartDisplay pricing={card.pricing} />
+                            
+                            {card.pricing.tcgplayer && (
+                                <div className="mt-4 pt-3 border-t border-dashed border-border">
+                                    <p className="font-semibold text-xs text-chart-3 flex items-center mb-2">
+                                        <DollarSign className="w-3 h-3 mr-1"/> TCGPlayer (USD)
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {Object.entries(card.pricing.tcgplayer).map(([variantName, variant]) => {
+                                            if (!variant || typeof variant !== 'object') return null;
+                                            const v = variant as any;
+                                            if (v.marketPrice == null) return null;
+                                            return (
+                                                <div key={variantName} className="text-xs flex justify-between bg-background p-1.5 rounded border border-border">
+                                                    <span className="text-muted-foreground capitalize">{variantName}</span>
+                                                    <span className="font-mono font-medium text-foreground">${v.marketPrice.toFixed(2)}</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
 
-                {/* Set/LocalID en bas de carte */}
+                {/* Détails Techniques (Footer) */}
+                <div className="text-xs grid grid-cols-2 gap-y-1 text-muted-foreground mt-auto">
+                    {card.hp && (
+                         <p className="flex items-center">
+                            <span className="font-bold mr-1">PV:</span> 
+                            <span className="text-destructive font-bold">{card.hp}</span>
+                         </p>
+                    )}
+                     {card.types?.length ? <p className="col-span-2"><span className="font-bold">Types:</span> {card.types.join(', ')}</p> : null}
+                    {card.illustrator && <p className="col-span-2 truncate"><span className="font-bold">Art:</span> {card.illustrator}</p>}
+                </div>
+
                 {card.set?.name && (
-                    <div className="text-xs text-gray-500 mt-auto pt-2 border-t flex justify-between">
-                        <span className="flex items-center"><MapPin className="w-3 h-3 mr-1"/> Set : {card.set.name}</span>
-                        <span>#{card.localId}</span>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 mt-3 pt-2 border-t flex justify-between items-center">
+                        <span className="flex items-center gap-1 font-bold text-primary/80">
+                            <MapPin className="w-3 h-3"/> {card.set.name}
+                        </span>
+                        <span className="font-mono bg-muted px-1 rounded">#{card.localId}</span>
                     </div>
                 )}
             </CardContent>

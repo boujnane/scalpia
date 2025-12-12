@@ -20,10 +20,17 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useIsMobile } from "@/lib/utils";
 import { buildChartData } from "@/lib/analyse/buildChartData";
+import { Icons } from "../icons";
 
-const palette = [
-  "#6366F1", "#EC4899", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
-  "#F87171", "#22D3EE", "#FBBF24", "#4ADE80", "#A78BFA", "#F472B6",
+// Utilisation des variables du thème (chart-1 à chart-5) puis de couleurs solides
+const themePalette = [
+  "var(--color-chart-1)", // Vert
+  "var(--color-chart-2)", // Rouge
+  "var(--color-chart-3)", // Bleu
+  "var(--color-chart-4)", // Jaune
+  "var(--color-chart-5)", // Violet
+  "#EC4899", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
+  "#F87171", "#22D3EE", "#FBBF24", "#4ADE80", "#A78BFA", 
   "#34D399", "#60A5FA"
 ];
 
@@ -42,7 +49,7 @@ export default function BlocChart({ items }: { items: Item[] }) {
   const colorMap = useMemo(() => {
     const map: Record<string, string> = {};
     items.forEach((item, i) => {
-      map[item.name] = palette[i % palette.length];
+      map[item.name] = themePalette[i % themePalette.length];
     });
     return map;
   }, [items]);
@@ -55,7 +62,6 @@ export default function BlocChart({ items }: { items: Item[] }) {
     };
   }, [items]);
 
-  // initial dateRange
   const currentDateRange = dateRange ?? { start: allDates.min, end: allDates.max };
 
   const filteredData = useMemo(() => {
@@ -76,7 +82,9 @@ export default function BlocChart({ items }: { items: Item[] }) {
   const yDomain = useMemo(() => {
     const allY = filteredData.flatMap(d => d.data.map(p => p.price));
     if (!allY.length) return [0, 100];
-    return [Math.floor(Math.min(...allY) / 10) * 10, Math.ceil(Math.max(...allY) / 10) * 10];
+    const min = Math.floor(Math.min(...allY) / 10) * 10;
+    const max = Math.ceil(Math.max(...allY) / 10) * 10;
+    return [min, max];
   }, [filteredData]);
 
   const yearMarkers = useMemo(() => {
@@ -89,7 +97,7 @@ export default function BlocChart({ items }: { items: Item[] }) {
     return years;
   }, [xDomain]);
 
-  // Handlers pour zoom rectangle
+  // Handlers pour zoom rectangle (inchangé, fonctionne bien)
   const onMouseDown = (e: React.MouseEvent) => {
     if (!chartRef.current) return;
     setIsSelecting(true);
@@ -112,9 +120,8 @@ export default function BlocChart({ items }: { items: Item[] }) {
     const startX = Math.min(selectionStartX, selectionEndX);
     const endX = Math.max(selectionStartX, selectionEndX);
 
-    if (endX - startX < 10) return; // minimum drag distance
+    if (endX - startX < 10) return;
 
-    // conversion pixels -> timestamp
     const [chartStart, chartEnd] = xDomain;
     const width = rect.width;
     const startTimestamp = chartStart + ((startX / width) * (chartEnd - chartStart));
@@ -126,31 +133,40 @@ export default function BlocChart({ items }: { items: Item[] }) {
   const resetZoom = () => setDateRange({ start: allDates.min, end: allDates.max });
 
   return (
-    <div className="w-full p-4 border rounded-lg bg-white shadow space-y-4">
+    <div className="w-full p-4 border border-border rounded-xl bg-card shadow space-y-4">
 
-      {/* Sélection des séries */}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline">Sélectionner les séries</Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64 max-h-64 overflow-auto">
-          <div className="flex flex-col gap-2">
-            {items.map(item => (
-              <label key={item.name} className="flex items-center gap-2">
-                <Checkbox
-                  checked={visibleSeries[item.name]}
-                  onCheckedChange={() =>
-                    setVisibleSeries(prev => ({ ...prev, [item.name]: !prev[item.name] }))
-                  }
-                />
-                <span>{item.name}</span>
-              </label>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
+      {/* Contrôles du graphique */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="text-primary font-medium border-primary/50 hover:bg-primary/5">
+              <Icons.check className="w-4 h-4 mr-2"/> Sélectionner les séries
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-64 max-h-64 overflow-auto bg-popover border border-border shadow-lg">
+            <p className="text-sm font-semibold mb-2">Items visibles :</p>
+            <div className="flex flex-col gap-2">
+              {items.map(item => (
+                <label key={item.name} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={visibleSeries[item.name]}
+                    onCheckedChange={() =>
+                      setVisibleSeries(prev => ({ ...prev, [item.name]: !prev[item.name] }))
+                    }
+                    style={{ borderColor: colorMap[item.name], backgroundColor: visibleSeries[item.name] ? colorMap[item.name] : 'transparent' }}
+                  />
+                  <span className="truncate">{item.name}</span>
+                </label>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
 
-      <Button onClick={resetZoom} variant="outline" className="mb-2">Reset Zoom</Button>
+        <Button onClick={resetZoom} variant="outline" className="text-muted-foreground hover:bg-secondary/50">
+            <Icons.refresh className="w-4 h-4 mr-2"/>
+            Réinitialiser le Zoom
+        </Button>
+      </div>
 
       {/* Graphique */}
       <div
@@ -160,10 +176,10 @@ export default function BlocChart({ items }: { items: Item[] }) {
         onMouseMove={onMouseMove}
         onMouseUp={onMouseUp}
       >
-        {/* Rectangle de sélection */}
+        {/* Rectangle de sélection (Couleur primaire du thème) */}
         {isSelecting && (
           <div
-            className="absolute top-0 bottom-0 bg-blue-400/30 pointer-events-none"
+            className="absolute top-0 bottom-0 bg-primary/30 pointer-events-none"
             style={{
               left: Math.min(selectionStartX, selectionEndX),
               width: Math.abs(selectionEndX - selectionStartX),
@@ -173,18 +189,19 @@ export default function BlocChart({ items }: { items: Item[] }) {
 
         <ResponsiveContainer width="100%" height="100%">
           <LineChart margin={{ top: 15, right: isMobile ? 0 : 40, left: isMobile ? -40 : 0, bottom: 50 }}>
-            <CartesianGrid strokeDasharray="3 3" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
 
+            {/* Références de l'année (Utilise muted-foreground) */}
             {yearMarkers.map(y => (
               <ReferenceLine
                 key={`year-${y}`}
                 x={y}
-                stroke="#d1d5db"
+                stroke="var(--color-border)"
                 strokeDasharray="3 3"
                 label={{
                   value: new Date(y).getFullYear(),
                   position: "top",
-                  fill: "#6b7280",
+                  fill: "var(--color-muted-foreground)",
                   fontSize: isMobile ? 10 : 12,
                   offset: 5,
                 }}
@@ -202,22 +219,42 @@ export default function BlocChart({ items }: { items: Item[] }) {
                 const formatted = isMobile
                   ? date.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "2-digit" })
                   : date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
-                return <text x={x} y={y + 10} textAnchor={isMobile ? "end" : "middle"} fill="#4B5563" fontSize={isMobile ? 10 : 12} transform={isMobile ? `rotate(-30, ${x}, ${y + 10})` : undefined}>{formatted}</text>;
+                return <text x={x} y={y + 10} textAnchor={isMobile ? "end" : "middle"} fill="var(--color-muted-foreground)" fontSize={isMobile ? 10 : 12} transform={isMobile ? `rotate(-30, ${x}, ${y + 10})` : undefined}>{formatted}</text>;
               }}
             />
 
-            <YAxis allowDecimals={false} domain={yDomain} tickFormatter={v => `€${v}`} />
+            <YAxis 
+                allowDecimals={false} 
+                domain={yDomain} 
+                tickFormatter={v => `€${v}`} 
+                fill="var(--color-muted-foreground)"
+            />
 
             <RechartsTooltip
-              labelFormatter={d => new Date(d).toLocaleDateString("fr-FR")}
-              formatter={(v: number) => `€${v.toFixed(2)}`}
+                contentStyle={{ 
+                    backgroundColor: 'var(--color-popover)', 
+                    borderColor: 'var(--color-border)', 
+                    color: 'var(--color-popover-foreground)',
+                    borderRadius: 'var(--radius)',
+                    fontSize: '12px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                }}
+                itemStyle={{ color: 'var(--color-foreground)' }}
+                labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '0.25rem' }}
+                labelFormatter={d => new Date(d).toLocaleDateString("fr-FR")}
+                formatter={(v: number) => `€${v.toFixed(2)}`}
             />
 
             <Legend
               verticalAlign="bottom"
               align="center"
               layout="horizontal"
-              wrapperStyle={{ fontSize: isMobile ? "0.45rem" : "0.8rem", maxHeight: 50, overflowY: "auto" }}
+              wrapperStyle={{ 
+                fontSize: isMobile ? "0.6rem" : "0.8rem", 
+                maxHeight: 70, 
+                overflowY: "auto", 
+                color: "var(--color-foreground)" 
+              }}
             />
 
             {filteredData.map(({ item, data }) => (
@@ -239,9 +276,11 @@ export default function BlocChart({ items }: { items: Item[] }) {
       </div>
 
       {/* Slider dates */}
-      <div className="mb-4 flex flex-col gap-2">
-        <span className="text-sm text-gray-600">
-          Plage de dates : {new Date(currentDateRange.start).toLocaleDateString()} - {new Date(currentDateRange.end).toLocaleDateString()}
+      <div className="flex flex-col gap-3 p-2 bg-muted/30 rounded-lg">
+        <span className="text-sm text-muted-foreground">
+          Plage de dates sélectionnée : <span className="font-mono font-semibold text-foreground">
+            {new Date(currentDateRange.start).toLocaleDateString("fr-FR")} - {new Date(currentDateRange.end).toLocaleDateString("fr-FR")}
+          </span>
         </span>
         <Slider
           value={[currentDateRange.start, currentDateRange.end]}

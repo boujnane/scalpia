@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/collapsible";
 
 import CardmarketButton from "@/components/CardmarketButton";
+import { Button } from "@/components/ui/button"; // Import de Button Shadcn/ui
 
 type ItemEntry = {
   id: string;
@@ -226,10 +227,14 @@ export default function InsertDbPage() {
   // ------- UI -------
 
   return (
-    <div className="flex h-screen">
+    // Utilisation de bg-background pour le conteneur principal
+    <div className="flex min-h-screen bg-background">
     {/* Sidebar */}
-    <aside className="w-64 border-r overflow-y-auto p-4 hidden md:block">
-      <h2 className="font-semibold mb-3">Liste des items</h2>
+    <aside 
+      // Utilisation de border-r et de bg-muted/20 ou bg-card pour la sidebar
+      className="w-64 border-r border-border bg-card overflow-y-auto p-4 hidden md:block"
+    >
+      <h2 className="font-semibold mb-3 text-foreground">Liste des items</h2>
 
       <div className="space-y-2">
         {items.map((it, idx) => (
@@ -243,37 +248,41 @@ export default function InsertDbPage() {
             setCardmarketUrl(null);
           }}
           className={`p-2 rounded cursor-pointer text-sm transition 
-            ${idx === currentIndex ? "bg-indigo-100 font-semibold" : "hover:bg-gray-100"}
-            ${itemsWithPriceToday.has(it.id) ? "bg-green-200 border-l-4 border-green-500" : ""}
+            ${idx === currentIndex ? "bg-primary/10 font-semibold text-primary border-r-4 border-primary" : "hover:bg-muted/50 text-foreground"}
+            ${itemsWithPriceToday.has(it.id) ? "bg-success/20 border-l-4 border-success" : ""}
           `}
         >
           <div className="flex items-center gap-1">
             {it.type} {it.name}
             {itemsWithPriceToday.has(it.id) && (
-              <span className="text-green-700 font-bold text-sm">✔</span>
+              // Utilisation de text-success
+              <span className="text-success font-bold text-sm">✔</span>
             )}
           </div>
-          {it.series && <div className="text-xs text-gray-500">{it.series}</div>}
+          {/* Utilisation de text-muted-foreground */}
+          {it.series && <div className="text-xs text-muted-foreground">{it.series}</div>}
         </div>
         
         ))}
       </div>
     </aside>
     <main className="flex-1 overflow-y-auto p-6 space-y-4">
-      <h1 className="text-2xl font-semibold">Gestion des Items • Prix Vinted/Cardmarket</h1>
+      <h1 className="text-2xl font-semibold text-foreground">Gestion des Items • Prix Vinted/Cardmarket</h1>
 
       {currentItem ? (
         <>
-          <div className="text-gray-600 text-sm">
+          {/* Utilisation de text-muted-foreground */}
+          <div className="text-muted-foreground text-sm">
             Item {currentIndex + 1} / {items.length} —{" "}
-            <span className="text-gray-400">
+            <span className="text-muted">
               restants : {items.length - currentIndex - 1}
             </span>
           </div>
 
-          <Card className="shadow-sm">
+          {/* Utilisation de bg-card, border-border et shadow-lg */}
+          <Card className="shadow-lg border border-border bg-card">
             <CardHeader>
-              <CardTitle className="text-lg">
+              <CardTitle className="text-lg text-foreground">
                 {currentItem.type} {currentItem.name}
               </CardTitle>
             </CardHeader>
@@ -285,7 +294,7 @@ export default function InsertDbPage() {
                   open={openCardmarket}
                   onOpenChange={setOpenCardmarket}
                 >
-                  <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer font-medium">
+                  <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer font-medium text-foreground hover:text-primary transition-colors">
                     {openCardmarket ? (
                       <ChevronUp size={16} />
                     ) : (
@@ -295,10 +304,11 @@ export default function InsertDbPage() {
                   </CollapsibleTrigger>
 
                   <CollapsibleContent className="mt-3 space-y-2">
+                    {/* Lien : utilise text-primary */}
                     <a
                       href={cardmarketUrl}
                       target="_blank"
-                      className="underline break-all"
+                      className="underline break-all text-primary hover:text-primary/80 transition"
                     >
                       {cardmarketUrl}
                     </a>
@@ -310,17 +320,21 @@ export default function InsertDbPage() {
                 </Collapsible>
               )}
 
+              {/* Prix de la veille (Yesterday Price) */}
               {yesterdayPrice !== null && (
                 <div
                   onClick={handleUseYesterdayPrice}
-                  className="p-3 bg-blue-100 border-l-4 border-blue-500 rounded shadow-sm cursor-pointer hover:bg-blue-200 transition"
+                  // Thème : Utilisation de bg-secondary/30 et border-primary
+                  className="p-3 bg-primary/10 border-l-4 border-primary rounded-lg shadow-sm cursor-pointer hover:bg-primary/20 transition"
                   title="Cliquer pour utiliser ce prix comme prix minimal"
                 >
-                  <div className="text-blue-800 font-semibold">Prix de la veille :</div>
-                  <div className="text-blue-900 text-lg">
-                    {yesterdayPrice} €
+                  <div className="text-primary font-semibold">Prix du {yesterdayDate ? yesterdayDate : 'dernier relevé'} :</div>
+                  <div className="text-primary-foreground text-lg">
+                    <span className="text-primary font-bold">
+                      {yesterdayPrice} €
+                    </span>
                     {yesterdayDate && (
-                      <span className="text-sm text-blue-700 ml-2">
+                      <span className="text-sm text-muted-foreground ml-2">
                         (date : {yesterdayDate})
                       </span>
                     )}
@@ -329,12 +343,12 @@ export default function InsertDbPage() {
               )}
 
 
-              <Separator />
+              <Separator className="bg-border" />
 
 
               {/* ----- Vinted Section ----- */}
               <Collapsible open={openVinted} onOpenChange={setOpenVinted}>
-                <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer font-medium">
+                <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer font-medium text-foreground hover:text-primary transition-colors">
                   {openVinted ? (
                     <ChevronUp size={16} />
                   ) : (
@@ -345,29 +359,36 @@ export default function InsertDbPage() {
 
                 <CollapsibleContent className="mt-3 space-y-4">
                   {/* Price display + edit */}
+                  {/* Utilisation de text-destructive pour l'erreur */}
                   {currentError && (
-                    <div className="text-sm text-red-600">{currentError}</div>
+                    <div className="text-sm text-destructive">{currentError}</div>
                   )}
 
                   {currentMinPrice !== null && !currentError && (
-                    <div className="flex items-center gap-3 text-base font-semibold bg-yellow-100 border-l-4 border-yellow-400 p-3 rounded-md shadow-md">
-                      <span className="text-yellow-800">Prix minimal :</span>
+                    <div 
+                      // Thème : Utilisation de bg-success/10 et border-success (pour le prix validé)
+                      className="flex items-center gap-3 text-base font-semibold bg-success/10 border-l-4 border-success p-3 rounded-md shadow-md"
+                    >
+                      <span className="text-success">Prix minimal trouvé :</span>
                       {editingPrice ? (
                         <input
                           type="number"
                           value={currentMinPrice}
                           onChange={(e) => setCurrentMinPrice(Number(e.target.value))}
-                          className="border rounded px-2 py-1 w-28 text-center font-medium text-yellow-900"
+                          // Thème : Utilisation des classes d'input standard
+                          className="border border-input bg-background rounded px-2 py-1 w-28 text-center font-medium text-foreground focus:ring-primary focus:border-primary"
                         />
                       ) : (
-                        <span className="text-yellow-900 text-lg">{currentMinPrice} €</span>
+                        <span className="text-success font-bold text-lg">{currentMinPrice} €</span>
                       )}
-                      <button
+                      <Button
                         onClick={() => setEditingPrice(!editingPrice)}
-                        className="px-3 py-1 bg-yellow-400 hover:bg-yellow-500 text-white rounded-md text-sm font-medium shadow"
+                        // Thème : Utilisation de Button (Shadcn) en variant secondary ou outline
+                        variant={editingPrice ? "default" : "secondary"}
+                        size="sm"
                       >
                         {editingPrice ? "Valider" : "Modifier"}
-                      </button>
+                      </Button>
                     </div>
                   )}
 
@@ -375,7 +396,7 @@ export default function InsertDbPage() {
                   {/* Vinted results */}
                   {vintedResults?.filteredVinted?.valid?.length > 0 && (
                     <section>
-                      <h3 className="font-medium mb-2">
+                      <h3 className="font-medium mb-2 text-foreground">
                         Annonces Vinted trouvées
                       </h3>
 
@@ -384,13 +405,15 @@ export default function InsertDbPage() {
                           (item: any, i: number) => (
                             <Card
                               key={i}
-                              className="hover:shadow-md cursor-pointer transition"
+                              // Thème : Utilisation de bg-card, border-border
+                              className="bg-card border border-border hover:shadow-lg cursor-pointer transition"
                               onClick={() =>
                                 item.url && window.open(item.url, "_blank")
                               }
                             >
                               <CardHeader>
-                                <CardTitle className="text-sm line-clamp-2">
+                                {/* Utilisation de text-foreground */}
+                                <CardTitle className="text-sm line-clamp-2 text-foreground">
                                   {item.title}
                                 </CardTitle>
                               </CardHeader>
@@ -403,7 +426,8 @@ export default function InsertDbPage() {
                                     className="h-28 object-contain mb-2"
                                   />
                                 )}
-                                <span className="font-medium">
+                                {/* Utilisation de text-primary */}
+                                <span className="font-bold text-lg text-primary">
                                   {item.price} €
                                 </span>
                               </CardContent>
@@ -418,41 +442,45 @@ export default function InsertDbPage() {
 
               {/* ----- Action Buttons ----- */}
               <div className="flex flex-wrap gap-3 pt-2">
-                <button
+                <Button
                   onClick={handleSearchCurrent}
                   disabled={searchLoading}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+                  // Thème : Primary button
+                  variant="default"
                 >
                   {searchLoading ? "Recherche…" : "Chercher prix"}
-                </button>
+                </Button>
 
-                <button
+                <Button
                   onClick={handleInsertPrice}
                   disabled={currentMinPrice === null || saving}
-                  className="bg-green-600 text-white px-4 py-2 rounded text-sm disabled:opacity-50"
+                  // Thème : Success button
+                  variant="success"
                 >
                   {saving ? "Ajout…" : "Ajouter en prices"}
-                </button>
+                </Button>
 
-                <button
+                <Button
                   onClick={handleNext}
-                  className="bg-gray-500 text-white px-4 py-2 rounded text-sm"
+                  // Thème : Secondary/Muted button
+                  variant="secondary"
                 >
                   Suivant
-                </button>
+                </Button>
 
-                <button
+                <Button
                   onClick={handleDeleteItem}
-                  className="bg-red-600 text-white px-4 py-2 rounded text-sm"
+                  // Thème : Destructive button
+                  variant="destructive"
                 >
                   Supprimer
-                </button>
+                </Button>
               </div>
             </CardContent>
           </Card>
         </>
       ) : (
-        <p>Aucun item à traiter.</p>
+        <p className="text-muted-foreground">Aucun item à traiter.</p>
       )}
     </main>
   </div>

@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react"; // ⬅️ useMemo ajouté
-import Image from "next/image"; // ⬅️ Next/Image pour l'optimisation
+import { useState, useMemo } from "react";
+import Image from "next/image";
 import { Item } from "@/lib/analyse/types";
 import { Badge } from "@/components/ui/badge";
-// Import de l'utilitaire d'analyse unifié
 import { getChartAnalysis } from "@/lib/analyse/getChartAnalysis"; 
 import ItemModal from "./ItemModal";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -13,7 +12,6 @@ import { Icons } from "@/components/icons";
 export default function ItemCard({ item }: { item: Item }) {
   const [open, setOpen] = useState(false);
 
-  // 1. Utilisation de useMemo et de l'analyse unifiée
   const analysis = useMemo(
     () => getChartAnalysis(item),
     [item]
@@ -21,11 +19,15 @@ export default function ItemCard({ item }: { item: Item }) {
   
   const chartData = analysis.data;
   const lastPrice = analysis.lastPrice;
-  const trend7d = analysis.trend7d; // Le trend 7j est prêt à être affiché
+  const trend7d = analysis.trend7d;
   
-  // 2. Logique de l'indicateur visuel
-  const trendColor = trend7d === null ? "text-gray-500" : trend7d > 0.5 ? "text-green-600" : trend7d < -0.5 ? "text-red-600" : "text-gray-500";
-  const TrendIcon = trend7d === null || Math.abs(trend7d) <= 0.5 ? Icons.Minus : trend7d > 0.5 ? Icons.TrendingUp : Icons.TrendingDown;
+  // Application des couleurs thématiques
+  const trendColor = 
+    trend7d === null || Math.abs(trend7d) <= 0.5 ? "text-muted-foreground" : 
+    trend7d > 0.5 ? "text-success" : 
+    "text-destructive";
+  
+  const TrendIcon = trend7d === null || Math.abs(trend7d) <= 0.5 ? Icons.minus : trend7d > 0.5 ? Icons.TrendingUp : Icons.TrendingDown;
 
 
   return (
@@ -34,10 +36,15 @@ export default function ItemCard({ item }: { item: Item }) {
         onClick={() => setOpen(true)}
         role="button"
         aria-label={`Ouvrir les détails de ${item.name}`}
-        className="group border rounded-2xl shadow-md bg-white overflow-hidden hover:shadow-xl transition-shadow cursor-pointer p-4 flex flex-col items-center"
+        className="
+          group border border-border rounded-2xl shadow-lg 
+          bg-card overflow-hidden 
+          hover:shadow-xl hover:border-primary/50 transition-all duration-300 
+          cursor-pointer p-4 flex flex-col items-center
+        "
       >
         {/* Image */}
-        <div className="w-full h-36 sm:h-40 relative flex items-center justify-center bg-gray-50 rounded-xl overflow-hidden mb-4">
+        <div className="w-full h-36 sm:h-40 relative flex items-center justify-center bg-secondary/30 rounded-xl overflow-hidden mb-4 border border-border/50">
           {item.image && (
             <Image
               src={item.image}
@@ -50,40 +57,42 @@ export default function ItemCard({ item }: { item: Item }) {
         </div>
 
         {/* Nom de l’item */}
-        <span className="font-semibold text-lg sm:text-xl text-center text-gray-800 mb-2">
+        <span className="font-semibold text-lg sm:text-xl text-center text-foreground mb-2 line-clamp-2">
           {item.type} {item.name}
         </span>
 
         {/* Date */}
-        <Badge variant="secondary" className="mb-4">
+        <Badge variant="secondary" className="mb-4 text-muted-foreground">
           Date de sortie : {item.releaseDate}
         </Badge>
 
         {/* Bloc Dernier Prix */}
         {lastPrice !== null && (
-          <div className="w-full flex flex-col items-center mt-auto p-4 sm:p-5 bg-white border border-gray-200 rounded-2xl shadow-md hover:shadow-lg transition-shadow">
+          <div className="w-full flex flex-col items-center mt-auto p-4 sm:p-5 bg-muted/50 border border-border rounded-xl shadow-inner transition-shadow">
             {/* Titre avec icône */}
             <div className="flex items-center gap-2 sm:gap-3 mb-3">
-              <div className="p-2 sm:p-3 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center">
+              {/* Icône de prix : utilise primary */}
+              <div className="p-2 sm:p-3 bg-primary/10 text-primary rounded-full flex items-center justify-center">
                 <Icons.LineChart size={20} />
               </div>
-              <span className="text-gray-700 font-semibold text-sm sm:text-base uppercase tracking-wide">
+              <span className="text-muted-foreground font-semibold text-sm sm:text-base uppercase tracking-wide">
                 Dernière Évaluation
               </span>
             </div>
 
             {/* Prix avec tooltip */}
             <div className="flex flex-col items-center">
-              <Tooltip>
+              <Tooltip delayDuration={150}>
                 <TooltipTrigger asChild>
-                  <span className="text-indigo-700 font-extrabold text-3xl sm:text-4xl cursor-pointer">
+                  {/* Prix : utilise primary */}
+                  <span className="text-primary font-extrabold text-3xl sm:text-4xl cursor-pointer">
                     {lastPrice.toFixed(2)} €
                   </span>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-sm sm:text-base">
-                Les informations affichées proviennent de sources publiques et sont fournies à titre indicatif.
-                Le prix indiqué correspond à l’offre la plus basse connue à ce jour (item scellé, sans défauts) sur le marché secondaire francophone (Vinted, Cardmarket, eBay, etc.).
-                Ces données ne constituent en aucun cas un conseil en investissement ou une recommandation d’achat ou de vente.
+                <TooltipContent className="max-w-xs text-sm bg-popover border-border shadow-md">
+                    <p className="text-muted-foreground">
+                        Les données sont fournies à titre indicatif et ne constituent pas un conseil en investissement.
+                    </p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -92,16 +101,15 @@ export default function ItemCard({ item }: { item: Item }) {
             <div className={`mt-3 flex items-center gap-1.5 font-bold ${trendColor}`}>
               <TrendIcon size={18} className="w-4 h-4" />
               {trend7d === null ? (
-                <span className="text-sm">Tendance N/A</span>
+                <span className="text-sm font-medium">Tendance N/A</span>
               ) : (
-                <span className="text-sm">{trend7d.toFixed(2)}% (7j)</span>
+                <span className="text-sm">{trend7d > 0 ? "+" : ""}{trend7d.toFixed(2)}% (7j)</span>
               )}
             </div>
           </div>
         )}
       </div>
 
-      {/* Modal - on passe maintenant chartData qui vient de l'analyse */}
       <ItemModal item={item} chartData={chartData} open={open} onOpenChange={setOpen} />
     </>
   );
