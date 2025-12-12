@@ -114,3 +114,30 @@ export const postVintedFilter = async (query: string, items: any[], signal?: Abo
       throw new Error("Échec de la récupération des détails complets des cartes.")
     }
   }
+
+  // ------------------------------------------------------------
+// ⭐ LE BON COIN (NOUVEAU)
+// ------------------------------------------------------------
+
+/**
+ * Lance un scraping Puppeteer via /api/leboncoin?q=...
+ */
+export const fetchLeboncoinSearch = async (query: string, signal?: AbortSignal) => {
+  const res = await fetch(`/api/leboncoin?q=${encodeURIComponent(query)}`, { signal });
+  await handleRes(res);
+  return res.json(); // ⚠️ la route renvoie { message, offers, html }
+};
+
+/**
+ * Optionnel — si tu veux filtrer côté backend
+ */
+export const postLeboncoinFilter = async (query: string, items: any[], signal?: AbortSignal) => {
+  const res = await fetch('/api/leboncoin-filter', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, items }),
+    signal,
+  });
+  await handleRes(res);
+  return res.json();
+};

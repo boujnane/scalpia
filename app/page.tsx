@@ -15,7 +15,7 @@ export default function HomePage() {
     {
       icon: Icons.search,
       title: "Recherche Multi-Plateformes",
-      description: "Comparez les prix des produits scellés sur Cardmarket, eBay et Vinted en temps réel. Trouvez les meilleures offres instantanément.",
+      description: "Comparez les prix des produits scellés sur Cardmarket, eBay, LeBonCoin et Vinted en temps réel. Trouvez les meilleures offres instantanément.",
       href: "/",
       gradient: "from-blue-500/10 to-cyan-500/10",
       iconColor: "text-blue-500",
@@ -47,7 +47,7 @@ export default function HomePage() {
   const platforms = [
     // Ajout d'une couleur unie pour mobile
     { name: "Cardmarket", icon: "🏪", color: "from-blue-500 to-cyan-500", mobileColor: "bg-blue-500/20" },
-    { name: "eBay", icon: "🛒", color: "from-yellow-500 to-orange-500", mobileColor: "bg-yellow-500/20" },
+    { name: "eBay", icon: "🛒", color: "from-red-500 to-yellow-500", mobileColor: "bg-orange-500/20" },
     { name: "Vinted", icon: "👕", color: "from-green-500 to-emerald-500", mobileColor: "bg-green-500/20" },
   ]
 
@@ -107,7 +107,8 @@ export default function HomePage() {
                     <p className="text-base sm:text-lg lg:text-xl text-muted-foreground/90 leading-relaxed max-w-2xl mx-auto lg:mx-0">
                         <span className="font-semibold text-foreground">Trouvez les meilleures offres</span> en comparant{" "}
                         <span className="font-semibold text-[#0066CC]">Cardmarket</span>,{" "}
-                        <span className="font-semibold text-[#E53238]">eBay</span> et{" "}
+                        <span className="font-semibold text-[#EC5A13]">LeBonCoin</span>,{" "}
+                        <span className="font-semibold text-[#92c821]">eBay</span> et{" "}
                         <span className="font-semibold text-[#09B1BA]">Vinted</span> en temps réel.{" "}
                         <span className="block mt-2 sm:mt-3">
                         Suivez l'évolution des prix depuis la sortie et explorez 100K+ cartes.
@@ -142,7 +143,7 @@ export default function HomePage() {
                   size="lg" 
                   className="h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-semibold rounded-xl
                     shadow-primary-light hover-shadow-primary
-                    bg-gradient-to-r from-primary to-primary/90
+                    bg-gradient-to-r from-primary to-primary/70
                     transition-all duration-300 hover:scale-105 w-full sm:w-auto"
                 >
                   <Link href="/">
@@ -172,8 +173,8 @@ export default function HomePage() {
                   <span className="text-xs font-semibold text-success">API TCGdex Officielle</span>
                 </div>
                 <div className="text-center sm:text-left">
-                  <p className="text-sm font-semibold">Données en temps réel</p>
-                  <p className="text-xs text-muted-foreground">Mises à jour continues</p>
+                  <p className="text-sm font-semibold">Données en continu</p>
+                  <p className="text-xs text-muted-foreground">Mise à jour quotidienne</p>
                 </div>
             </div>
             </motion.div>
