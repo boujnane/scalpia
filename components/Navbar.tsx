@@ -4,7 +4,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Icons } from "@/components/icons" 
+import { Icons } from "@/components/icons"
 import { ThemeToggle } from "./theme-toggle"
 import {
   Sheet,
@@ -16,24 +16,27 @@ import {
 import { useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 
+// --- TYPES & CONSTANTS ---
+type IndexStatus = "UP_TO_DATE" | "IN_PROGRESS" | "OUTDATED"
+
 const navLinks = [
-  { 
-    name: "Rechercher", 
-    href: "/rechercher", 
+  {
+    name: "Rechercher",
+    href: "/rechercher",
     icon: Icons.LineChart,
-    description: "Comparez sur le marché secondaire"
+    description: "Comparez sur le marché secondaire",
   },
-  { 
-    name: "Analyser", 
-    href: "/analyse", 
+  {
+    name: "Analyser",
+    href: "/analyse",
     icon: Icons.wallet,
-    description: "Explorer les données de marché"
+    description: "Explorer les données de marché",
   },
-  { 
-    name: "Cartes", 
-    href: "/tcgdex", 
+  {
+    name: "Cartes",
+    href: "/tcgdex",
     icon: Icons.zap,
-    description: "Parcourir les cartes"
+    description: "Parcourir les cartes",
   },
 ]
 
@@ -41,14 +44,23 @@ export function Navbar() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [hoveredLink, setHoveredLink] = useState<string | null>(null)
+  
+  // État pour l'Index
+  const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null)
 
-  // Détection du scroll pour effet dynamique
+  // 1. Scroll Effect
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10)
-    }
+    const handleScroll = () => setIsScrolled(window.scrollY > 10)
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  // 2. Fetch Index Status
+  useEffect(() => {
+    fetch("/api/index-status")
+      .then((res) => res.json())
+      .then((data) => setIndexStatus(data.status))
+      .catch(() => setIndexStatus("OUTDATED"))
   }, [])
 
   const isLinkActive = (href: string) => {
@@ -56,7 +68,59 @@ export function Navbar() {
     return pathname.startsWith(href)
   }
 
-  // Navigation Desktop avec animations
+  /* ---------------- COMPOSANT BADGE INDEX ---------------- */
+  const IndexBadge = () => {
+    if (!indexStatus) return null
+
+    const config = {
+      UP_TO_DATE: {
+        label: "Index à jour",
+        bg: "bg-emerald-100/50 border-emerald-200 text-foreground", // Ajout text-foreground pour lisibilité mode dark
+        dot: "bg-emerald-500",
+      },
+      IN_PROGRESS: {
+        label: "Index en cours",
+        bg: "bg-amber-100/50 border-amber-200 text-foreground",
+        dot: "bg-amber-500",
+      },
+      OUTDATED: {
+        label: "Index pas à jour",
+        bg: "bg-red-100/50 border-red-200 text-foreground",
+        dot: "bg-red-500",
+      },
+    }[indexStatus]
+
+    return (
+      <div
+        className={`
+          hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full
+          border backdrop-blur-sm transition-all duration-300 hover:scale-105
+          ${config.bg}
+        `}
+      >
+        <span className="relative flex h-2 w-2">
+          <span
+            className={`
+              animate-ping absolute inline-flex h-full w-full rounded-full opacity-75
+              ${config.dot}
+            `}
+          />
+          <span
+            className={`
+              relative inline-flex rounded-full h-2 w-2
+              ${config.dot}
+            `}
+          />
+        </span>
+        <span className="text-[11px] font-bold uppercase tracking-wider">
+          {config.label}
+        </span>
+      </div>
+    )
+  }
+
+  /* ---------------- NAV COMPONENTS ---------------- */
+
   const DesktopNavigation = () => (
     <nav className="hidden lg:flex items-center gap-1">
       {navLinks.map((link) => {
@@ -89,21 +153,15 @@ export function Navbar() {
               />
               <span className="text-sm font-medium">{link.name}</span>
               
-              {/* Indicateur actif animé */}
               {active && (
                 <motion.div
                   layoutId="activeIndicator"
                   className="absolute inset-0 bg-primary/10 rounded-xl border border-primary/20"
                   initial={false}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 380, 
-                    damping: 30 
-                  }}
+                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
                 />
               )}
               
-              {/* Effet hover */}
               {!active && isHovered && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -115,7 +173,6 @@ export function Navbar() {
               )}
             </div>
 
-            {/* Tooltip au hover */}
             <AnimatePresence>
               {isHovered && !active && (
                 <motion.div
@@ -128,10 +185,6 @@ export function Navbar() {
                     shadow-lg backdrop-blur-xl z-50 whitespace-nowrap"
                 >
                   <p className="text-xs text-muted-foreground">{link.description}</p>
-                  <div className="absolute -top-1 left-1/2 -translate-x-1/2 
-                    w-2 h-2 bg-popover border-l border-t border-border 
-                    rotate-45" 
-                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -141,7 +194,6 @@ export function Navbar() {
     </nav>
   )
 
-  // Navigation Mobile améliorée
   const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
     <nav className="flex flex-col gap-2">
       {navLinks.map((link, index) => {
@@ -167,7 +219,6 @@ export function Navbar() {
                 }
               `}
             >
-              {/* Background gradient au hover */}
               <div className={`
                 absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent
                 opacity-0 group-hover:opacity-100 transition-opacity duration-300
@@ -179,10 +230,7 @@ export function Navbar() {
                 ${active ? 'bg-primary/20' : 'bg-muted/50 group-hover:bg-muted'}
                 transition-colors duration-300
               `}>
-                <IconComponent 
-                  className="h-5 w-5 relative z-10" 
-                  strokeWidth={active ? 2.5 : 2}
-                />
+                <IconComponent className="h-5 w-5 relative z-10" strokeWidth={active ? 2.5 : 2}/>
               </div>
               
               <div className="flex-1 relative z-10">
@@ -208,18 +256,22 @@ export function Navbar() {
     </nav>
   )
 
+  /* ---------------- MAIN RENDER ---------------- */
+
   return (
-    <header 
+    <header
       className={`
         sticky top-0 z-50 w-full border-b transition-all duration-300
-        ${isScrolled 
-          ? 'border-border/60 bg-background/70 backdrop-blur-xl shadow-lg shadow-black/5' 
-          : 'border-border/40 bg-background/80 backdrop-blur-md shadow-sm'
-        }
+        ${isScrolled
+          ? "border-border/60 bg-background/70 backdrop-blur-xl shadow-lg shadow-black/5"
+          : "border-border/40 bg-background/80 backdrop-blur-md shadow-sm"}
         supports-[backdrop-filter]:bg-background/60
       `}
     >
-      <div className="container flex h-16 max-w-screen-2xl items-center px-4 md:px-8">
+      {/* IMPORTANT: Utilisation de "w-full" au lieu de "container" 
+          pour que les éléments aillent jusqu'au bord droit.
+      */}
+      <div className="flex h-16 w-full items-center px-4 md:px-8">
 
         {/* LOGO */}
         <Link 
@@ -245,32 +297,20 @@ export function Navbar() {
         {/* NAVIGATION DESKTOP */}
         <DesktopNavigation />
 
-        {/* SPACER */}
+        {/* SPACER (Pousse le contenu à droite) */}
         <div className="flex-1" />
 
-        {/* ACTIONS DROITE */}
+        {/* ZONE DROITE (Badge, Thème, Auth, Menu) */}
         <div className="flex items-center gap-2 md:gap-3">
+          
+          {/* BADGE INDEX DYNAMIQUE */}
+          <IndexBadge />
 
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100/50 border border-emerald-200 backdrop-blur-sm transition-all duration-300 hover:scale-105">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-          </span>
-          <span className="text-[11px] font-bold text-foreground uppercase tracking-wider">
-            Index à jour
-          </span>
-        </div>
-
-          {/* Quick Search */}
+          {/* Recherche (Desktop) */}
           <Button 
             variant="ghost" 
             size="icon" 
-            className={`
-              h-9 w-9 rounded-xl text-muted-foreground 
-              hover:text-primary hover:bg-primary/10 
-              transition-all duration-300 hover:scale-105
-              hidden sm:flex
-            `}
+            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover:scale-105 hidden sm:flex"
             aria-label="Rechercher"
           >
             <Icons.search className="h-4 w-4" />
@@ -278,50 +318,37 @@ export function Navbar() {
 
           <ThemeToggle />
 
-          {/* CTA Buttons Desktop */}
+          {/* Boutons Auth (Desktop) */}
           <div className="hidden lg:flex items-center gap-2 ml-2">
             <Button 
               variant="outline" 
               size="sm" 
-              className={`
-                h-9 rounded-xl border-border/50 
-                hover:bg-primary/5 hover:text-primary hover:border-primary/30
-                transition-all duration-300 hover:scale-105
-              `}
+              className="h-9 rounded-xl border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all duration-300 hover:scale-105"
             >
               Connexion
             </Button>
             <Button 
               size="sm" 
-              className={`
-                h-9 px-5 font-semibold rounded-xl
-                shadow-lg shadow-primary/20 
-                hover:shadow-xl hover:shadow-primary/30 
-                transition-all duration-300 hover:scale-105
-                bg-gradient-to-r from-primary to-primary/90
-              `}
+              className="h-9 px-5 font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:scale-105 bg-gradient-to-r from-primary to-primary/90"
             >
               Commencer
             </Button>
           </div>
 
-          {/* Mobile Menu */}
+          {/* Menu Mobile (Sheet) */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 className="lg:hidden h-9 w-9 rounded-xl hover:bg-muted"
                 aria-label="Menu"
               >
                 <Icons.menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent 
-              side="left" 
-              className="w-[320px] sm:w-[380px] p-0 border-r border-border/50"
-            >
-              {/* Header avec gradient */}
+
+            <SheetContent side="left" className="w-[320px] sm:w-[380px] p-0 border-r border-border/50">
               <div className="bg-gradient-to-br from-primary/5 to-transparent p-6 border-b border-border/50">
                 <SheetHeader>
                   <SheetTitle className="flex items-center space-x-2.5 text-lg font-bold">
@@ -334,32 +361,20 @@ export function Navbar() {
               </div>
 
               <div className="flex flex-col h-[calc(100%-88px)]">
-                {/* Navigation */}
                 <div className="flex-1 p-6 overflow-y-auto">
                   <MobileNavigation />
                 </div>
-
-                {/* Actions en bas */}
                 <div className="p-6 border-t border-border/50 bg-muted/20 space-y-3">
                   <Button 
                     size="lg" 
-                    className={`
-                      w-full h-12 font-semibold rounded-xl
-                      shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30
-                      bg-gradient-to-r from-primary to-primary/90
-                      transition-all duration-300
-                    `}
+                    className="w-full h-12 font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 bg-gradient-to-r from-primary to-primary/90"
                   >
                     Commencer
                   </Button>
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    className={`
-                      w-full h-12 rounded-xl border-border/50
-                      hover:bg-primary/5 hover:text-primary hover:border-primary/30
-                      transition-all duration-300
-                    `}
+                    className="w-full h-12 rounded-xl border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30"
                   >
                     Connexion
                   </Button>

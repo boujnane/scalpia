@@ -28,7 +28,7 @@ RÈGLES DE FILTRAGE POUR LES PRODUITS SCELLÉS :
   - Etb rivalité destinée
   - ETB rivalités destinées
   - Etb RIVALITÉS DESTINÉES
-- Conserver uniquement les produits **SCELLÉS et COMPLETS** (non ouverts, tous boosters inclus).
+- Conserver uniquement les produits **SCELLÉS et COMPLETS** (non ouverts, tous boosters inclus), IL FAUT EXCLURE TOUT CE QUI EST **RECONDITIONNE**, **VIDE**, **TROU**.
 
 2️⃣ Correspondances ETB / EV / Coffret Dresseur d’Élite
 - ETB Rivalités Destinées ↔ EV 10

@@ -34,7 +34,7 @@ ${JSON.stringify(items)}
 * **Rejet type de produit :** Le produit est clairement une **carte individuelle**, une **carte gradée**, ou un **lot de cartes non scellé** (même si le titre inclut "promo").
     * *Exemple d'exclusion pour "Carte promo Etb aventures ensemble (ev9)" : Le produit est une carte individuelle, pas un produit scellé.*
 * **Rejet état du produit (Scellé & Neuf requis) :** Le produit n'est pas scellé ou est décrit comme ayant des défauts.
-    * **Rejeter si:** Le produit est décrit comme **ouvert**, **non scellé**, **utilisé**, **sans cellophane d'origine**, **vide**, **reconditionné**.
+    * **Rejeter si:** Le produit est décrit comme **ouvert**, **non scellé**, **utilisé**, **sans cellophane d'origine**, **vide**, **reconditionné**, **avec goodies**.
     * **Rejeter si:** Le titre ou la description mentionne un **défaut**, des **dommages**, des **dégâts**, ou des **impacts** (ex: "avec léger défaut", "abîmé"). Nous recherchons un état collection (Near Mint ou Mint).
 
 ### 2. RÈGLES DE FILTRAGE SUPPLÉMENTAIRES
