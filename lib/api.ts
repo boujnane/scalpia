@@ -119,18 +119,12 @@ export const postVintedFilter = async (query: string, items: any[], signal?: Abo
 // ⭐ LE BON COIN (NOUVEAU)
 // ------------------------------------------------------------
 
-/**
- * Lance un scraping Puppeteer via /api/leboncoin?q=...
- */
 export const fetchLeboncoinSearch = async (query: string, signal?: AbortSignal) => {
   const res = await fetch(`/api/leboncoin?q=${encodeURIComponent(query)}`, { signal });
   await handleRes(res);
-  return res.json(); // ⚠️ la route renvoie { message, offers, html }
+  return res.json(); 
 };
 
-/**
- * Optionnel — si tu veux filtrer côté backend
- */
 export const postLeboncoinFilter = async (query: string, items: any[], signal?: AbortSignal) => {
   const res = await fetch('/api/leboncoin-filter', {
     method: 'POST',

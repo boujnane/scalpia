@@ -232,18 +232,33 @@ export default function BlocChart({ items }: { items: Item[] }) {
             />
 
             <RechartsTooltip
-                contentStyle={{ 
-                    backgroundColor: 'var(--color-popover)', 
-                    borderColor: 'var(--color-border)', 
-                    color: 'var(--color-popover-foreground)',
-                    borderRadius: 'var(--radius)',
-                    fontSize: '12px',
-                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                }}
-                itemStyle={{ color: 'var(--color-foreground)' }}
-                labelStyle={{ color: 'var(--color-muted-foreground)', marginBottom: '0.25rem' }}
-                labelFormatter={d => new Date(d).toLocaleDateString("fr-FR")}
-                formatter={(v: number) => `€${v.toFixed(2)}`}
+              content={({ active, payload, label }) => {
+                if (!active || !payload || !payload.length) return null;
+
+                return (
+                  <div className="p-2 rounded shadow border bg-popover border-border">
+                    <div className="text-sm mb-1 text-muted-foreground">
+                      {label ? new Date(label).toLocaleDateString("fr-FR") : ""}
+                    </div>
+                    {payload.map((entry, index) => {
+                      const isSelected = selectedSeries === null || selectedSeries === entry.name;
+                      return (
+                        <div
+                          key={index}
+                          style={{
+                            color: isSelected ? colorMap[entry.name] : "#aaa",
+                            fontWeight: selectedSeries === entry.name ? "bold" : "normal",
+                            fontSize: "12px",
+                            marginBottom: 2,
+                          }}
+                        >
+                          {entry.name}: €{entry.value?.toFixed(2) ?? "0.00"}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              }}
             />
 
             <Legend

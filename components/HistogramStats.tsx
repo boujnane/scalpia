@@ -58,7 +58,7 @@ export default function HistogramWithStats({ histogram, soldItems }: Props) {
               label={{ value: "Nombre d’articles", angle: -90, position: "insideLeft", offset: 10 }}
             />
             <Tooltip
-              formatter={(value: number) => [`${value}`, "Articles"]}
+              formatter={(value?: number) => [`${value}`, "Articles"]}
             />
             <Bar dataKey="count" fill="#8884d8" />
           </BarChart>

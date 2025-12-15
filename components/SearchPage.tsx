@@ -9,11 +9,14 @@ import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@radix
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ProgressBar from './ui/ProgressBar';
+import { LBCOffer } from '@/types';
+import LBCItemCard from './leboncoin/LBCItemCard';
 
-export default function SerchPage() {
+export default function SearchPage() {
   const [query, setQuery] = useState('');
   const { progress, start, stop, set } = useProgress();
-  const { run, loading, error, cleaned, vinted, soldItems } = useSearch();
+  // 💡 J'AJOUTE 'leboncoin' ici, suppose qu'il est retourné par useSearch
+  const { run, loading, error, cleaned, vinted, soldItems, leboncoin } = useSearch();
 
   const handleSearch = async () => {
     if (!query) return;
@@ -21,6 +24,12 @@ export default function SerchPage() {
     set(5);
     await run(query, (p) => set(p));
     stop();
+  };
+
+  const handleCardClick = (url: string | undefined | null) => {
+    if (url) {
+      window.open(url, '_blank');
+    }
   };
 
   return (
@@ -42,7 +51,7 @@ export default function SerchPage() {
 
       {cleaned && (
         <section className="p-8">
-          <h3 className="text-xl font-semibold mb-4 text-foreground">Résultats eBay</h3>
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Résultats eBay (Actif)</h3>
           <div className="flex flex-col lg:flex-row gap-6">
             
             {/* Filtres de Prix (Badges) */}
@@ -181,6 +190,49 @@ export default function SerchPage() {
               ))}
             </ul>
           </details>
+        </section>
+      )}
+
+      {/* 🚀 SECTION : Annonces Le Bon Coin (LBC) utilisant LBCItemCard */}
+      {leboncoin && leboncoin.valid.length > 0 && (
+        <section className="p-8 mt-8">
+          <h3 className="text-xl font-semibold mb-4 text-foreground">Le Bon Coin: En vente actuellement</h3>
+          <div className="flex flex-col gap-6"> {/* Utilisation de flex-col pour que LBCItemCard prenne toute la largeur */}
+            {leboncoin.valid?.map((offer: LBCOffer, i: number) => (
+              // 💡 UTILISATION DU COMPOSANT LBCITEMCARD
+              <LBCItemCard 
+                key={i} 
+                offer={offer} 
+                // La gestion du clic pour ouvrir l'URL est interne à LBCItemCard
+                onClick={() => handleCardClick(offer.link)}
+              />
+            ))}
+          </div>
+
+          <h3 className="text-xl font-semibold mt-6 text-foreground">
+            Résultats Le Bon Coin — Prix minimal validé IA :
+            <span className="text-success font-bold ml-2">
+              {leboncoin.minPrice ? `${leboncoin.minPrice} €` : 'Aucun item valide'}
+            </span>
+          </h3>
+
+          <details className="mb-4 cursor-pointer mt-4">
+            <summary className="text-muted-foreground hover:text-foreground transition">Annonces rejetées (IA)</summary>
+            <ul className="mt-2 text-sm text-muted-foreground">
+              {leboncoin.rejected?.map((r: any, i: number) => (
+                <li key={i}>• {r.title} — {r.reason}</li>
+              ))}
+            </ul>
+          </details>
+        </section>
+      )}
+      
+      {/* Message si leboncoin est vide */}
+      {leboncoin && leboncoin.valid.length === 0 && !loading && (
+        <section className="p-8 mt-8">
+            <div className="text-muted-foreground">
+                ⚠️ Aucune annonce Le Bon Coin validée par l'IA.
+            </div>
         </section>
       )}
     </main>

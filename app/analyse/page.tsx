@@ -6,6 +6,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import AnalyseTabs from "@/components/analyse/AnalyseTabs";
 import { Icons } from "@/components/icons"; // Ajouté pour le spinner
+import AnalyseDashboard from "@/components/analyse/AnalyseDashboard";
 
 export default function AnalysePage() {
   const [items, setItems] = useState<Item[]>([]);
@@ -42,6 +43,7 @@ export default function AnalysePage() {
 
   return (
     <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
+      <AnalyseDashboard items={items} />
       <header className="mb-4">
         {/* Application du thème au titre */}
         <h1 className="text-3xl font-bold text-foreground">Analyse des Items</h1>

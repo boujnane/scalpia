@@ -190,7 +190,7 @@ export default function ItemModal({
                 <Icons.info className="w-4 h-4" />
               </button>
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs text-sm bg-popover border-border">
+            <TooltipContent className="max-w-xs text-sm bg-popover border-border text-primary">
               Moyenne mobile (MA) sur 30 jours.
             </TooltipContent>
           </Tooltip>
@@ -204,7 +204,7 @@ export default function ItemModal({
                 <Icons.info className="w-4 h-4" />
               </button>
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs text-sm bg-popover border-border">
+            <TooltipContent className="max-w-xs text-sm bg-popover border-border text-primary">
               Elles mesurent la volatilité du prix.
             </TooltipContent>
           </Tooltip>
@@ -218,7 +218,7 @@ export default function ItemModal({
                 <Icons.info className="w-4 h-4" />
               </button>
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs text-sm bg-popover border-border">
+            <TooltipContent className="max-w-xs text-sm bg-popover border-border text-primary">
               Indicateur de variation du prix jour par jour.
             </TooltipContent>
           </Tooltip>
@@ -262,7 +262,7 @@ export default function ItemModal({
                   color: 'var(--color-popover-foreground)'
                 }}
                 labelFormatter={(label) => new Date(label).toLocaleDateString("fr-FR")}
-                formatter={(value: number, name: string) => [`€${value.toFixed(2)}`, name]}
+                formatter={(value?: number, name?: string) => [`€${value?.toFixed(2)}`, name]}
               />
 
               <Line 

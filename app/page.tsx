@@ -20,41 +20,39 @@ export default function HomePage() {
   const features = [
     {
       icon: Icons.search,
-      title: "Recherche Multi-Plateformes",
-      description: "Comparez les prix des produits scellés sur Cardmarket, eBay, LeBonCoin et Vinted en temps réel. Trouvez les meilleures offres instantanément.",
-      href: "/recherche",
-      // UTILISATION DE primary
-      gradient: "from-primary/10 to-primary/5", 
+      title: "Prix Minimum Garanti",
+      description: "Consultez instantanément le prix le plus bas pour chaque carte ou item Pokémon scellé sur le marché secondaire, sans avoir à comparer manuellement.",
+      href: "/analyse",
+      gradient: "from-primary/10 to-primary/30",
       iconColor: "text-primary",
       borderColor: "border-primary/20",
-      badge: "Comparateur",
-      ariaLabel: "Accéder à l'outil de recherche multi-plateformes"
+      badge: "Meilleur Prix",
+      ariaLabel: "Voir les prix minimums des items Pokémon"
     },
     {
       icon: Icons.LineChart,
-      title: "Analyse de Marché",
-      description: "Visualisez l'évolution des prix des produits scellés depuis leur sortie. Identifiez les tendances et opportunités d'investissement.",
+      title: "Analyse de l'Évolution des Prix",
+      description: "Suivez l’historique des prix des cartes et items scellés pour identifier les tendances et décider du meilleur moment pour acheter ou vendre.",
       href: "/analyse",
-      // UTILISATION DE secondary/muted (pour un look plus doux)
-      gradient: "from-muted-foreground/10 to-muted-foreground/5",
+      gradient: "from-muted-foreground/10 to-vinted/20",
       iconColor: "text-muted-foreground",
       borderColor: "border-muted-foreground/20",
-      badge: "Analytics",
-      ariaLabel: "Accéder aux analyses de marché"
+      badge: "Tendance",
+      ariaLabel: "Accéder aux analyses de l'évolution des prix"
     },
     {
       icon: Icons.zap,
-      title: "Base de Cartes TCGdex",
-      description: "Explorez toutes les cartes Pokémon grâce à l'API TCGdex. Recherche instantanée, détails complets et images haute résolution.",
+      title: "Base Complète TCGdex",
+      description: "Explorez chaque carte Pokémon avec images haute résolution, informations détaillées et disponibilité sur le marché secondaire.",
       href: "/tcgdex",
-      // UTILISATION DE accent
-      gradient: "from-accent/10 to-accent/5",
-      iconColor: "text-accent", // ATTENTION: Vous devrez définir la classe text-accent
-      borderColor: "border-accent/20", // ATTENTION: Vous devrez définir la classe border-accent
-      badge: "Database",
+      gradient: "from-accent/10 to-cardmarket/30",
+      iconColor: "text-accent",
+      borderColor: "border-accent/20",
+      badge: "Catalogue",
       ariaLabel: "Explorer la base de données TCGdex"
     },
   ]
+  
 
   const platforms = [
     { name: "eBay", icon: "🛒", color: "from-ebay to-ebay-soft", mobileColor: "bg-ebay-soft", ariaLabel: "eBay" },
@@ -533,10 +531,10 @@ export default function HomePage() {
                     transition-all duration-300 hover:scale-105 group w-full sm:w-auto"
                   aria-label="Commencer la recherche de produits"
                 >
-                  <Link href="/recherche">
-                    <span className="hidden sm:inline">Commencer la Recherche</span>
+                  <Link href="/analyse">
+                    <span className="hidden sm:inline">Commencer l'analyse</span>
                     <span className="sm:hidden">Commencer</span>
-                    <Icons.search className="ml-2 h-5 sm:h-6 w-5 sm:w-6 transition-transform group-hover:scale-110" aria-hidden="true" />
+                    <Icons.brain className="ml-2 h-5 sm:h-6 w-5 sm:w-6 transition-transform group-hover:scale-110" aria-hidden="true" />
                   </Link>
                 </Button>
               </div>

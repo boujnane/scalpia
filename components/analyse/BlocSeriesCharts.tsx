@@ -233,7 +233,7 @@ export default function BlocSeriesChart({ items }: { items: Item[] }) {
             {/* Tooltip on hover */}
             <RechartsTooltip
               labelFormatter={(d) => new Date(d).toLocaleDateString("fr-FR")}
-              formatter={(v: number) => v.toFixed(2)}
+              formatter={(v?: number) => v?.toFixed(2)}
             />
 
             {/* Legend for series names */}

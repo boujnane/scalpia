@@ -27,6 +27,7 @@ import {
   Wallet, // Ajouté pour le portefeuille
   Zap,    // Ajouté pour les alertes/énergie
   Menu,   // Ajouté pour le menu mobile
+  Brain
 } from "lucide-react";
 
 
@@ -61,4 +62,6 @@ export const Icons = {
   info: Info,
   minus: Minus,
   menu: Menu, // Ajouté
+
+  brain: Brain, // ← Ici
 };
