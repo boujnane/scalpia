@@ -14,104 +14,116 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-Tu es un expert en produits Pokémon : cartes à l’unité, cartes gradées et **produits scellés uniquement** (boosters, displays, ETB, coffrets, tins, decks, blisters). Ton objectif est de trouver des produits qui sont **neufs, scellés, et dans un état collection (Near Mint)**.
+Tu es un expert en produits Pokémon (TCG). Ton objectif est de filtrer une liste d'annonces pour ne garder que les **PRODUITS SCELLÉS** (Boosters, Displays, ETB, Coffrets, Tins, Decks, Blisters).
 
-Mission :
-Nettoyer une liste d'annonces correspondant à une recherche utilisateur.
-
-La recherche est :
-"${query}"
+La recherche utilisateur est : "${query}"
 
 Analyse les objets suivants :
 ${JSON.stringify(items)}
 
 ---
-## 🔎 RÈGLES DE FILTRAGE STRICTES (PRODUITS SCELLÉS NEUFS)
 
-### 1. RÈGLES DE REJET FONDAMENTALES (TYPE ET ÉTAT DU PRODUIT)
-**TU DOIS IMPÉRATIVEMENT REJETER** toute annonce qui viole les conditions suivantes :
+## 🧠 LOGIQUE DE FILTRAGE : PRÉSOMPTION DE VALIDITÉ & FLEXIBILITÉ
+**IMPORTANT :** Tu dois adopter une logique permissive sur l'état du scellage et l'orthographe.
 
-* **Rejet type de produit :** Le produit est clairement une **carte individuelle**, une **carte gradée**, ou un **lot de cartes non scellé** (même si le titre inclut "promo").
-    * *Exemple d'exclusion pour "Carte promo Etb aventures ensemble (ev9)" : Le produit est une carte individuelle, pas un produit scellé.*
-* **Rejet état du produit (Scellé & Neuf requis) :** Le produit n'est pas scellé ou est décrit comme ayant des défauts.
-    * **Rejeter si:** Le produit est décrit comme **ouvert**, **non scellé**, **utilisé**, **sans cellophane d'origine**, **vide**, **reconditionné**, **avec goodies**.
-    * **Rejeter si:** Le titre ou la description mentionne un **défaut**, des **dommages**, des **dégâts**, ou des **impacts** (ex: "avec léger défaut", "abîmé"). Nous recherchons un état collection (Near Mint ou Mint).
-
-### 2. RÈGLES DE FILTRAGE SUPPLÉMENTAIRES
-* **Rejet termes :** Rejeter les annonces mentionnant des termes de **troc/échange** ou des services.
-* **Rejet contrefaçon :** Rejeter si le produit semble être une contrefaçon ou non officiel.
-
-### 3 EXCEPTIONS IMPORTANTES (À NE PAS REJETER)
-Certains titres très courts ou abrégés désignent clairement un PRODUIT SCELLÉ, même s’ils ne mentionnent pas “booster”, “display”, etc.
-
-Tu NE DOIS PAS REJETER les annonces dont le titre correspond EXACTEMENT à l’un de ces formats :
-- "ETB 151"
-- "Coffret dresseur d'elite [nom de série]"
-- "etb 151"
-- "ETB151"
-- "Elite Trainer Box 151"
-- "ETB [nom de série]"
-- "ETB Pokémon 151"
-- ou toute autre forme équivalente désignant clairement une ETB scellée authentique.
-
-👉 **Ces formats doivent être considérés comme des produits scellés valides à moins que le texte mentionne explicitement un état “ouvert”, “non scellé”, “sans cellophane”, “vide”, etc.**
+1.  **PRÉSOMPTION DE SCELLAGE :** Considère qu'un produit EST SCELLÉ ET NEUF par défaut, sauf si un mot-clé indique EXPLICITEMENT le contraire.
+2.  **TOLÉRANCE ORTHOGRAPHIQUE MAXIMALE :** Les vendeurs et les utilisateurs font des fautes.
+    * Ignore la casse (Majuscule/minuscule).
+    * Ignore les fautes de frappe ou de grammaire (ex: "Flamme" vs "Flammes", "Fantamsagorique" vs "Fantasmagorique").
+    * Accepte les approximations phonétiques.
+    * Si le titre ressemble à un produit scellé (même mal écrit), c'est **VALIDE**.
 
 ---
-FORMAT DE SORTIE STRICT (JSON uniquement) :
+
+## 🚫 CRITÈRES D'EXCLUSION (LISTE NOIRE)
+Tu ne dois rejeter l'annonce **QUE** si elle tombe dans l'une des catégories suivantes :
+
+### 1. REJET : CE N'EST PAS UN PRODUIT SCELLÉ (Type d'objet incorrect)
+Rejette si l'objet est clairement une carte à l'unité ou un lot de cartes en vrac.
+* **Mots-clés déclencheurs de rejet :** "Carte seule", "Carte à l'unité", "Gradée", "PCA", "PSA", "AP", "Grade", "Sleeve", "Toploader", "Pochette", "Vrac", "Lot de cartes", "Classeur", "Binder".
+* **Ambiguïté :** Si le titre est *uniquement* le nom d'un Pokémon (ex: "Dracaufeu EX"), considère que c'est une carte et rejette-le. Un produit scellé contient généralement un mot contenant (Coffret, ETB, Box, Tin, Booster, Pack, Duo, Tripack).
+
+### 2. REJET : L'ÉTAT N'EST PAS CONFORME (Ouvert ou Abîmé)
+Rejette uniquement si l'annonce avoue explicitement un défaut majeur ou une ouverture.
+* **Mots-clés déclencheurs de rejet :** "Ouvert", "Opened", "Sans booster", "Vide", "Empty", "Juste la boite", "Sans film", "Descellé", "Unsealed", "Abimé", "Déchiré", "Choc", "Ecrasé", "reconditionné", "incomplet".
+* *Note :* Si rien n'est précisé, considère que c'est Mint/Near Mint.
+
+### 3. REJET : CONTENU SPÉCIFIQUE
+* **Rejet Goodies/Accessoires seuls :** (ex: "Sleeves ETB 151", "Dés", "Guide", "Code online").
+* **Rejet Carte Promo seule :** (ex: "Carte promo de l'ETB").
+
+---
+
+## ✅ EXEMPLES DE VALIDATION (À GARDER MALGRÉ LES FAUTES)
+Ces titres sont **VALIDES** car ils désignent des produits scellés, même avec des erreurs :
+* "EtB FlAmmes Fantamsagorique" (Valide -> Typo tolérée)
+* "Coffret dresseur delite" (Valide -> Phonétique tolérée)
+* "Display Zenith Supreme" (Valide)
+* "Boster Pokemon" (Valide -> Faute sur Booster tolérée)
+* "Pokebox Noel" (Valide)
+
+---
+
+FORMAT DE SORTIE ATTENDU (JSON) :
 {
   "valid": [
     { "title": string, "price": number, "thumbnail": string, "url": string }
   ],
   "minPrice": number | null,
   "rejected": [
-    { "title": string, "reason": string }
+    { "title": string, "reason": string } // Raison courte : "Carte seule", "Ouvert", "Boite vide", etc.
   ]
 }
 `;
 
-    // --- Appel à l'IA ---
-    const completion = await client.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-    });
+ // --- Appel à l'IA ---
+ const completion = await client.chat.completions.create({
+  model: "llama-3.3-70b-versatile",
+  messages: [{ role: "user", content: prompt }],
+  response_format: { type: "json_object" },
+});
 
-    const content = completion.choices?.[0]?.message?.content;
-    if (!content) {
-      return NextResponse.json({ error: "Réponse vide du modèle Groq" }, { status: 500 });
+const content = completion.choices?.[0]?.message?.content;
+if (!content) {
+  return NextResponse.json({ error: "Réponse vide du modèle Groq" }, { status: 500 });
+}
+
+let result = JSON.parse(content);
+
+// --- Nettoyage des prix et génération de rejected ---
+const rejected: { title: string; reason: string }[] = [];
+if (result.valid && Array.isArray(result.valid)) {
+  result.valid = result.valid.map((item: any) => {
+    let price = item.price;
+
+    // Nettoyage du prix
+    if (typeof price === "string") {
+      price = Number(price.replace(/[^\d,.]/g, "").replace(",", "."));
     }
 
-    let result = JSON.parse(content);
-
-    // --- Nettoyage des prix ---
-    if (result.valid && Array.isArray(result.valid)) {
-      result.valid = result.valid.map((item: any) => {
-        let price = item.price;
-
-        // Si price est une chaîne, enlever les espaces et symboles € puis convertir en nombre
-        if (typeof price === "string") {
-          price = Number(price.replace(/[^\d,.]/g, "").replace(",", "."));
-        }
-
-        // Forcer à null si conversion impossible
-        if (isNaN(price)) price = null;
-
-        return { ...item, price };
-      });
-
-      // Calcul minPrice côté serveur
-      const numericPrices = result.valid
-        .map((i: any) => i.price)
-        .filter((p: number | null) => p !== null);
-      result.minPrice = numericPrices.length > 0 ? Math.min(...numericPrices) : null;
-    } else {
-      result.valid = [];
-      result.minPrice = null;
+    if (isNaN(price) || price === null) {
+      rejected.push({ title: item.title || "Titre inconnu", reason: "Prix invalide" });
+      return null; // exclu des valides
     }
 
-    return NextResponse.json(result);
-  } catch (err: any) {
-    console.error("Erreur /api/leboncoin-filter:", err);
-    return NextResponse.json({ error: err.message || "Erreur inconnue" }, { status: 500 });
-  }
+    return { ...item, price };
+  }).filter(Boolean); // retire les nulls
+
+  // Calcul minPrice côté serveur
+  const numericPrices = result.valid
+    .map((i: any) => i.price)
+    .filter((p: number | null) => p !== null);
+  result.minPrice = numericPrices.length > 0 ? Math.min(...numericPrices) : null;
+} else {
+  result.valid = [];
+  result.minPrice = null;
+}
+
+result.rejected = rejected;
+
+return NextResponse.json(result);
+} catch (err: any) {
+console.error("Erreur /api/leboncoin-filter:", err);
+return NextResponse.json({ error: err.message || "Erreur inconnue" }, { status: 500 });
+}
 }

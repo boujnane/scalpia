@@ -3,9 +3,15 @@
 import LBCItemCard, { LBCOffer } from "@/components/leboncoin/LBCItemCard";
 import { useState } from "react";
 
+export type LBCResult = {
+  offers: LBCOffer[];
+  rejected: { title: string; reason: string }[];
+};
+
+
 export default function LeboncoinPage() {
   const [url, setUrl] = useState("");
-  const [result, setResult] = useState<{ offers: LBCOffer[] } | null>(null);
+  const [result, setResult] = useState<LBCResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +62,11 @@ export default function LeboncoinPage() {
         return priceA - priceB;
       });
   
-      setResult({ offers: sortedOffers });
+      setResult({
+        offers: sortedOffers,
+        rejected: filteredData.rejected || [],
+      });
+      
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -118,6 +128,19 @@ export default function LeboncoinPage() {
           ))}
         </div>
       )}
+
+      {result && result.rejected.length > 0 && (
+  <div style={{ marginTop: 20, color: "red" }}>
+    <h3>Annonces rejetées :</h3>
+    <ul>
+      {result.rejected.map((item, index) => (
+        <li key={index}>
+          {item.title} — {item.reason}
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
 
       {result && result.offers.length === 0 && (
         <div style={{ marginTop: 20, color: "#555" }}>

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 
 import LBCItemCard, { LBCOffer } from "@/components/leboncoin/LBCItemCard";
 import { fetchLeboncoinSearch, postLeboncoinFilter } from "@/lib/api";
+import Fuse from "fuse.js";
 
 type ItemEntry = {
   id: string;
@@ -51,6 +52,8 @@ export default function InsertDbPage() {
 
   const [yesterdayPrice, setYesterdayPrice] = useState<number | null>(null);
   const [yesterdayDate, setYesterdayDate] = useState<string | null>(null);
+
+  const [prefetchCache] = useState<Map<string, { vinted?: any; lbc?: LBCOffer[]; minPrice?: number }>>(new Map());
 
   // Load items from Firestore
   useEffect(() => {
@@ -121,7 +124,110 @@ export default function InsertDbPage() {
     fetchYesterdayPrice();
   }, [currentItem]);
 
+  useEffect(() => {
+    const prefetchNextItem = async () => {
+      const nextIndex = currentIndex + 1;
+      if (nextIndex >= items.length) return;
+  
+      const nextItem = items[nextIndex];
+      if (!nextItem || prefetchCache.has(nextItem.id)) return;
+  
+      const queryStr = `${nextItem.type} ${nextItem.name}`.trim();
+      if (!queryStr) return;
+  
+      try {
+        // Prefetch Vinted
+        const vintedData = await run(queryStr);
+  
+        // Prefetch LBC
+        const lbcData = await fetchLeboncoinSearch(queryStr);
+        const filteredData = await postLeboncoinFilter(queryStr, lbcData.offers);
+  
+        const validOffers: LBCOffer[] = (filteredData.valid || [])
+          .map((validItem: any) => {
+            const original = lbcData.offers.find((o: any) => o.link === validItem.url);
+            return original ? { ...original } : validItem;
+          })
+          .slice(0, 10);
+  
+        const sortedOffers = validOffers.sort((a, b) => {
+          const parsePrice = (price: string | number) => {
+            if (typeof price === "number") return price;
+            if (!price) return 0;
+            return Number(price.toString().replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
+          };
+          return parsePrice(a.price) - parsePrice(b.price);
+        });
+  
+        const minLBCPrice = sortedOffers.length > 0
+          ? Math.min(...sortedOffers.map((o) => Number(o.price.toString().replace(/[^\d,.-]/g, "").replace(",", "."))))
+          : null;
+  
+        // Stocker dans le cache
+        prefetchCache.set(nextItem.id, {
+          vinted: vintedData,
+          lbc: sortedOffers,
+          minPrice: minLBCPrice ?? undefined,
+        });
+  
+      } catch (err) {
+        console.error("Erreur préfetch item:", nextItem.name, err);
+      }
+    };
+  
+    prefetchNextItem();
+  }, [currentIndex, items, prefetchCache]);
+
+  useEffect(() => {
+    if (!currentItem) return;
+  
+    const cached = prefetchCache.get(currentItem.id);
+    if (cached) {
+      setVintedResults(cached.vinted || null);
+      setLbcResults(cached.lbc || []);
+      if (cached.minPrice !== undefined && cached.minPrice !== null) {
+        setCurrentMinPrice(cached.minPrice);
+      }
+    } else {
+      setVintedResults(null);
+      setLbcResults([]);
+      setCurrentMinPrice(null);
+    }
+  }, [currentItem, prefetchCache]);
+
   // ------- Actions -------
+
+
+  const handleSearchVintedFuzzy = async () => {
+    if (!currentItem) return;
+    const queryStr = `${currentItem.type} ${currentItem.name}`.trim();
+    if (!queryStr) return setCurrentError("Type ou nom manquant");
+  
+    setCurrentMinPrice(null);
+    setCurrentError(null);
+    setVintedResults(null);
+  
+    try {
+      const vintedData = await run(queryStr); // récupère toutes les annonces
+  
+      // Fuse.js pour filtrer flou
+      const fuse = new Fuse(vintedData?.filteredVinted.valid || [], {
+        keys: ["title"], // tu peux ajouter "description" si dispo
+        threshold: 0.3, // tolérance aux fautes (0.0 strict, 1.0 permissif)
+      });
+  
+      const fuzzyResults = fuse.search(queryStr).map(r => r.item).slice(0, 10);
+  
+      setVintedResults({
+        filteredVinted: { valid: fuzzyResults },
+        minPrice: Math.min(...fuzzyResults.map((item: any) => item.price)) || null,
+      });
+    } catch (err: any) {
+      setCurrentError(err.message || "Erreur inconnue");
+    }
+  };
+  
+  
 
   const handleUseYesterdayPrice = () => {
     if (yesterdayPrice !== null) setCurrentMinPrice(yesterdayPrice);
@@ -152,7 +258,7 @@ export default function InsertDbPage() {
     }
   };
 
-  const handleSearchLBC = async () => {
+  const handleSearchLBCFuzzy = async () => {
     if (!currentItem) return;
     const queryStr = `${currentItem.type} ${currentItem.name}`.trim();
     if (!queryStr) return setCurrentError("Type ou nom manquant");
@@ -165,14 +271,23 @@ export default function InsertDbPage() {
       const lbcData = await fetchLeboncoinSearch(queryStr);
       const filteredData = await postLeboncoinFilter(queryStr, lbcData.offers);
 
+      // Préparer les offres valides
       const validOffers: LBCOffer[] = (filteredData.valid || [])
         .map((validItem: any) => {
           const original = lbcData.offers.find((o: any) => o.link === validItem.url);
           return original ? { ...original } : validItem;
-        })
-        .slice(0, 10);
+        });
 
-      const sortedOffers = validOffers.sort((a, b) => {
+      // Recherche floue avec Fuse.js
+      const fuse = new Fuse(validOffers, {
+        keys: ["title"], // ou ["title", "description"] si dispo
+        threshold: 0.3, // tolérance aux fautes
+      });
+
+      const fuzzyResults = fuse.search(queryStr).map(r => r.item).slice(0, 30);
+
+      // Tri par prix croissant
+      const sortedOffers = fuzzyResults.sort((a, b) => {
         const parsePrice = (price: string | number) => {
           if (typeof price === "number") return price;
           if (!price) return 0;
@@ -185,7 +300,7 @@ export default function InsertDbPage() {
 
       // Prix minimal LBC
       const minLBCPrice = sortedOffers.length > 0
-        ? Math.min(...sortedOffers.map((o) => Number(o.price.toString().replace(/[^\d,.-]/g, "").replace(",", "."))))
+        ? Math.min(...sortedOffers.map(o => Number(o.price.toString().replace(/[^\d,.-]/g, "").replace(",", "."))))
         : null;
       if (minLBCPrice !== null) setCurrentMinPrice(minLBCPrice);
 
@@ -193,6 +308,7 @@ export default function InsertDbPage() {
       setCurrentError(err.message || "Erreur inconnue");
     }
   };
+
 
   const handleInsertPrice = async () => {
     if (!currentItem || currentMinPrice === null) return;
@@ -338,51 +454,74 @@ export default function InsertDbPage() {
                     {currentError && <div className="text-sm text-destructive">{currentError}</div>}
 
 
-
-                    {/* Vinted results */}
-                    {vintedResults?.filteredVinted?.valid?.length > 0 && (
-                      <section>
-                        <h3 className="font-medium mb-2 text-foreground">Annonces Vinted trouvées</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {vintedResults.filteredVinted.valid.map((item: any, i: number) => (
+                  {/* Vinted results */}
+                  {vintedResults?.filteredVinted?.valid?.length > 0 && (
+                    <section>
+                      <h3 className="font-medium mb-2 text-foreground">Annonces Vinted trouvées</h3>
+                      <div className="flex flex-row gap-4 overflow-x-auto pb-2">
+                        {vintedResults.filteredVinted.valid
+                          .slice() // on clone pour ne pas muter l'original
+                          .sort((a: any, b: any) => a.price - b.price)
+                          .map((item: any, i: number) => (
                             <Card
                               key={i}
-                              className="bg-card border border-border hover:shadow-lg cursor-pointer transition"
+                              className="bg-card border border-border hover:shadow-lg cursor-pointer transition flex-shrink-0 w-80 flex flex-row p-4 items-center gap-4"
                               onClick={() =>
                                 item.url && window.open(item.url, "_blank") && setCurrentMinPrice(item.price)
                               }
                             >
-                              <CardHeader>
-                                <CardTitle className="text-sm line-clamp-2 text-foreground">{item.title}</CardTitle>
-                              </CardHeader>
-                              <CardContent className="flex flex-col items-center">
-                                {item.thumbnail && <img src={item.thumbnail} alt={item.title} className="h-28 object-contain mb-2" />}
-                                <span className="font-bold text-lg text-primary">{item.price} €</span>
-                              </CardContent>
+                              {/* Image */}
+                              {item.thumbnail && (
+                                <div className="w-28 h-28 relative flex-shrink-0 bg-secondary/20 rounded-xl overflow-hidden border border-border/50">
+                                  <img
+                                    src={item.thumbnail}
+                                    alt={item.title}
+                                    className="w-full h-full object-contain"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Contenu texte */}
+                              <div className="flex flex-col justify-between flex-1 h-full">
+                                <CardHeader>
+                                  <CardTitle className="text-sm line-clamp-2 text-foreground">{item.title}</CardTitle>
+                                </CardHeader>
+
+                                <CardContent className="flex flex-col gap-1">
+                                  <span className="font-bold text-lg text-primary">{item.price} €</span>
+                                </CardContent>
+                              </div>
                             </Card>
                           ))}
-                        </div>
-                      </section>
-                    )}
+                      </div>
+                    </section>
+                  )}
 
-                    {/* Le Bon Coin results */}
-                    {lbcResults.length > 0 && (
-                      <section>
-                        <h3 className="font-medium mb-2 text-foreground">Annonces Le Bon Coin</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {lbcResults.map((offer, i) => (
-                            <LBCItemCard
-                              key={i}
-                              offer={offer}
-                              onClick={() => {
-                                const price = Number(offer.price.toString().replace(/[^\d,.-]/g, "").replace(",", "."));
-                                setCurrentMinPrice(price);
-                              }}
-                            />
-                          ))}
+
+
+
+                {/* Le Bon Coin results */}
+                {lbcResults.length > 0 && (
+                  <section>
+                    <h3 className="font-medium mb-2 text-foreground">Annonces Le Bon Coin</h3>
+                    <div className="flex gap-4 overflow-x-auto pb-2">
+                      {lbcResults.map((offer, i) => (
+                        <div key={i} className="flex-shrink-0 w-100">
+                          <LBCItemCard
+                            offer={offer}
+                            onClick={() => {
+                              const price = Number(
+                                offer.price.toString().replace(/[^\d,.-]/g, "").replace(",", ".")
+                              );
+                              setCurrentMinPrice(price);
+                            }}
+                          />
                         </div>
-                      </section>
-                    )}
+                      ))}
+                    </div>
+                  </section>
+                )}
+
                   </CollapsibleContent>
                 </Collapsible>
                 {currentMinPrice !== null && !currentError && (
@@ -405,11 +544,11 @@ export default function InsertDbPage() {
                     )}
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-3 pt-2">
-                  <Button onClick={handleSearchVinted} disabled={searchLoading} variant="default">
+                  <Button onClick={handleSearchVintedFuzzy} disabled={searchLoading} variant="default">
                     {searchLoading ? "Recherche Vinted…" : "Chercher Vinted"}
                   </Button>
 
-                  <Button onClick={handleSearchLBC} disabled={searchLoading} variant="default">
+                  <Button onClick={handleSearchLBCFuzzy} disabled={searchLoading} variant="default">
                     {searchLoading ? "Recherche LBC…" : "Chercher LBC"}
                   </Button>
 

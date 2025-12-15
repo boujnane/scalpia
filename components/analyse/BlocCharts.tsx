@@ -42,6 +42,7 @@ export default function BlocChart({ items }: { items: Item[] }) {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStartX, setSelectionStartX] = useState(0);
   const [selectionEndX, setSelectionEndX] = useState(0);
+  const [selectedSeries, setSelectedSeries] = useState<string | null>(null);
 
   const chartRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
@@ -249,11 +250,22 @@ export default function BlocChart({ items }: { items: Item[] }) {
               verticalAlign="bottom"
               align="center"
               layout="horizontal"
-              wrapperStyle={{ 
-                fontSize: isMobile ? "0.6rem" : "0.8rem", 
-                maxHeight: 70, 
-                overflowY: "auto", 
-                color: "var(--color-foreground)" 
+              wrapperStyle={{ fontSize: isMobile ? "0.6rem" : "0.8rem", maxHeight: 70, overflowY: "auto" }}
+              formatter={(value, entry) => {
+                // Si une série est sélectionnée, atténuer les autres dans la légende
+                const isSelected = selectedSeries === null || selectedSeries === value;
+                return (
+                  <span
+                    style={{
+                      color: isSelected ? colorMap[value] : "#aaa",
+                      cursor: "pointer",
+                      fontWeight: selectedSeries === value ? "bold" : "normal",
+                    }}
+                    onClick={() => setSelectedSeries(prev => (prev === value ? null : value))}
+                  >
+                    {value}
+                  </span>
+                );
               }}
             />
 
@@ -264,11 +276,16 @@ export default function BlocChart({ items }: { items: Item[] }) {
                 dataKey="price"
                 name={item.name}
                 type="monotone"
-                strokeWidth={2}
+                strokeWidth={selectedSeries === item.name ? 4 : 2} // Plus épaisse si sélectionnée
                 stroke={colorMap[item.name]}
-                strokeOpacity={0.8}
+                strokeOpacity={selectedSeries && selectedSeries !== item.name ? 0.3 : 0.8} // Atténuée si non sélectionnée
                 dot={false}
-                activeDot={{ r: 4 }}
+                activeDot={{
+                  r: 4,
+                  onClick: () =>
+                    setSelectedSeries(prev => (prev === item.name ? null : item.name)), // Clique pour sélectionner / désélectionner
+                  style: { cursor: "pointer" }
+                }}
               />
             ))}
           </LineChart>
