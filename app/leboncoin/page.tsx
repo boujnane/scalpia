@@ -1,6 +1,7 @@
 "use client";
 
-import LBCItemCard, { LBCOffer } from "@/components/leboncoin/LBCItemCard";
+import LBCItemCard from "@/components/leboncoin/LBCItemCard";
+import { LBCOffer } from "@/types";
 import { useState } from "react";
 
 export type LBCResult = {

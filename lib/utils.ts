@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { LBCOffer } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -55,3 +56,29 @@ export const getCardImageUrl = (
   console.log(url)
   return url
 }
+
+
+export const parseLBCPrice = (price: string): number => {
+  if (!price) return NaN;
+  return Number(price.replace(/[^\d,]/g, "").replace(",", "."));
+};
+
+export const normalizeLBCOffers = (offers: any[]): LBCOffer[] => {
+  if (!Array.isArray(offers)) return [];
+
+  return offers
+    .map((o) => ({
+      title: o.title ?? "",
+      price: String(o.price ?? ""),
+      location: o.location ?? "",
+      category: o.category ?? "",
+      link: o.link ?? null,
+      image: o.image ?? null,
+    }))
+    .filter(
+      (o) =>
+        o.link &&
+        o.price &&
+        !Number.isNaN(parseLBCPrice(o.price))
+    );
+};

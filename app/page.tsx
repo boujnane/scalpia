@@ -133,7 +133,7 @@ export default function HomePage() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
                   </span>
                   <span className="text-xs sm:text-sm font-semibold text-primary">
-                    100% Gratuit · Marché Secondaire Pokémon
+                    100% Gratuit · Index des prix Pokémon
                   </span>
                 </motion.div>
 
@@ -149,13 +149,14 @@ export default function HomePage() {
                   </h1>
                   
                   <p className="text-base sm:text-lg lg:text-xl text-muted-foreground/90 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                    <span className="font-semibold text-foreground">Trouvez les meilleures offres</span> en comparant{" "}
+                    <span className="font-semibold text-foreground">Accédez à un index global des prix du marché secondaire</span> <span className="font-semibold text-foreground">Pokémon.</span> Nous analysons{" "} 
                     <span className="font-semibold text-[#0066CC]">Cardmarket</span>,{" "}
                     <span className="font-semibold text-[#EC5A13]">LeBonCoin</span>,{" "}
                     <span className="font-semibold text-[#92c821]">eBay</span> et{" "}
-                    <span className="font-semibold text-[#09B1BA]">Vinted</span> en temps réel.{" "}
+                    <span className="font-semibold text-[#09B1BA]">Vinted</span> en amont pour vous fournir
+                    une vision claire et fiable des prix réels du marché.{" "}
                     <span className="block mt-2 sm:mt-3">
-                      Suivez l'évolution des prix depuis la sortie et explorez 100K+ cartes.
+                      Suivez l'évolution des prix et explorez 100K+ cartes et items scellés.
                     </span>
                   </p>
                 </div>

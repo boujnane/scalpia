@@ -17,3 +17,12 @@ export type FilterResult<T = any> = {
     minPrice?: number | null;
   };
   
+export type LBCOffer = {
+    title: string;
+    price: string; // prix brut (ex: "45 €")
+    location: string;
+    category: string;
+    link: string | null;
+    image?: string | null;
+    rejected?: string;
+    };

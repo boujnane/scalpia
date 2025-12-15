@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 import { insertPriceInDB } from "@/lib/insert-price";
 import { useSearchVinted } from "@/hooks/useSearchVinted";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -19,9 +19,11 @@ import {
 import CardmarketButton from "@/components/CardmarketButton";
 import { Button } from "@/components/ui/button";
 
-import LBCItemCard, { LBCOffer } from "@/components/leboncoin/LBCItemCard";
+import LBCItemCard from "@/components/leboncoin/LBCItemCard";
 import { fetchLeboncoinSearch, postLeboncoinFilter } from "@/lib/api";
 import Fuse from "fuse.js";
+import { LBCOffer } from "@/types";
+import { normalizeLBCOffers, parseLBCPrice } from "@/lib/utils";
 
 type ItemEntry = {
   id: string;
@@ -29,6 +31,14 @@ type ItemEntry = {
   type?: string;
   series?: string;
   cardmarketUrl?: string | null;
+};
+
+type PrefetchData = {
+  vinted?: any;
+  lbc?: LBCOffer[];
+  minPrice?: number;
+  error?: string;
+  timestamp?: number;
 };
 
 export default function InsertDbPage() {
@@ -47,13 +57,17 @@ export default function InsertDbPage() {
   const [openVinted, setOpenVinted] = useState(true);
   const [openCardmarket, setOpenCardmarket] = useState(true);
 
-  const { run, loading: searchLoading } = useSearchVinted();
+  const { run: searchVinted, loading: searchLoading } = useSearchVinted();
   const [itemsWithPriceToday, setItemsWithPriceToday] = useState<Set<string>>(new Set());
 
   const [yesterdayPrice, setYesterdayPrice] = useState<number | null>(null);
   const [yesterdayDate, setYesterdayDate] = useState<string | null>(null);
 
-  const [prefetchCache] = useState<Map<string, { vinted?: any; lbc?: LBCOffer[]; minPrice?: number }>>(new Map());
+  // Cache et prefetch
+  const prefetchCache = useRef<Map<string, PrefetchData>>(new Map());
+  const prefetchingRef = useRef<Set<string>>(new Set());
+  const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const [prefetchStatus, setPrefetchStatus] = useState<{itemId: string, status: string} | null>(null);
 
   // Load items from Firestore
   useEffect(() => {
@@ -92,6 +106,7 @@ export default function InsertDbPage() {
     setCardmarketUrl(currentItem.cardmarketUrl ?? null);
   }, [currentIndex, currentItem]);
 
+  // Fetch yesterday price
   useEffect(() => {
     const fetchYesterdayPrice = async () => {
       if (!currentItem) return;
@@ -104,7 +119,6 @@ export default function InsertDbPage() {
 
       const prices = pricesSnap.docs.map((doc) => doc.data() as any);
       prices.sort((a, b) => (a.date < b.date ? 1 : -1));
-      const last = prices[0];
 
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -117,117 +131,244 @@ export default function InsertDbPage() {
         return;
       }
 
-      setYesterdayPrice(last.price);
-      setYesterdayDate(last.date);
+      setYesterdayPrice(prices[0].price);
+      setYesterdayDate(prices[0].date);
     };
 
     fetchYesterdayPrice();
   }, [currentItem]);
 
-  useEffect(() => {
-    const prefetchNextItem = async () => {
-      const nextIndex = currentIndex + 1;
-      if (nextIndex >= items.length) return;
-  
-      const nextItem = items[nextIndex];
-      if (!nextItem || prefetchCache.has(nextItem.id)) return;
-  
-      const queryStr = `${nextItem.type} ${nextItem.name}`.trim();
-      if (!queryStr) return;
-  
-      try {
-        // Prefetch Vinted
-        const vintedData = await run(queryStr);
-  
-        // Prefetch LBC
-        const lbcData = await fetchLeboncoinSearch(queryStr);
-        const filteredData = await postLeboncoinFilter(queryStr, lbcData.offers);
-  
-        const validOffers: LBCOffer[] = (filteredData.valid || [])
-          .map((validItem: any) => {
-            const original = lbcData.offers.find((o: any) => o.link === validItem.url);
-            return original ? { ...original } : validItem;
-          })
-          .slice(0, 10);
-  
-        const sortedOffers = validOffers.sort((a, b) => {
-          const parsePrice = (price: string | number) => {
-            if (typeof price === "number") return price;
-            if (!price) return 0;
-            return Number(price.toString().replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
-          };
-          return parsePrice(a.price) - parsePrice(b.price);
-        });
-  
-        const minLBCPrice = sortedOffers.length > 0
-          ? Math.min(...sortedOffers.map((o) => Number(o.price.toString().replace(/[^\d,.-]/g, "").replace(",", "."))))
-          : null;
-  
-        // Stocker dans le cache
-        prefetchCache.set(nextItem.id, {
-          vinted: vintedData,
-          lbc: sortedOffers,
-          minPrice: minLBCPrice ?? undefined,
-        });
-  
-      } catch (err) {
-        console.error("Erreur préfetch item:", nextItem.name, err);
-      }
-    };
-  
-    prefetchNextItem();
-  }, [currentIndex, items, prefetchCache]);
+  // Fonction de prefetch optimisée
+  const prefetchItem = async (item: ItemEntry) => {
+    // Éviter de prefetch si déjà en cours ou déjà en cache
+    if (prefetchingRef.current.has(item.id)) {
+      console.log(`⏭️ Prefetch déjà en cours pour: ${item.name}`);
+      return;
+    }
 
+    // Si en cache et récent (< 5 min), ne pas re-fetch
+    const cached = prefetchCache.current.get(item.id);
+    if (cached && cached.timestamp) {
+      const age = Date.now() - cached.timestamp;
+      if (age < 5 * 60 * 1000) { // 5 minutes
+        console.log(`✅ Cache valide pour: ${item.name} (${Math.round(age/1000)}s)`);
+        return;
+      }
+    }
+
+    const queryStr = `${item.type} ${item.name}`.trim();
+    if (!queryStr) {
+      console.log(`⚠️ Query vide pour: ${item.name}`);
+      return;
+    }
+
+    prefetchingRef.current.add(item.id);
+    setPrefetchStatus({ itemId: item.id, status: 'loading' });
+
+    // AbortController pour pouvoir annuler
+    const controller = new AbortController();
+    abortControllersRef.current.set(item.id, controller);
+
+    try {
+      console.log(`🔄 Prefetch démarré: ${item.name}`);
+
+      // Prefetch Vinted (utilise son propre cache interne)
+      const vintedPromise = searchVinted(queryStr);
+
+      // Prefetch LBC en parallèle
+      const lbcPromise = (async () => {
+        try {
+          const lbcRaw = await fetchLeboncoinSearch(queryStr, controller.signal);
+          
+          if (!lbcRaw?.offers || lbcRaw.offers.length === 0) {
+            console.log(`ℹ️ Pas d'offres LBC pour: ${item.name}`);
+            return { offers: [], minPrice: null };
+          }
+
+          const normalizedOffers = normalizeLBCOffers(lbcRaw.offers);
+          
+          if (normalizedOffers.length === 0) {
+            console.log(`⚠️ Aucune offre LBC valide pour: ${item.name}`);
+            return { offers: [], minPrice: null };
+          }
+
+          const filtered = await postLeboncoinFilter(queryStr, normalizedOffers, controller.signal);
+
+          const validOffers: LBCOffer[] = (filtered.valid || []).map((v: any) => {
+            const original = normalizedOffers.find(o =>
+              o.link === v.url ||
+              o.link?.includes(v.url) ||
+              v.url.includes(o.link)
+            );
+          
+            return original ?? {
+              title: v.title,
+              link: v.url,
+              price: v.price ?? "",
+              images: [],
+              location: "",
+              date: "",
+            };
+          });
+          
+
+          if (validOffers.length === 0) {
+            console.log(`⚠️ Toutes les offres LBC rejetées pour: ${item.name}`);
+            return { offers: [], minPrice: null };
+          }
+
+          const sorted = validOffers
+            .sort((a, b) => parseLBCPrice(a.price) - parseLBCPrice(b.price))
+            .slice(0, 30);
+
+          const minLBCPrice = sorted.length > 0 ? parseLBCPrice(sorted[0].price) : null;
+
+          return { offers: sorted, minPrice: minLBCPrice };
+        } catch (err: any) {
+          if (err.name === 'AbortError') throw err;
+          console.error(`❌ Erreur LBC pour ${item.name}:`, err);
+          return { offers: [], minPrice: null };
+        }
+      })();
+
+      // Attendre les deux recherches
+      const [vintedData, lbcData] = await Promise.all([vintedPromise, lbcPromise]);
+
+      // Calculer le prix minimum entre Vinted et LBC
+      const prices = [
+        vintedData?.minPrice,
+        lbcData.minPrice
+      ].filter((p): p is number => p !== null && p !== undefined && !isNaN(p));
+
+      const finalMinPrice = prices.length > 0 ? Math.min(...prices) : null;
+
+      // Stocker dans le cache avec timestamp
+      prefetchCache.current.set(item.id, {
+        vinted: vintedData,
+        lbc: lbcData.offers,
+        minPrice: finalMinPrice ?? undefined,
+        timestamp: Date.now(),
+      });
+
+      console.log(`✅ Prefetch réussi: ${item.name} - Prix min: ${finalMinPrice}€`);
+      setPrefetchStatus({ itemId: item.id, status: 'success' });
+      
+      // Clear status after 2s
+      setTimeout(() => {
+        setPrefetchStatus(prev => prev?.itemId === item.id ? null : prev);
+      }, 2000);
+
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        console.log(`🚫 Prefetch annulé: ${item.name}`);
+        return;
+      }
+      
+      console.error(`❌ Erreur prefetch pour ${item.name}:`, err);
+      prefetchCache.current.set(item.id, {
+        error: err.message || "Erreur inconnue",
+        timestamp: Date.now(),
+      });
+      setPrefetchStatus({ itemId: item.id, status: 'error' });
+    } finally {
+      prefetchingRef.current.delete(item.id);
+      abortControllersRef.current.delete(item.id);
+    }
+  };
+
+  // Prefetch du prochain item quand on change d'index
+  useEffect(() => {
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < items.length) {
+      const nextItem = items[nextIndex];
+      // Petit délai pour laisser le temps à l'UI de se charger
+      const timeout = setTimeout(() => {
+        prefetchItem(nextItem);
+      }, 500);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [currentIndex, items]);
+
+  // Charger les données depuis le cache pour l'item actuel
   useEffect(() => {
     if (!currentItem) return;
-  
-    const cached = prefetchCache.get(currentItem.id);
+
+    const cached = prefetchCache.current.get(currentItem.id);
+    
     if (cached) {
-      setVintedResults(cached.vinted || null);
-      setLbcResults(cached.lbc || []);
-      if (cached.minPrice !== undefined && cached.minPrice !== null) {
-        setCurrentMinPrice(cached.minPrice);
+      const age = cached.timestamp ? Math.round((Date.now() - cached.timestamp) / 1000) : 0;
+      console.log(`📦 Chargement depuis le cache: ${currentItem.name} (${age}s)`);
+      
+      if (cached.error) {
+        setCurrentError(cached.error);
+        setVintedResults(null);
+        setLbcResults([]);
+        setCurrentMinPrice(null);
+      } else {
+        setVintedResults(cached.vinted || null);
+        setLbcResults(cached.lbc || []);
+        setCurrentMinPrice(cached.minPrice ?? null);
+        setCurrentError(null);
       }
     } else {
+      // Pas de cache, réinitialiser
+      console.log(`🔍 Pas de cache pour: ${currentItem.name}`);
       setVintedResults(null);
       setLbcResults([]);
       setCurrentMinPrice(null);
+      setCurrentError(null);
     }
-  }, [currentItem, prefetchCache]);
+  }, [currentItem]);
 
-  // ------- Actions -------
+  // Cleanup: annuler tous les prefetch en cours au démontage
+  useEffect(() => {
+    return () => {
+      abortControllersRef.current.forEach(controller => controller.abort());
+      abortControllersRef.current.clear();
+    };
+  }, []);
 
-
+  // Actions
   const handleSearchVintedFuzzy = async () => {
     if (!currentItem) return;
     const queryStr = `${currentItem.type} ${currentItem.name}`.trim();
     if (!queryStr) return setCurrentError("Type ou nom manquant");
-  
+
     setCurrentMinPrice(null);
     setCurrentError(null);
     setVintedResults(null);
-  
+
     try {
-      const vintedData = await run(queryStr); // récupère toutes les annonces
-  
-      // Fuse.js pour filtrer flou
+      const vintedData = await searchVinted(queryStr);
+
       const fuse = new Fuse(vintedData?.filteredVinted.valid || [], {
-        keys: ["title"], // tu peux ajouter "description" si dispo
-        threshold: 0.3, // tolérance aux fautes (0.0 strict, 1.0 permissif)
+        keys: ["title"],
+        threshold: 0.3,
       });
-  
+
       const fuzzyResults = fuse.search(queryStr).map(r => r.item).slice(0, 10);
-  
-      setVintedResults({
+
+      const result = {
         filteredVinted: { valid: fuzzyResults },
-        minPrice: Math.min(...fuzzyResults.map((item: any) => item.price)) || null,
+        minPrice: fuzzyResults.length > 0 ? Math.min(...fuzzyResults.map((item: any) => item.price)) : null,
+      };
+
+      setVintedResults(result);
+      setCurrentMinPrice(result.minPrice);
+
+      // Mettre à jour le cache
+      const currentCache = prefetchCache.current.get(currentItem.id) || {};
+      prefetchCache.current.set(currentItem.id, {
+        ...currentCache,
+        vinted: result,
+        minPrice: result.minPrice ?? currentCache.minPrice,
+        timestamp: Date.now(),
       });
     } catch (err: any) {
       setCurrentError(err.message || "Erreur inconnue");
     }
   };
-  
-  
 
   const handleUseYesterdayPrice = () => {
     if (yesterdayPrice !== null) setCurrentMinPrice(yesterdayPrice);
@@ -243,7 +384,7 @@ export default function InsertDbPage() {
     setVintedResults(null);
 
     try {
-      const vintedData = await run(queryStr);
+      const vintedData = await searchVinted(queryStr);
       if (!vintedData) return setCurrentError("Erreur lors de la recherche Vinted");
 
       setCurrentMinPrice(vintedData.minPrice ?? null);
@@ -253,6 +394,15 @@ export default function InsertDbPage() {
         },
         minPrice: vintedData.minPrice,
       });
+
+      // Mettre à jour le cache
+      const currentCache = prefetchCache.current.get(currentItem.id) || {};
+      prefetchCache.current.set(currentItem.id, {
+        ...currentCache,
+        vinted: vintedData,
+        minPrice: vintedData.minPrice ?? currentCache.minPrice,
+        timestamp: Date.now(),
+      });
     } catch (err: any) {
       setCurrentError(err.message || "Erreur inconnue");
     }
@@ -260,55 +410,65 @@ export default function InsertDbPage() {
 
   const handleSearchLBCFuzzy = async () => {
     if (!currentItem) return;
-    const queryStr = `${currentItem.type} ${currentItem.name}`.trim();
-    if (!queryStr) return setCurrentError("Type ou nom manquant");
 
-    setCurrentMinPrice(null);
+    const queryStr = `${currentItem.type} ${currentItem.name}`.trim();
+    if (!queryStr) {
+      setCurrentError("Type ou nom manquant");
+      return;
+    }
+
     setCurrentError(null);
+    setCurrentMinPrice(null);
     setLbcResults([]);
 
     try {
-      const lbcData = await fetchLeboncoinSearch(queryStr);
-      const filteredData = await postLeboncoinFilter(queryStr, lbcData.offers);
+      const lbcRaw = await fetchLeboncoinSearch(queryStr);
+      const normalizedOffers = normalizeLBCOffers(lbcRaw.offers);
 
-      // Préparer les offres valides
-      const validOffers: LBCOffer[] = (filteredData.valid || [])
-        .map((validItem: any) => {
-          const original = lbcData.offers.find((o: any) => o.link === validItem.url);
-          return original ? { ...original } : validItem;
-        });
+      if (normalizedOffers.length === 0) {
+        setCurrentError("Aucune annonce Le Bon Coin valide");
+        return;
+      }
 
-      // Recherche floue avec Fuse.js
+      const filtered = await postLeboncoinFilter(queryStr, normalizedOffers);
+
+      const validOffers: LBCOffer[] = (filtered.valid || [])
+        .map((v: any) => normalizedOffers.find((o) => o.link === v.url))
+        .filter(Boolean) as LBCOffer[];
+
+      if (validOffers.length === 0) {
+        setCurrentError("Toutes les annonces ont été rejetées par l'IA");
+        return;
+      }
+
       const fuse = new Fuse(validOffers, {
-        keys: ["title"], // ou ["title", "description"] si dispo
-        threshold: 0.3, // tolérance aux fautes
+        keys: ["title"],
+        threshold: 0.3,
       });
 
-      const fuzzyResults = fuse.search(queryStr).map(r => r.item).slice(0, 30);
+      const fuzzyResults = fuse.search(queryStr).map((r) => r.item).slice(0, 30);
+      const sorted = fuzzyResults.sort((a, b) => parseLBCPrice(a.price) - parseLBCPrice(b.price));
 
-      // Tri par prix croissant
-      const sortedOffers = fuzzyResults.sort((a, b) => {
-        const parsePrice = (price: string | number) => {
-          if (typeof price === "number") return price;
-          if (!price) return 0;
-          return Number(price.toString().replace(/[^\d,.-]/g, "").replace(",", ".")) || 0;
-        };
-        return parsePrice(a.price) - parsePrice(b.price);
+      setLbcResults(sorted);
+
+      const minPrice = parseLBCPrice(sorted[0].price);
+      if (!Number.isNaN(minPrice)) {
+        setCurrentMinPrice(minPrice);
+      }
+
+      // Mettre à jour le cache
+      const currentCache = prefetchCache.current.get(currentItem.id) || {};
+      prefetchCache.current.set(currentItem.id, {
+        ...currentCache,
+        lbc: sorted,
+        minPrice: minPrice,
+        timestamp: Date.now(),
       });
-
-      setLbcResults(sortedOffers);
-
-      // Prix minimal LBC
-      const minLBCPrice = sortedOffers.length > 0
-        ? Math.min(...sortedOffers.map(o => Number(o.price.toString().replace(/[^\d,.-]/g, "").replace(",", "."))))
-        : null;
-      if (minLBCPrice !== null) setCurrentMinPrice(minLBCPrice);
-
     } catch (err: any) {
-      setCurrentError(err.message || "Erreur inconnue");
+      console.error(err);
+      setCurrentError(err.message || "Erreur Le Bon Coin");
     }
   };
-
 
   const handleInsertPrice = async () => {
     if (!currentItem || currentMinPrice === null) return;
@@ -329,8 +489,7 @@ export default function InsertDbPage() {
     setCurrentIndex((i) => (i + 1 < items.length ? i + 1 : 0));
     setCurrentMinPrice(null);
     setCurrentError(null);
-    setVintedResults(null);
-    setLbcResults([]);
+    setEditingPrice(false);
     setCardmarketUrl(null);
     window.scrollTo(0, 0);
   };
@@ -341,6 +500,17 @@ export default function InsertDbPage() {
 
     try {
       await deleteDoc(doc(db, "items", currentItem.id));
+      
+      // Supprimer du cache aussi
+      prefetchCache.current.delete(currentItem.id);
+      
+      // Annuler prefetch en cours si existe
+      const controller = abortControllersRef.current.get(currentItem.id);
+      if (controller) {
+        controller.abort();
+        abortControllersRef.current.delete(currentItem.id);
+      }
+      
       setItems((prev) => prev.filter((i) => i.id !== currentItem.id));
       handleNext();
     } catch {
@@ -348,38 +518,77 @@ export default function InsertDbPage() {
     }
   };
 
-  // ------- UI -------
+  const getPrefetchStatusIcon = (itemId: string) => {
+    if (prefetchStatus?.itemId === itemId) {
+      if (prefetchStatus.status === 'loading') return <Loader2 className="w-3 h-3 animate-spin text-blue-500" />;
+      if (prefetchStatus.status === 'success') return <span className="text-xs text-green-500">✓</span>;
+      if (prefetchStatus.status === 'error') return <span className="text-xs text-red-500">✗</span>;
+    }
+    const cached = prefetchCache.current.get(itemId);
+    if (cached?.timestamp) {
+      const age = Math.round((Date.now() - cached.timestamp) / 1000);
+      if (age < 300) return <span className="text-xs text-muted-foreground">📦</span>; // < 5min
+    }
+    return null;
+  };
+
+
+  const handleManualRefresh = async () => {
+    if (!currentItem) return;
+  
+    // Supprimer cache existant
+    prefetchCache.current.delete(currentItem.id);
+  
+    // Annuler un éventuel prefetch en cours
+    const controller = abortControllersRef.current.get(currentItem.id);
+    if (controller) {
+      controller.abort();
+      abortControllersRef.current.delete(currentItem.id);
+    }
+  
+    setCurrentError(null);
+    setCurrentMinPrice(null);
+    setVintedResults(null);
+    setLbcResults([]);
+  
+    await prefetchItem(currentItem);
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className="w-64 border-r border-border bg-card overflow-y-auto p-4 hidden md:block h-screen md:sticky md:top-0">
-        <h2 className="font-semibold mb-3 text-foreground">Liste des items</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-foreground">Liste des items</h2>
+        </div>
         <div className="space-y-2">
-          {items.map((it, idx) => (
-            <div
-              key={it.id}
-              onClick={() => {
-                setCurrentIndex(idx);
-                setCurrentMinPrice(null);
-                setCurrentError(null);
-                setVintedResults(null);
-                setLbcResults([]);
-                setCardmarketUrl(null);
-              }}
-              className={`p-2 rounded cursor-pointer text-sm transition 
-                ${idx === currentIndex ? "bg-primary/10 font-semibold text-primary border-r-4 border-primary" : "hover:bg-muted/50 text-foreground"}
-                ${itemsWithPriceToday.has(it.id) ? "bg-success/20 border-l-4 border-success" : ""}
-              `}
-            >
-              <div className="flex items-center gap-1">
-                {it.type} {it.name}
-                {itemsWithPriceToday.has(it.id) && (
-                  <span className="text-success font-bold text-sm">✔</span>
-                )}
+          {items.map((it, idx) => {
+            const statusIcon = getPrefetchStatusIcon(it.id);
+            return (
+              <div
+                key={it.id}
+                onClick={() => {
+                  setCurrentIndex(idx);
+                  setEditingPrice(false);
+                }}
+                className={`p-2 rounded cursor-pointer text-sm transition relative
+                  ${idx === currentIndex ? "bg-primary/10 font-semibold text-primary border-r-4 border-primary" : "hover:bg-muted/50 text-foreground"}
+                  ${itemsWithPriceToday.has(it.id) ? "bg-success/20 border-l-4 border-success" : ""}
+                `}
+              >
+                <div className="flex items-center gap-1">
+                  <span className="flex-1">{it.type} {it.name}</span>
+                  <div className="flex items-center gap-1">
+                    {itemsWithPriceToday.has(it.id) && (
+                      <span className="text-success font-bold text-sm">✔</span>
+                    )}
+                    {statusIcon}
+                  </div>
+                </div>
+                {it.series && <div className="text-xs text-muted-foreground">{it.series}</div>}
               </div>
-              {it.series && <div className="text-xs text-muted-foreground">{it.series}</div>}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </aside>
 
@@ -388,11 +597,23 @@ export default function InsertDbPage() {
 
         {currentItem ? (
           <>
-            <div className="text-muted-foreground text-sm">
-              Item {currentIndex + 1} / {items.length} —{" "}
-              <span className="text-muted-foreground">
+            <div className="text-muted-foreground text-sm flex items-center gap-2">
+              <span>
+                Item {currentIndex + 1} / {items.length} —{" "}
                 restants : {items.length - currentIndex - 1}
               </span>
+              {(() => {
+                const cached = prefetchCache.current.get(currentItem.id);
+                if (cached?.timestamp) {
+                  const age = Math.round((Date.now() - cached.timestamp) / 1000);
+                  return (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                      📦 Cache ({age}s)
+                    </span>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             <Card className="shadow-lg border border-border bg-card">
@@ -453,117 +674,159 @@ export default function InsertDbPage() {
                   <CollapsibleContent className="mt-3 space-y-4">
                     {currentError && <div className="text-sm text-destructive">{currentError}</div>}
 
+                    {/* Vinted results */}
+                    {vintedResults?.filteredVinted?.valid?.length > 0 && (
+                      <section>
+                        <h3 className="font-medium mb-2 text-foreground">Annonces Vinted trouvées</h3>
+                        <div className="flex flex-row gap-4 overflow-x-auto pb-2">
+                          {vintedResults.filteredVinted.valid
+                            .slice()
+                            .sort((a: any, b: any) => a.price - b.price)
+                            .map((item: any, i: number) => (
+                              <Card
+                                key={i}
+                                className="bg-card border border-border hover:shadow-lg cursor-pointer transition flex-shrink-0 w-80 flex flex-row p-4 items-center gap-4"
+                                onClick={() => {
+                                  if (item.url) window.open(item.url, "_blank");
+                                  setCurrentMinPrice(item.price);
+                                }}
+                              >
+                                {item.thumbnail && (
+                                  <div className="w-28 h-28 relative flex-shrink-0 bg-secondary/20 rounded-xl overflow-hidden border border-border/50">
+                                    <img
+                                      src={item.thumbnail}
+                                      alt={item.title}
+                                      className="w-full h-full object-contain"
+                                    />
+                                  </div>
+                                )}
 
-                  {/* Vinted results */}
-                  {vintedResults?.filteredVinted?.valid?.length > 0 && (
-                    <section>
-                      <h3 className="font-medium mb-2 text-foreground">Annonces Vinted trouvées</h3>
-                      <div className="flex flex-row gap-4 overflow-x-auto pb-2">
-                        {vintedResults.filteredVinted.valid
-                          .slice() // on clone pour ne pas muter l'original
-                          .sort((a: any, b: any) => a.price - b.price)
-                          .map((item: any, i: number) => (
-                            <Card
-                              key={i}
-                              className="bg-card border border-border hover:shadow-lg cursor-pointer transition flex-shrink-0 w-80 flex flex-row p-4 items-center gap-4"
-                              onClick={() =>
-                                item.url && window.open(item.url, "_blank") && setCurrentMinPrice(item.price)
-                              }
-                            >
-                              {/* Image */}
-                              {item.thumbnail && (
-                                <div className="w-28 h-28 relative flex-shrink-0 bg-secondary/20 rounded-xl overflow-hidden border border-border/50">
-                                  <img
-                                    src={item.thumbnail}
-                                    alt={item.title}
-                                    className="w-full h-full object-contain"
-                                  />
+                                <div className="flex flex-col justify-between flex-1 h-full">
+                                  <CardHeader>
+                                    <CardTitle className="text-sm line-clamp-2 text-foreground">{item.title}</CardTitle>
+                                  </CardHeader>
+
+                                  <CardContent className="flex flex-col gap-1">
+                                    <span className="font-bold text-lg text-primary">{item.price} €</span>
+                                  </CardContent>
                                 </div>
-                              )}
-
-                              {/* Contenu texte */}
-                              <div className="flex flex-col justify-between flex-1 h-full">
-                                <CardHeader>
-                                  <CardTitle className="text-sm line-clamp-2 text-foreground">{item.title}</CardTitle>
-                                </CardHeader>
-
-                                <CardContent className="flex flex-col gap-1">
-                                  <span className="font-bold text-lg text-primary">{item.price} €</span>
-                                </CardContent>
-                              </div>
-                            </Card>
-                          ))}
-                      </div>
-                    </section>
-                  )}
-
-
-
-
-                {/* Le Bon Coin results */}
-                {lbcResults.length > 0 && (
-                  <section>
-                    <h3 className="font-medium mb-2 text-foreground">Annonces Le Bon Coin</h3>
-                    <div className="flex gap-4 overflow-x-auto pb-2">
-                      {lbcResults.map((offer, i) => (
-                        <div key={i} className="flex-shrink-0 w-100">
-                          <LBCItemCard
-                            offer={offer}
-                            onClick={() => {
-                              const price = Number(
-                                offer.price.toString().replace(/[^\d,.-]/g, "").replace(",", ".")
-                              );
-                              setCurrentMinPrice(price);
-                            }}
-                          />
+                              </Card>
+                            ))}
                         </div>
-                      ))}
-                    </div>
-                  </section>
-                )}
+                      </section>
+                    )}
 
+                    {/* Le Bon Coin results */}
+                    {lbcResults.length > 0 && (
+                      <section>
+                        <h3 className="font-medium mb-2 text-foreground">Annonces Le Bon Coin</h3>
+                        <div className="flex gap-4 overflow-x-auto pb-2">
+                          {lbcResults.map((offer, i) => (
+                            <div key={i} className="flex-shrink-0 w-100">
+                              <LBCItemCard
+                                offer={offer}
+                                onClick={() => {
+                                  const price = parseLBCPrice(offer.price);
+                                  setCurrentMinPrice(price);
+                                }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
                   </CollapsibleContent>
                 </Collapsible>
+
+                {(!currentMinPrice || currentError) && (
+                  <div className="flex flex-wrap gap-3 p-3 bg-muted/40 border border-border rounded-lg">
+                    <Button
+                      variant="outline"
+                      onClick={handleManualRefresh}
+                    >
+                      🔄 Relancer la recherche (Vinted + LBC)
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      onClick={handleSearchVinted}
+                    >
+                      🔍 Relancer Vinted
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      onClick={handleSearchLBCFuzzy}
+                    >
+                      🔍 Relancer Le Bon Coin
+                    </Button>
+                  </div>
+                )}
+
                 {currentMinPrice !== null && !currentError && (
-                      <div className="flex items-center gap-3 text-base font-semibold bg-success-light border-l-4 border-success p-3 rounded-md shadow-md">
-                        <span className="text-success">Prix minimal trouvé :</span>
-                        {editingPrice ? (
-                          <input
-                            type="number"
-                            value={currentMinPrice}
-                            onChange={(e) => setCurrentMinPrice(Number(e.target.value))}
-                            className="border border-input bg-background rounded px-2 py-1 w-28 text-center font-medium text-foreground focus:ring-primary focus:border-primary"
-                          />
-                        ) : (
-                          <span className="text-success font-bold text-lg">{currentMinPrice} €</span>
-                        )}
-                        <Button onClick={() => setEditingPrice(!editingPrice)} variant={editingPrice ? "default" : "secondary"} size="sm">
-                          {editingPrice ? "Valider" : "Modifier"}
-                        </Button>
-                      </div>
+                  <div className="flex items-center gap-3 text-base font-semibold bg-success-light border-l-4 border-success p-3 rounded-md shadow-md">
+                    <span className="text-success">Prix minimal trouvé :</span>
+                    {editingPrice ? (
+                      <input
+                        type="number"
+                        value={currentMinPrice}
+                        onChange={(e) => setCurrentMinPrice(Number(e.target.value))}
+                        className="border border-input bg-background rounded px-2 py-1 w-28 text-center font-medium text-foreground focus:ring-primary focus:border-primary"
+                      />
+                    ) : (
+                     <span className="text-success font-bold text-lg">
+                        {currentMinPrice} €
+                      </span>
                     )}
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <Button onClick={handleSearchVintedFuzzy} disabled={searchLoading} variant="default">
-                    {searchLoading ? "Recherche Vinted…" : "Chercher Vinted"}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-3 pt-4">
+                  {currentMinPrice !== null && (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => setEditingPrice((v) => !v)}
+                      >
+                        {editingPrice ? "Valider le prix" : "Modifier le prix"}
+                      </Button>
+
+                      <Button
+                        onClick={handleInsertPrice}
+                        disabled={saving}
+                        className="bg-success text-success-foreground hover:bg-success/90"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Enregistrement…
+                          </>
+                        ) : (
+                          "Enregistrer le prix"
+                        )}
+                      </Button>
+                    </>
+                  )}
+
+                  <Button variant="secondary" onClick={handleNext}>
+                    Item suivant
                   </Button>
 
-                  <Button onClick={handleSearchLBCFuzzy} disabled={searchLoading} variant="default">
-                    {searchLoading ? "Recherche LBC…" : "Chercher LBC"}
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteItem}
+                  >
+                    Supprimer l’item
                   </Button>
-
-                  <Button onClick={handleInsertPrice} disabled={currentMinPrice === null || saving} variant="success">
-                    {saving ? "Ajout…" : "Ajouter en prices"}
-                  </Button>
-
-                  <Button onClick={handleNext} variant="secondary">Suivant</Button>
-                  <Button onClick={handleDeleteItem} variant="destructive">Supprimer</Button>
                 </div>
               </CardContent>
             </Card>
           </>
         ) : (
-          <p className="text-muted-foreground">Aucun item à traiter.</p>
+          <div className="text-muted-foreground">
+            Aucun item sélectionné
+          </div>
         )}
       </main>
     </div>

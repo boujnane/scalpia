@@ -2,16 +2,7 @@
 import React from "react";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
-
-export type LBCOffer = {
-  title: string;
-  price: string;
-  location: string;
-  category: string;
-  link: string | null;
-  image?: string | null;
-  rejected?: string;
-};
+import { LBCOffer } from "@/types";
 
 interface LBCItemCardProps {
   offer: LBCOffer;
