@@ -193,7 +193,7 @@ export default function HomePage() {
                       transition-all duration-300 hover:scale-105 w-full sm:w-auto group"
                     aria-label="Accéder à la recherche de produits"
                   >
-                    <Link href="/recherche">
+                    <Link href="/tcgdex">
                       <span className="hidden sm:inline">Rechercher des Produits</span>
                       <span className="sm:hidden">Rechercher</span>
                       <Icons.search className="ml-2 h-4 sm:h-5 w-4 sm:w-5 transition-transform group-hover:scale-110" aria-hidden="true" />
@@ -208,7 +208,7 @@ export default function HomePage() {
                       transition-all duration-300 hover:scale-105 w-full sm:w-auto group"
                     aria-label="Explorer la base de cartes TCGdex"
                   >
-                    <Link href="/tcgdex">
+                    <Link href="/analyse">
                       <span className="hidden sm:inline">Explorer les Cartes</span>
                       <span className="sm:hidden">Explorer</span>
                       <Icons.zap className="ml-2 h-4 sm:h-5 w-4 sm:w-5" aria-hidden="true" />
