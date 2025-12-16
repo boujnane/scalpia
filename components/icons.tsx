@@ -24,10 +24,11 @@ import {
   TrendingDown,
   Minus,
   LineChart,
-  Wallet, // Ajouté pour le portefeuille
-  Zap,    // Ajouté pour les alertes/énergie
-  Menu,   // Ajouté pour le menu mobile
-  Brain
+  Wallet,
+  Zap,
+  Menu,
+  Brain,
+  Activity, // <-- Ajout de l'icône Activity
 } from "lucide-react";
 
 
@@ -37,8 +38,9 @@ export const Icons = {
   TrendingUp: TrendingUp,
   TrendingDown: TrendingDown,
   LineChart: LineChart,
-  wallet: Wallet, // Ajouté
-  zap: Zap,       // Ajouté
+  wallet: Wallet,
+  zap: Zap,
+  activity: Activity, // <-- Ajout de la référence 'activity' ici
   
   // Core UI
   user: User,
@@ -61,7 +63,7 @@ export const Icons = {
   bag: ShoppingBag,
   info: Info,
   minus: Minus,
-  menu: Menu, // Ajouté
+  menu: Menu,
 
-  brain: Brain, // ← Ici
+  brain: Brain,
 };

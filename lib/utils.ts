@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { LBCOffer } from "@/types";
+import { blocImages } from "./analyse/blocImages";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -82,3 +83,83 @@ export const normalizeLBCOffers = (offers: any[]): LBCOffer[] => {
         !Number.isNaN(parseLBCPrice(o.price))
     );
 };
+
+export function aggregatePricesByDay(
+  prices: { date: string; price: number }[]
+): { date: string; price: number }[] {
+  
+  // Validation des prix
+  const validPrices = prices
+    .map(p => {
+      const t = new Date(p.date).getTime();
+      if (isNaN(t) || typeof p.price !== "number") return null;
+      return { date: p.date, price: p.price };
+    })
+    .filter(Boolean) as { date: string; price: number }[];
+
+  // Groupement par jour (YYYY-MM-DD)
+  const dailyPrices = new Map<string, number[]>();
+  validPrices.forEach(p => {
+    const dateKey = new Date(p.date).toISOString().split("T")[0];
+    if (!dailyPrices.has(dateKey)) dailyPrices.set(dateKey, []);
+    dailyPrices.get(dateKey)!.push(p.price);
+  });
+
+  // Calculer la médiane par jour
+  const aggregated = Array.from(dailyPrices.entries())
+    .map(([dateKey, prices]) => {
+      prices.sort((a, b) => a - b);
+      const mid = Math.floor(prices.length / 2);
+      const median =
+        prices.length % 2 !== 0
+          ? prices[mid]
+          : (prices[mid - 1] + prices[mid]) / 2;
+      
+      return { date: dateKey, price: median };
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return aggregated;
+}
+
+/**
+ * Calcule une trend basée sur l'évolution des prix
+ */
+export function calculateTrend(
+  prices: { date: string; price: number }[],
+  daysBack?: number  // undefined = tout l'historique
+): { trend: "up" | "down" | "stable"; variation: number } {
+  
+  if (prices.length < 2) {
+    return { trend: "stable", variation: 0 };
+  }
+
+  // Filtrer par période si spécifié
+  let filteredPrices = prices;
+  if (daysBack !== undefined) {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+    const cutoffStr = cutoffDate.toISOString().split("T")[0];
+    
+    filteredPrices = prices.filter(p => p.date >= cutoffStr);
+  }
+
+  if (filteredPrices.length < 2) {
+    return { trend: "stable", variation: 0 };
+  }
+
+  const firstPrice = filteredPrices[0].price;
+  const lastPrice = filteredPrices[filteredPrices.length - 1].price;
+  const variation = (lastPrice - firstPrice) / firstPrice;
+
+  let trend: "up" | "down" | "stable" = "stable";
+  if (variation > 0.05) trend = "up";       // +5%
+  else if (variation < -0.05) trend = "down"; // -5%
+
+  return { trend, variation };
+}
+
+export function getBlocImage(bloc?: string) {
+  if (!bloc) return null;
+  return blocImages[bloc] ?? null;
+}
