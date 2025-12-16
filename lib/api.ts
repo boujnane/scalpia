@@ -135,3 +135,21 @@ export const postLeboncoinFilter = async (query: string, items: any[], signal?: 
   await handleRes(res);
   return res.json();
 };
+
+export interface TCGSet {
+  id: string
+  name: string
+  logo: string
+  symbol?: string
+  cardCount: {
+    total: number
+    official: number
+  }
+}
+
+export const fetchTCGSets = async (): Promise<TCGSet[]> => {
+  const res = await fetch('/api/tcgdex/sets')
+  if (!res.ok) throw new Error('Impossible de récupérer les sets')
+  const data = await res.json()
+  return data
+}
