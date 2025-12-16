@@ -38,6 +38,7 @@ interface SeriesTrendChartProps {
 
 // Table de correspondance des séries vers les images
 const SERIES_IMAGE_MAP: Record<string, string> = {
+  "evolution celeste": "/EB/EB7.png",
   "foudre noire": "/EV/BLK.png",
   "rivalité destinées": "/EV/DRI.png",
   "rivalites destinees": "/EV/DRI.png",

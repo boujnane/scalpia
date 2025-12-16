@@ -17,6 +17,7 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
     "UPC",
     "Artset",
     "Bundle",
+    "Coffret Collection Poster"
   ];
 
   const tabs = types.map((t) => ({

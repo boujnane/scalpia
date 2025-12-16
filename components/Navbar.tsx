@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/sheet"
 import { useState, useEffect } from "react"
 import { AnimatePresence, motion } from "framer-motion"
+import { useAuth } from "@/context/AuthContext";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useRouter } from "next/navigation";
 
 // --- TYPES & CONSTANTS ---
 type IndexStatus = "UP_TO_DATE" | "IN_PROGRESS" | "OUTDATED"
@@ -44,7 +48,8 @@ export function Navbar() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [hoveredLink, setHoveredLink] = useState<string | null>(null)
-  
+  const { user, loading } = useAuth();
+  const router = useRouter();
   // État pour l'Index
   const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null)
 
@@ -320,19 +325,29 @@ export function Navbar() {
 
           {/* Boutons Auth (Desktop) */}
           <div className="hidden lg:flex items-center gap-2 ml-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-9 rounded-xl border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all duration-300 hover:scale-105"
-            >
-              Connexion
-            </Button>
-            <Button 
-              size="sm" 
-              className="h-9 px-5 font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:scale-105 bg-gradient-to-r from-primary to-primary/90"
-            >
-              Commencer
-            </Button>
+            {!loading && !user && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-xl border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all duration-300 hover:scale-105"
+                onClick={() => router.push("/login")}
+              >
+                Connexion
+              </Button>
+            )}
+
+            {!loading && user && (
+              <Button
+                size="sm"
+                className="h-9 px-5 font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:scale-105 bg-gradient-to-r from-primary to-primary/90"
+                onClick={async () => {
+                  await signOut(auth);
+                  router.push("/"); // redirige vers la page d’accueil après logout
+                }}
+              >
+                Déconnexion
+              </Button>
+            )}
           </div>
 
           {/* Menu Mobile (Sheet) */}
@@ -365,19 +380,30 @@ export function Navbar() {
                   <MobileNavigation />
                 </div>
                 <div className="p-6 border-t border-border/50 bg-muted/20 space-y-3">
-                  <Button 
-                    size="lg" 
+                {!loading && !user && (
+                  <Button
+                    size="lg"
                     className="w-full h-12 font-semibold rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 bg-gradient-to-r from-primary to-primary/90"
-                  >
-                    Commencer
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    className="w-full h-12 rounded-xl border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30"
+                    onClick={() => router.push("/login")}
                   >
                     Connexion
                   </Button>
+                )}
+
+                {!loading && user && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full h-12 rounded-xl border-border/50 hover:bg-primary/5 hover:text-primary hover:border-primary/30"
+                    onClick={async () => {
+                      await signOut(auth);
+                      router.push("/");
+                    }}
+                  >
+                    Déconnexion
+                  </Button>
+                )}
+
                 </div>
               </div>
             </SheetContent>

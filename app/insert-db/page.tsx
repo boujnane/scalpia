@@ -24,6 +24,7 @@ import { fetchLeboncoinSearch, postLeboncoinFilter } from "@/lib/api";
 import Fuse from "fuse.js";
 import { LBCOffer } from "@/types";
 import { normalizeLBCOffers, parseLBCPrice } from "@/lib/utils";
+import ProtectedPage from "@/components/ProtectedPage";
 
 type ItemEntry = {
   id: string;
@@ -470,6 +471,20 @@ export default function InsertDbPage() {
     }
   };
 
+  const parseVintedPrice = (value: any): number => {
+    if (typeof value === "number") return value;
+    if (!value) return NaN;
+  
+    return Number(
+      value
+        .toString()
+        .replace(/\s/g, "")
+        .replace(/\u202F/g, "")
+        .replace(/[^\d]/g, "")
+    );
+  };
+  
+
   const handleInsertPrice = async () => {
     if (!currentItem || currentMinPrice === null) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -555,6 +570,7 @@ export default function InsertDbPage() {
   };
 
   return (
+    <ProtectedPage>
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside className="w-64 border-r border-border bg-card overflow-y-auto p-4 hidden md:block h-screen md:sticky md:top-0">
@@ -681,7 +697,10 @@ export default function InsertDbPage() {
                         <div className="flex flex-row gap-4 overflow-x-auto pb-2">
                           {vintedResults.filteredVinted.valid
                             .slice()
-                            .sort((a: any, b: any) => a.price - b.price)
+                            .sort(
+                              (a: any, b: any) =>
+                                parseVintedPrice(a.price) - parseVintedPrice(b.price)
+                            )                            
                             .map((item: any, i: number) => (
                               <Card
                                 key={i}
@@ -830,5 +849,6 @@ export default function InsertDbPage() {
         )}
       </main>
     </div>
+    </ProtectedPage>
   );
 }

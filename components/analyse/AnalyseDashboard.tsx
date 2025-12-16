@@ -428,17 +428,22 @@ export default function AnalyseDashboard({ items }: AnalyseDashboardProps) {
                     </h3>
                     <Badge
                       variant={
-                        series.longTermTrend === "up"
-                          ? "default"
-                          : series.longTermTrend === "down"
+                        series.shortTermTrend === "up"
+                          ? "success"
+                          : series.shortTermTrend === "down"
                           ? "destructive"
                           : "secondary"
                       }
                     >
                       <span className="flex items-center gap-1">
-                        {getTrendIcon(series.longTermTrend)}
+                        {getTrendIcon(series.shortTermTrend)}
                         <span className="text-xs">
-                          {series.longTermTrend === "up" ? "Hausse" : series.longTermTrend === "down" ? "Baisse" : "Stable"}
+                          {series.shortTermTrend === "up"
+                            ? "Hausse"
+                            : series.shortTermTrend === "down"
+                            ? "Baisse"
+                            : "Stable"}{" "}
+                          : {(series?.shortTermVariation ?? 0 * 100).toFixed(2)}% - 7j
                         </span>
                       </span>
                     </Badge>
@@ -446,7 +451,7 @@ export default function AnalyseDashboard({ items }: AnalyseDashboardProps) {
 
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <div>
-                      <div className="text-muted-foreground mb-1">Variation</div>
+                      <div className="text-muted-foreground mb-1">Variation depuis la sortie</div>
                       <div className={`text-lg font-bold ${getVariationColor(series.averageVariation)}`}>
                         {(series.averageVariation * 100).toFixed(2)}%
                       </div>
