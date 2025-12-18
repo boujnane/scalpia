@@ -666,50 +666,6 @@ export default function HomePage() {
           </motion.div>
         </section>
 
-        {/* Footer */}
-        <footer 
-          className="border-t border-border/40 bg-muted/20 backdrop-blur-sm"
-          role="contentinfo"
-          aria-label="Informations du site"
-        >
-          <div className="container mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-12">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6 sm:gap-8">
-              <div className="flex items-center space-x-2">
-                <div className="bg-gradient-to-br from-primary/20 to-primary/10 p-1.5 sm:p-2 rounded-lg sm:rounded-xl border border-primary/20" aria-hidden="true">
-                  <Icons.LineChart className="h-4 sm:h-5 w-4 sm:w-5 text-primary" strokeWidth={2.5} />
-                </div>
-                <span className="font-bold text-base sm:text-lg">
-                  Poké<span className="text-primary">index</span>
-                </span>
-              </div>
-
-              <nav className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm" aria-label="Navigation du pied de page">
-                <Link href="/a-propos" className="text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded">
-                  À propos
-                </Link>
-                <a 
-                  href="https://www.tcgdex.net" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
-                >
-                  API TCGdex
-                  <span className="sr-only">(ouvre dans un nouvel onglet)</span>
-                </a>
-                <Link href="/contact" className="text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded">
-                  Contact
-                </Link>
-                <Link href="/mentions-legales" className="text-muted-foreground hover:text-primary transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded">
-                  Mentions légales
-                </Link>
-              </nav>
-
-              <p className="text-xs sm:text-sm text-muted-foreground text-center md:text-left">
-                © {new Date().getFullYear()} Pokéindex · Propulsé par Bubo
-              </p>
-            </div>
-          </div>
-        </footer>
       </div>
     </>
   )
