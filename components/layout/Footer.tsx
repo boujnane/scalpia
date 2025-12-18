@@ -31,11 +31,16 @@ export default function Footer() {
               </div>
             </div>
             
-            {/* Navigation Links - Réintégrés de l'ancien footer */}
+            {/* Navigation Links */}
             <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Navigation secondaire">
-              <Link href="/a-propos" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+              <Link
+                href="/a-propos"
+                prefetch={false}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
                 À propos
               </Link>
+
               <a 
                 href="https://www.tcgdex.net" 
                 target="_blank" 
@@ -45,10 +50,30 @@ export default function Footer() {
                 API TCGdex
                 <Icons.external className="h-3 w-3" />
               </a>
-              <Link href="/contact" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+
+              <Link
+                href="/contact"
+                prefetch={false}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
                 Contact
               </Link>
-              <Link href="/mentions-legales" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+
+              {/* ✅ CGU */}
+              <Link
+                href="/cgu"
+                prefetch={false}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                CGU
+              </Link>
+
+              {/* ✅ Mentions légales */}
+              <Link
+                href="/mentions-legales"
+                prefetch={false}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
                 Mentions légales
               </Link>
             </nav>
