@@ -1,4 +1,5 @@
-import { Point, Item, buildChartData } from './buildChartData';
+import { Point, buildChartData } from './buildChartData';
+import { Item } from './types';
 
 export type ChartAnalysis = {
     data: Point[];

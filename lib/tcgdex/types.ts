@@ -52,14 +52,27 @@ export interface CardmarketPricing {
     'avg30-holo': number | null;
 }
 
+
 /**
  * Structure globale des prix de la carte.
  */
 export interface CardPricing {
     tcgplayer: TCGPlayerPricing | null;
     cardmarket: CardmarketPricing | null;
+    'ebay-fr'?: EbayPricing
 }
 
+export type EbayPricing = {
+    updated: string
+    unit: 'EUR' | 'USD'
+    avg1?: number
+    avg7?: number
+    avg28?: number
+    low?: number
+    high?: number
+    listings?: number
+  }
+  
 
 // =========================================================
 // Interface de la Carte Étendue
@@ -78,3 +91,4 @@ export interface TCGdexCardExtended extends Card {
     // Ajout du pricing typé
     pricing: CardPricing | null; 
 }
+

@@ -1,623 +1,395 @@
-import { Item } from "@/lib/analyse/types";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { SeriesSummary, SeriesTrendChart } from "./SeriesTrendChart";
-import { TrendingUp, TrendingDown, Minus, AlertCircle, BarChart3 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { aggregatePricesByDay, getBlocImage } from "@/lib/utils";
-import { useMemo, useState } from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
+import { Item } from "@/lib/analyse/types";
+import { getBlocImage } from "@/lib/utils";
+import { SeriesTrendChart } from "./SeriesTrendChart"; // Ton composant existant
+
+// Icons & UI Components
+import { 
+  TrendingUp, TrendingDown, Minus, Search, 
+  ArrowUpDown, LayoutGrid, List, AlertCircle 
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SeriesSummary, useSeriesAnalytics } from "@/hooks/useSeriesAnalytics";
+
+// --- SUB-COMPONENTS (Pour alléger le code) ---
+
+const TrendBadge = ({ trend, value, suffix = "" }: { trend?: "up" | "down" | "stable", value?: number, suffix?: string }) => {
+  if (value === undefined) return <span className="text-muted-foreground">-</span>;
+  
+  const isUp = trend === "up" || (trend === undefined && value > 0);
+  const isDown = trend === "down" || (trend === undefined && value < 0);
+  const colorClass = isUp ? "text-emerald-600 dark:text-emerald-500" : isDown ? "text-rose-600 dark:text-rose-500" : "text-muted-foreground";
+  const Icon = isUp ? TrendingUp : isDown ? TrendingDown : Minus;
+
+  return (
+    <div className={`flex items-center gap-1.5 font-bold ${colorClass}`}>
+      <Icon className="w-3.5 h-3.5" />
+      <span>{value > 0 && "+"}{(value * 100).toFixed(2)}%{suffix}</span>
+    </div>
+  );
+};
+
+const KpiCard = ({ title, value, icon: Icon, subtext, variant = "default" }: any) => {
+  const colors = {
+    default: "text-foreground",
+    success: "text-emerald-600 dark:text-emerald-500",
+    danger: "text-rose-600 dark:text-rose-500",
+    blue: "text-blue-600 dark:text-blue-500"
+  };
+  const bgColors = {
+    default: "bg-muted",
+    success: "bg-emerald-500/10",
+    danger: "bg-rose-500/10",
+    blue: "bg-blue-500/10"
+  };
+
+  return (
+    <Card className="border-border/50 shadow-sm">
+      <CardContent className="p-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
+          <div className={`text-2xl sm:text-3xl font-bold ${colors[variant as keyof typeof colors]}`}>
+            {value}
+          </div>
+          {subtext && <p className="text-xs text-muted-foreground mt-1">{subtext}</p>}
+        </div>
+        <div className={`p-3 rounded-xl ${bgColors[variant as keyof typeof bgColors]}`}>
+          <Icon className={`w-5 h-5 ${colors[variant as keyof typeof colors]}`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// --- MAIN COMPONENT ---
 
 interface AnalyseDashboardProps {
   items: Item[];
 }
 
-function calculateTrend(
-  prices: { date: string; price: number }[],
-  daysBack?: number  // undefined = tout l'historique
-): { trend: "up" | "down" | "stable"; variation: number } {
-  
-  if (prices.length < 2) {
-    return { trend: "stable", variation: 0 };
-  }
-
-  // Filtrer par période si spécifié
-  let filteredPrices = prices;
-  if (daysBack !== undefined) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-    
-    filteredPrices = prices.filter(
-      p => new Date(p.date) >= cutoffDate
-    );
-  }
-
-  if (filteredPrices.length < 2) {
-    return { trend: "stable", variation: 0 };
-  }
-
-  const firstPrice = filteredPrices[0].price;
-  const lastPrice = filteredPrices[filteredPrices.length - 1].price;
-  const variation = (lastPrice - firstPrice) / firstPrice;
-
-  let trend: "up" | "down" | "stable" = "stable";
-  if (variation > 0.05) trend = "up";       // +5%
-  else if (variation < -0.05) trend = "down"; // -5%
-
-  return { trend, variation };
-}
-
-function normalizeSeriesName(name: string): string {
-  let normalized = name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  const ignoreWords = ["rugit", "garde", "lucario", "gardevoir"];
-  ignoreWords.forEach(word => {
-    const regex = new RegExp(`\\b${word}\\b`, "gi");
-    normalized = normalized.replace(regex, "");
-  });
-  normalized = normalized.replace(/\s+/g, " ").trim();
-  const fusionMap: Record<string, string> = {
-    "koraidon ev": "ecarlate et violet",
-    "miraidon ev": "ecarlate et violet",
-    "mega evolution 1": "mega evolution",
-    "vert forces temporelles": "forces temporelles",
-    "serpente forces temporelles": "forces temporelles"
-  };
-  return fusionMap[normalized] ?? normalized;
-}
-
 export default function AnalyseDashboard({ items }: AnalyseDashboardProps) {
   const [selectedBloc, setSelectedBloc] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortConfig, setSortConfig] = useState<{ key: keyof SeriesSummary; direction: 'asc' | 'desc' }>({ 
+    key: 'averageVariation', 
+    direction: 'desc' 
+  });
 
-  const blocs = useMemo(() => {
-    const unique = new Set<string>();
-    items.forEach(i => {
-      if ((i as any).bloc) unique.add((i as any).bloc);
+  // 1. Hook de calcul
+  const { blocs, data, kpis } = useSeriesAnalytics(items, selectedBloc);
+
+  // 2. Filtrage et Tri (UI Logic)
+  const filteredAndSortedData = useMemo(() => {
+    let result = [...data];
+
+    // Recherche
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(s => s.seriesName.toLowerCase().includes(q));
+    }
+
+    // Tri
+    result.sort((a, b) => {
+      const aValue = a[sortConfig.key];
+      const bValue = b[sortConfig.key];
+
+      // Gestion des undefined (pour shortTermTrend par ex)
+      if (aValue === undefined && bValue === undefined) return 0;
+      if (aValue === undefined) return 1;
+      if (bValue === undefined) return -1;
+
+      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
     });
-    return Array.from(unique).sort();
-  }, [items]);
 
-  const typeWeights: Record<string, number> = {
-    ETB: 0.40,
-    "Tri-Pack": 0.15,
-    Display: 0.20,
-    Bundle: 0.15,
-    Artset: 0.07,
-    "Demi-Display": 0.03
+    return result;
+  }, [data, searchQuery, sortConfig]);
+
+  // Handler pour le tri
+  const requestSort = (key: keyof SeriesSummary) => {
+    setSortConfig(current => ({
+      key,
+      direction: current.key === key && current.direction === 'desc' ? 'asc' : 'desc',
+    }));
   };
 
-  const MAX_POSSIBLE_WEIGHT = Object.values(typeWeights).reduce((a, b) => a + b, 0);
-
-  const filteredItems = items.filter(item => {
-    if (item.type === "UPC") return false;
-    if (selectedBloc === "all") return true;
-    return (item as any).bloc === selectedBloc;
-  });
-  const seriesMap = new Map<string, Item[]>();
-  
-  filteredItems.forEach(item => {
-    const seriesName = normalizeSeriesName(item.name);
-    if (!seriesMap.has(seriesName)) seriesMap.set(seriesName, []);
-    seriesMap.get(seriesName)!.push(item);
-  });
-
-  const seriesSummaries: SeriesSummary[] = Array.from(seriesMap.entries()).map(
-    ([seriesName, itemsInSeries]) => {
-      const itemsByType = new Map<string, Item[]>();
-      itemsInSeries.forEach(item => {
-        if (!itemsByType.has(item.type)) itemsByType.set(item.type, []);
-        itemsByType.get(item.type)!.push(item);
-      });
-
-      let weightedSum = 0;
-      let totalWeightUsed = 0;
-      let maxWeightForSeries = 0;
-
-      itemsByType.forEach((itemsOfSameType, itemType) => {
-        const weight = typeWeights[itemType] ?? 0;
-        if (weight === 0 || itemsOfSameType.length === 0) return;
-
-        maxWeightForSeries += weight;
-
-        const variations = itemsOfSameType.flatMap(i => {
-          if (!i.retailPrice || i.retailPrice === 0 || (i.prices ?? []).length === 0) return [];
-          const lastPrice = i.prices!.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].price;
-          return (lastPrice - i.retailPrice) / i.retailPrice;
-        });
-
-        if (variations.length === 0) return;
-
-        const typeAvgVariation = variations.reduce((a, b) => a + b, 0) / variations.length;
-        weightedSum += typeAvgVariation * weight;
-        totalWeightUsed += weight;
-      });
-      
-      const averageVariation = totalWeightUsed > 0 ? weightedSum / totalWeightUsed : 0;
-      const coverageIndex = parseFloat((totalWeightUsed / MAX_POSSIBLE_WEIGHT).toFixed(2));
-
-      const allPrices = itemsInSeries.flatMap(item => (item.prices ?? []).map(p => p.price));
-      const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0;
-      const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 0;
-
-      const allPriceHistory = itemsInSeries.flatMap(item => item.prices || []);
-      allPriceHistory.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-      const aggregatedPrices = aggregatePricesByDay(allPriceHistory);
-
-      const longTermTrend: "up" | "down" | "stable" = 
-        averageVariation > 0.05 ? "up" :      // > +5%
-        averageVariation < -0.05 ? "down" :   // < -5%
-        "stable";
-
-      // Calcul court terme (7 derniers jours)
-      const shortTermResult = calculateTrend(aggregatedPrices, 7);
-      const hasRecentData = aggregatedPrices.some(p => {
-        const cutoffDate = new Date();
-        cutoffDate.setDate(cutoffDate.getDate() - 7);
-        return new Date(p.date) >= cutoffDate;
-      });
-
-      return {
-        seriesName,
-        averageVariation,
-        minPrice,
-        maxPrice,
-        longTermTrend,  // Basé sur variation pondérée
-        shortTermTrend: hasRecentData ? shortTermResult.trend : undefined,
-        shortTermVariation: hasRecentData ? shortTermResult.variation : undefined,
-        coverageIndex,
-        hasRecentData
-      };
-    }
-  );
-
-  seriesSummaries.sort((a, b) => b.averageVariation - a.averageVariation);
-
-  const totalSeriesCount = seriesSummaries.length;
-  const risingSeriesCount = seriesSummaries.filter(s => s.longTermTrend === 'up').length;
-  const fallingSeriesCount = seriesSummaries.filter(s => s.longTermTrend === 'down').length;
-  const avgVariation = seriesSummaries.reduce((sum, s) => sum + s.averageVariation, 0) / totalSeriesCount;
-
-  const getTrendIcon = (trend: "up" | "down" | "stable" | undefined, isActive: boolean = false) => {
-    switch (trend) {
-      case 'up':
-        return <TrendingUp className="h-4 w-4" />;
-      case 'down':
-        return <TrendingDown className="h-4 w-4" />;
-      default:
-        return <Minus className="h-4 w-4" />;
-    }
-  };
-
-  const getVariationColor = (variation: number) => {
-    if (variation > 0) return "text-success";
-    if (variation < 0) return "text-destructive";
-    return "text-muted-foreground";
-  };
-
-  const getCoverageColor = (coverage: number) => {
-    if (coverage >= 1.0) return "text-success";
-    if (coverage >= 0.7) return "text-yellow-600 dark:text-yellow-500";
-    return "text-destructive";
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig.key !== columnKey) return <ArrowUpDown className="w-3 h-3 text-muted-foreground/30 ml-2" />;
+    return sortConfig.direction === 'asc' 
+      ? <TrendingUp className="w-3 h-3 text-primary ml-2 rotate-180" /> 
+      : <TrendingDown className="w-3 h-3 text-primary ml-2 rotate-180" />; 
   };
 
   return (
-    <div className="space-y-6 p-3 sm:p-6 max-w-[1600px] mx-auto">
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
-        
-        {/* Grosse image du bloc */}
-        {selectedBloc !== "all" && getBlocImage(selectedBloc) ? (
-          <div className="relative w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-muted shadow-inner overflow-hidden shrink-0">
-            <Image
-              src={getBlocImage(selectedBloc)!}
-              alt={selectedBloc}
-              fill
-              className="object-contain p-2"
-              priority
+    <div className="space-y-6 p-4 sm:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+      
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center bg-card/50 p-6 rounded-3xl border shadow-sm backdrop-blur-sm">
+        <div className="flex items-center gap-5">
+          {selectedBloc !== "all" && getBlocImage(selectedBloc) ? (
+            <div className="relative w-16 h-16 rounded-2xl overflow-hidden shadow-sm border bg-white dark:bg-black shrink-0">
+              <Image src={getBlocImage(selectedBloc)!} alt={selectedBloc} fill className="object-contain p-2" />
+            </div>
+          ) : (
+             <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <LayoutGrid className="w-8 h-8" />
+             </div>
+          )}
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Analyse Marché</h1>
+            <p className="text-muted-foreground font-medium text-sm sm:text-base">
+              {selectedBloc === 'all' ? "Vue globale des performances" : `Focus : Bloc ${selectedBloc}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          {/* Recherche */}
+          <div className="relative w-full sm:w-[280px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Filtrer les séries..." 
+              className="pl-9 bg-background/50"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-        ) : (
-          <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-            <BarChart3 className="w-10 h-10 sm:w-14 sm:h-14 text-primary" />
-          </div>
-        )}
 
-        {/* Texte */}
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight">
-            Analyse des séries
-          </h1>
-
-          {selectedBloc !== "all" && (
-            <div className="text-sm sm:text-base text-muted-foreground font-medium">
-              Bloc <span className="font-semibold">{selectedBloc}</span>
-            </div>
-          )}
-
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Vue d'ensemble des performances et tendances du marché
-          </p>
+          {/* Selecteur Bloc */}
+          <Select value={selectedBloc} onValueChange={setSelectedBloc}>
+            <SelectTrigger className="w-full sm:w-[220px] bg-background/50">
+              <SelectValue placeholder="Choisir un bloc" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                <span className="font-semibold">Tous les blocs</span>
+              </SelectItem>
+              {blocs.map(b => (
+                <SelectItem key={b} value={b}>{b}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-
-{/* Bloc Filter */}
-<Card className="border-border/50 shadow-sm">
-  <CardContent className="p-2 sm:p-3 flex flex-col sm:flex-row gap-4 sm:items-start">
-    
-    {/* Section gauche : Label + Select */}
-    <div className="flex flex-col gap-1 sm:w-[260px]">
-      <div className="text-sm font-medium">
-        Bloc analysé
-      </div>
-      <Select value={selectedBloc} onValueChange={setSelectedBloc}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Tous les blocs" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded bg-muted flex items-center justify-center text-xs font-semibold">
-                ALL
-              </div>
-              Tous les blocs
-            </div>
-          </SelectItem>
-
-          {blocs.map(bloc => (
-            <SelectItem key={bloc} value={bloc}>
-              <div className="flex items-center gap-2">
-                {getBlocImage(bloc) ? (
-                  <Image
-                    src={getBlocImage(bloc)!}
-                    alt={bloc}
-                    width={20}
-                    height={20}
-                    className="rounded-sm"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded bg-muted text-xs flex items-center justify-center">
-                    {bloc}
-                  </div>
-                )}
-                <span>{bloc}</span>
-              </div>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-
-    {/* Section droite : description */}
-    <div className="flex-1 text-xs sm:text-sm text-muted-foreground sm:mt-0 pl-4">
-      Sélectionnez un bloc pour visualiser ses tendances. Les variations pondérées sont calculées par rapport aux prix retail, 
-      et l'indice de couverture (IC) reflète la proportion des types de produits pris en compte dans le calcul.
-    </div>
-
-  </CardContent>
-</Card>
-
-
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-              Séries Analysées
-            </CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="text-2xl sm:text-3xl font-bold">{totalSeriesCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Ensembles uniques
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-              Variation Moyenne
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className={`text-2xl sm:text-3xl font-bold ${getVariationColor(avgVariation)}`}>
-              {(avgVariation * 100).toFixed(1)}%
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Par rapport au retail
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-success/20 bg-success/5 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-              Tendances Positives
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="text-2xl sm:text-3xl font-bold text-success">
-              {risingSeriesCount}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {((risingSeriesCount / totalSeriesCount) * 100).toFixed(1)}% des séries
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-destructive/20 bg-destructive/5 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-              Tendances Négatives
-            </CardTitle>
-            <TrendingDown className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0">
-            <div className="text-2xl sm:text-3xl font-bold text-destructive">
-              {fallingSeriesCount}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {((fallingSeriesCount / totalSeriesCount) * 100).toFixed(1)}% des séries
-            </p>
-          </CardContent>
-        </Card>
+      {/* KPI GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard 
+          title="Séries Analysées" 
+          value={kpis.totalSeries} 
+          icon={List} 
+          variant="blue" 
+          subtext="Ensembles de cartes"
+        />
+        <KpiCard 
+          title="Variation Moyenne" 
+          value={`${kpis.avgVar > 0 ? "+" : ""}${(kpis.avgVar * 100).toFixed(2)}%`} 
+          icon={TrendingUp} 
+          variant={kpis.avgVar >= 0 ? "success" : "danger"} 
+          subtext="Vs Prix Retail"
+        />
+        <KpiCard 
+          title="En Hausse" 
+          value={kpis.upCount} 
+          icon={TrendingUp} 
+          variant="success" 
+          subtext={`${((kpis.upCount / kpis.totalSeries) * 100 || 0).toFixed(0)}% du marché`}
+        />
+        <KpiCard 
+          title="En Baisse" 
+          value={kpis.downCount} 
+          icon={TrendingDown} 
+          variant="danger" 
+          subtext={`${((kpis.downCount / kpis.totalSeries) * 100 || 0).toFixed(0)}% du marché`}
+        />
       </div>
 
-      {/* Chart Section */}
-      <Card className="border-border/50 shadow-sm">
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-lg sm:text-xl">Visualisation des variations</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            Comparaison des performances par série
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6 pt-0">
-          <SeriesTrendChart data={seriesSummaries} />
-        </CardContent>
-      </Card>
+      {/* TABS CONTENT */}
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="bg-muted/50 p-1 w-full sm:w-auto grid grid-cols-2 sm:inline-flex">
+          <TabsTrigger value="overview">
+            <span className="sm:hidden">Vue & Graph</span>
+            <span className="hidden sm:inline">Vue d'ensemble & Graphique</span>
+          </TabsTrigger>
 
-      {/* Table Section */}
-      <Card className="border-border/50 shadow-sm">
-        <CardHeader className="p-4 sm:p-6">
-          <CardTitle className="text-lg sm:text-xl">Détail par série</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            Variation pondérée par rapport au prix retail. L'IC reflète la couverture des types de produits.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-0 sm:p-6 sm:pt-0">
-          {/* Mobile View - Cards */}
-          <div className="block lg:hidden space-y-3 p-4">
-            {seriesSummaries.map((series) => (
-              <Card
-                key={series.seriesName}
-                className={`border ${
-                  series.coverageIndex < 1.0
-                    ? "border-yellow-500/30 bg-yellow-500/5"
-                    : "border-border/50"
-                }`}
-              >
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-sm capitalize leading-tight flex-1">
-                      {series.seriesName}
-                    </h3>
-                    <Badge
-                      variant={
-                        series.shortTermTrend === "up"
-                          ? "success"
-                          : series.shortTermTrend === "down"
-                          ? "destructive"
-                          : "secondary"
-                      }
+          <TabsTrigger value="data">
+            <span className="sm:hidden">Données</span>
+            <span className="hidden sm:inline">Données Détaillées</span>
+          </TabsTrigger>
+        </TabsList>
+
+
+        {/* TAB 1: VISUALISATION */}
+        <TabsContent value="overview" className="space-y-6 animate-in slide-in-from-bottom-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* GRAPHIQUE PRINCIPAL */}
+            <Card className="lg:col-span-2 border-border/50 shadow-sm overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle>Tendances Comparatives</CardTitle>
+                <CardDescription>Performance pondérée de toutes les séries par rapport au prix Retail depuis la sortie</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0 sm:p-6">
+                {/* On passe les données filtrées au graphique pour qu'il réagisse à la recherche */}
+                <SeriesTrendChart data={filteredAndSortedData} />
+              </CardContent>
+            </Card>
+
+            {/* TOP PERFORMERS SIDEBAR */}
+            <Card className="border-border/50 shadow-sm flex flex-col h-full max-h-[800px]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-emerald-500" />
+                  Top Performers
+                </CardTitle>
+                <CardDescription>Les séries les plus rentables</CardDescription>
+              </CardHeader>
+              <CardContent className="flex-1 overflow-y-auto pr-2 space-y-1">
+                {/* On prend le top 10 des données filtrées */}
+                {filteredAndSortedData
+                  .filter(s => s.averageVariation > 0)
+                  .sort((a, b) => b.averageVariation - a.averageVariation)
+                  .slice(0, 15)
+                  .map((series, idx) => (
+                    <div 
+                      key={series.seriesName} 
+                      className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors group border border-transparent hover:border-border/50"
                     >
-                      <span className="flex items-center gap-1">
-                        {getTrendIcon(series.shortTermTrend)}
-                        <span className="text-xs">
-                          {series.shortTermTrend === "up"
-                            ? "Hausse"
-                            : series.shortTermTrend === "down"
-                            ? "Baisse"
-                            : "Stable"}{" "}
-                          : {(series?.shortTermVariation ?? 0 * 100).toFixed(2)}% - 7j
-                        </span>
-                      </span>
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <div className="text-muted-foreground mb-1">Variation depuis la sortie</div>
-                      <div className={`text-lg font-bold ${getVariationColor(series.averageVariation)}`}>
-                        {(series.averageVariation * 100).toFixed(2)}%
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="font-mono text-xs text-muted-foreground w-4 text-center shrink-0">{idx + 1}</div>
+                        <div className="font-medium text-sm truncate capitalize group-hover:text-primary transition-colors">
+                          {series.seriesName}
+                        </div>
                       </div>
+                      <TrendBadge value={series.averageVariation} />
                     </div>
-
-                    <div>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="cursor-help">
-                              <div className="text-muted-foreground mb-1 flex items-center gap-1">
-                                IC
-                                {series.coverageIndex < 1.0 && (
-                                  <AlertCircle className="h-3 w-3 text-yellow-500" />
-                                )}
-                              </div>
-                              <div className={`text-lg font-bold ${getCoverageColor(series.coverageIndex)}`}>
-                                {(series.coverageIndex * 100).toFixed(0)}%
-                              </div>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Indice de Couverture</p>
-                            <p className="text-xs text-muted-foreground">
-                              {series.coverageIndex < 1.0 ? "Types manquants détectés" : "Couverture complète"}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                  ))}
+                  {filteredAndSortedData.filter(s => s.averageVariation > 0).length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      Aucune donnée positive trouvée
                     </div>
-
-                    <div className="col-span-2">
-                      <div className="text-muted-foreground mb-1">Fourchette de prix</div>
-                      <div className="font-semibold">
-                        {series.minPrice.toFixed(2)} - {series.maxPrice.toFixed(2)} €
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  )}
+              </CardContent>
+            </Card>
           </div>
+        </TabsContent>
 
-          {/* Desktop View - Table */}
-          <div className="hidden lg:block overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[200px] font-semibold">Série</TableHead>
-                  <TableHead className="font-semibold">Variation Pondérée</TableHead>
-                  <TableHead className="font-semibold">Fourchette (€)</TableHead>
-                  <TableHead className="text-center font-semibold">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger className="cursor-help">
-                          IC
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Indice de Couverture</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </TableHead>
-                  <TableHead className="text-right font-semibold">Tendance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {seriesSummaries.map((series) => (
-                  <TableRow
-                    key={series.seriesName}
-                    className={`${
-                      series.coverageIndex < 1.0
-                        ? "bg-yellow-500/5 hover:bg-yellow-500/10"
-                        : "hover:bg-muted/50"
-                    } transition-colors`}
-                  >
-                    <TableCell className="font-medium capitalize">
-                      <div className="flex items-center gap-2">
-                        {series.coverageIndex < 1.0 && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-500 shrink-0" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="text-xs">Types de produits manquants</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                        <span className="truncate">{series.seriesName}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`font-bold text-base ${getVariationColor(series.averageVariation)}`}>
-                        {series.averageVariation > 0 && "+"}
-                        {(series.averageVariation * 100).toFixed(2)}%
-                      </span>
-                    </TableCell>
-                    <TableCell className="tabular-nums">
-                      <span className="text-muted-foreground">{series.minPrice.toFixed(2)}</span>
-                      {" - "}
-                      <span className="font-semibold">{series.maxPrice.toFixed(2)}</span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={series.coverageIndex >= 1.0 ? "default" : "secondary"}
-                        className={
-                          series.coverageIndex < 1.0
-                            ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-500/30"
-                            : "bg-success/10 text-success border-success/30"
-                        }
-                      >
-                        {(series.coverageIndex * 100).toFixed(0)}%
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                    <div className="flex flex-col gap-1 items-end justify-center">
-                      {/* Long terme */}
-                      <Badge 
-                        variant={
-                          series.longTermTrend === "up"
-                            ? "default"
-                            : series.longTermTrend === "down"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className={
-                          series.longTermTrend === "up"
-                            ? "bg-success/10 text-success border-success/30"
-                            : series.longTermTrend === "down"
-                            ? "bg-destructive/10 text-destructive border-destructive/30"
-                            : ""
-                        }
-                      >
-                        <span className="flex items-center gap-1.5">
-                          {getTrendIcon(series.longTermTrend)}
-                          <span>Global</span>
-                        </span>
-                      </Badge>
-                      
-                      {/* Court terme (si disponible) */}
-                      {series.hasRecentData && series.shortTermTrend && (
-                        <Badge 
-                        variant={
-                          series.shortTermTrend === "up"
-                            ? "success"
-                            : series.shortTermTrend === "down"
-                            ? "destructive"
-                            : "secondary"
-                        } 
-                          className="text-xs"
-                        >
-                          {getTrendIcon(series.shortTermTrend)}
-                          <span>7j: {(series.shortTermVariation! * 100).toFixed(1)}%</span>
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
+        {/* TAB 2: TABLEAU DE DONNÉES */}
+        <TabsContent value="data" className="animate-in slide-in-from-bottom-2">
+          <Card className="border-border/50 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead 
+                      className="w-[300px] cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => requestSort('seriesName')}
+                    >
+                      <div className="flex items-center">Série <SortIcon columnKey="seriesName" /></div>
+                    </TableHead>
+                    
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                      onClick={() => requestSort('averageVariation')}
+                    >
+                      <div className="flex items-center justify-end">Variation Totale <SortIcon columnKey="averageVariation" /></div>
+                    </TableHead>
+
+                    <TableHead className="text-center">Prix Moyen (Min-Max)</TableHead>
+                    
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors text-center"
+                      onClick={() => requestSort('shortTermVariation')}
+                    >
+                       <div className="flex items-center justify-center">Tendance 7j <SortIcon columnKey="shortTermVariation" /></div>
+                    </TableHead>
+                    
+                    <TableHead 
+                      className="cursor-pointer hover:bg-muted/50 transition-colors text-right"
+                      onClick={() => requestSort('coverageIndex')}
+                    >
+                       <div className="flex items-center justify-end">Indice Couverture <SortIcon columnKey="coverageIndex" /></div>
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredAndSortedData.map((series) => (
+                    <TableRow key={series.seriesName} className="hover:bg-muted/30 transition-colors">
+                      <TableCell className="font-medium capitalize">
+                        <div className="flex items-center gap-2">
+                          {series.coverageIndex < 1.0 && (
+                             <TooltipProvider>
+                               <Tooltip>
+                                 <TooltipTrigger>
+                                   <AlertCircle className="h-4 w-4 text-yellow-500" />
+                                 </TooltipTrigger>
+                                 <TooltipContent>Données partielles</TooltipContent>
+                               </Tooltip>
+                             </TooltipProvider>
+                          )}
+                          {series.seriesName}
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell className="text-right">
+                        <div className="flex justify-end">
+                           <TrendBadge value={series.averageVariation} trend={series.longTermTrend} />
+                        </div>
+                      </TableCell>
+                      
+                      <TableCell className="text-center tabular-nums text-sm">
+                        <span className="text-muted-foreground">{series.minPrice.toFixed(0)}€</span>
+                        <span className="mx-1 opacity-30">-</span>
+                        <span className="font-semibold">{series.maxPrice.toFixed(0)}€</span>
+                      </TableCell>
+                      
+                      <TableCell className="text-center">
+                        {series.hasRecentData ? (
+                          <div className="inline-flex justify-center">
+                             <Badge variant={series.shortTermTrend === "up" ? "success" : series.shortTermTrend === "down" ? "destructive" : "secondary"} className="font-normal">
+                                {series.shortTermTrend === "up" ? "Hausse" : series.shortTermTrend === "down" ? "Baisse" : "Stable"}
+                             </Badge>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">Pas de data récente</span>
+                        )}
+                      </TableCell>
+                      
+                      <TableCell className="text-right">
+                         <div className="flex items-center justify-end gap-2">
+                           <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
+                             <div 
+                               className={`h-full ${series.coverageIndex >= 1 ? 'bg-primary' : 'bg-yellow-500'}`} 
+                               style={{ width: `${Math.min(series.coverageIndex * 100, 100)}%` }}
+                             />
+                           </div>
+                           <span className="text-xs text-muted-foreground w-8">{(series.coverageIndex * 100).toFixed(0)}%</span>
+                         </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  
+                  {filteredAndSortedData.length === 0 && (
+                     <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                           Aucune série trouvée pour "{searchQuery}"
+                        </TableCell>
+                     </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

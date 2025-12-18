@@ -26,3 +26,13 @@ export type LBCOffer = {
     image?: string | null;
     rejected?: string;
     };
+
+    export type ItemType =
+  | "ETB"
+  | "Display"
+  | "Demi-Display"
+  | "Tri-Pack"
+  | "UPC"
+  | "Artset"
+  | "Bundle"
+  | "Coffret Collection Poster"

@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  deleteDoc,
+  doc,
+  collectionGroup,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 import { insertPriceInDB } from "@/lib/insert-price";
@@ -73,11 +81,12 @@ export default function InsertDbPage() {
   // Load items from Firestore
   useEffect(() => {
     const fetchItemsWithPriceToday = async () => {
+      // 1) Items
       const snapshot = await getDocs(collection(db, "items"));
-      const list: ItemEntry[] = snapshot.docs.map((doc) => {
-        const data = doc.data() as any;
+      const list: ItemEntry[] = snapshot.docs.map((d) => {
+        const data = d.data() as any;
         return {
-          id: doc.id,
+          id: d.id,
           name: data.name ?? data.title ?? "",
           type: data.type ?? "",
           series: data.series ?? "",
@@ -85,22 +94,44 @@ export default function InsertDbPage() {
         };
       });
       setItems(list);
-
+  
+      // 2) Items traités aujourd’hui (1 requête via collectionGroup)
       const today = new Date().toISOString().slice(0, 10);
+  
+      const pricesTodaySnap = await getDocs(
+        query(collectionGroup(db, "prices"), where("date", "==", today))
+      );
+  
       const itemsToday = new Set<string>();
-      for (const itemDoc of snapshot.docs) {
-        const pricesSnap = await getDocs(collection(db, `items/${itemDoc.id}/prices`));
-        pricesSnap.docs.forEach((priceDoc) => {
-          const data = priceDoc.data() as any;
-          if (data.date === today) itemsToday.add(itemDoc.id);
-        });
-      }
+      pricesTodaySnap.forEach((priceDoc) => {
+        const itemId = priceDoc.ref.parent.parent?.id; // prices -> item
+        if (itemId) itemsToday.add(itemId);
+      });
+  
       setItemsWithPriceToday(itemsToday);
     };
+  
     fetchItemsWithPriceToday();
   }, []);
+  
 
   const currentItem = items[currentIndex] || null;
+
+  useEffect(() => {
+    if (!currentItem) return;
+  
+    const cached = prefetchCache.current.get(currentItem.id);
+  
+    // Si pas de cache (cas du 1er item) ou cache trop vieux -> on fetch
+    const isFresh =
+      cached?.timestamp && Date.now() - cached.timestamp < 5 * 60 * 1000;
+  
+    if (!cached || !isFresh) {
+      prefetchItem(currentItem);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentItem]);
+  
 
   useEffect(() => {
     if (!currentItem) return;
@@ -527,6 +558,11 @@ export default function InsertDbPage() {
       }
       
       setItems((prev) => prev.filter((i) => i.id !== currentItem.id));
+      setItemsWithPriceToday((prev) => {
+        const next = new Set(prev);
+        next.delete(currentItem.id);
+        return next;
+      });      
       handleNext();
     } catch {
       alert("Erreur lors de la suppression");
@@ -757,7 +793,7 @@ export default function InsertDbPage() {
                   </CollapsibleContent>
                 </Collapsible>
 
-                {(!currentMinPrice || currentError) && (
+                {(currentMinPrice === null || !!currentError) && (
                   <div className="flex flex-wrap gap-3 p-3 bg-muted/40 border border-border rounded-lg">
                     <Button
                       variant="outline"

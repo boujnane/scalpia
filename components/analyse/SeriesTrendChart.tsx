@@ -38,7 +38,15 @@ interface SeriesTrendChartProps {
 
 // Table de correspondance des séries vers les images
 const SERIES_IMAGE_MAP: Record<string, string> = {
+  "zenith supreme": "/EB/EB12.5.png",
+  "tempete argentee": "/EB/EB12.png",
+  "origine perdue": "/EB/EB11.png",
+  "astres radieux": "/EB/EB10.png",
+  "stars etincelantes": "/EB/EB9.png",
+  "poing de fusion": "/EB/EB8.png",
+  "celebrations": "/EB/EB7.5.png",
   "evolution celeste": "/EB/EB7.png",
+  "regne de glace": "/EB/EB6.png",
   "foudre noire": "/EV/BLK.png",
   "rivalité destinées": "/EV/DRI.png",
   "rivalites destinees": "/EV/DRI.png",
@@ -82,7 +90,9 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
   const [activeIndex, setActiveIndex] = useState<number | string | null>(null);
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
-  const sortedData = [...data].sort((a, b) => b.averageVariation - a.averageVariation);
+  const sortedData = [...data]
+  .sort((a, b) => b.averageVariation - a.averageVariation)
+  .slice(0, 30);
   
   const baseHeight = 50;
   const minHeight = 300;
@@ -262,21 +272,48 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
   const CustomYAxisTick: React.FC<any> = (props) => {
     const { x, y, payload, index } = props;
     const isActive = activeIndex === index;
-    const seriesName = payload.value;
+  
+    const seriesName: string = payload.value;
     const truncated = seriesName.length > 18 ? seriesName.slice(0, 18) + "…" : seriesName;
-
+  
+    const imgPath = getSeriesImage(seriesName);
+    const hasError = imageErrors.has(seriesName);
+  
+    // ✅ Paramètres d’alignement fixes
+    const ICON_SIZE = 28;              // taille du logo
+    const ICON_X = x - 190;            // position X du logo
+    const ICON_Y = y - ICON_SIZE / 2;  // centre vertical du logo sur le tick
+    const TEXT_X = x - 150;            // position du texte
+  
     return (
       <g>
-        {/* Image de la série - AGRANDIE */}
-        <foreignObject x={x - 200} y={y - 24} width={48} height={48}>
-          <div className="w-full h-full flex items-center justify-center">
-            <SeriesImage seriesName={seriesName} className="w-12 h-12" />
-          </div>
-        </foreignObject>
-
-        {/* Nom de la série */}
+        {/* Logo (SVG pur) */}
+        {imgPath && !hasError ? (
+          <image
+            href={imgPath}
+            x={ICON_X}
+            y={ICON_Y}
+            width={ICON_SIZE}
+            height={ICON_SIZE}
+            preserveAspectRatio="xMidYMid meet"
+            onError={() => handleImageError(seriesName)}
+          />
+        ) : (
+          // fallback simple (carré)
+          <rect
+            x={ICON_X}
+            y={ICON_Y}
+            width={ICON_SIZE}
+            height={ICON_SIZE}
+            rx={6}
+            ry={6}
+            fill="rgba(148,163,184,0.25)"
+          />
+        )}
+  
+        {/* Nom */}
         <text
-          x={x - 145}
+          x={TEXT_X}
           y={y}
           dy={4}
           textAnchor="start"
@@ -290,6 +327,7 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
       </g>
     );
   };
+  
 
   return (
     <div className="w-full">
@@ -381,10 +419,13 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
             <YAxis
               type="category"
               dataKey="seriesName"
-              width={180}
+              width={200}
               tick={<CustomYAxisTick />}
+              interval={0}
+              tickMargin={10}
               stroke="currentColor"
             />
+
             
             <Tooltip
               content={<CustomTooltip />}

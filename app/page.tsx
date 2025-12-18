@@ -46,7 +46,7 @@ export default function HomePage() {
       description: "Explorez chaque carte Pokémon avec images haute résolution, informations détaillées et disponibilité sur le marché secondaire.",
       href: "/tcgdex",
       gradient: "from-accent/10 to-cardmarket/30",
-      iconColor: "text-accent",
+      iconColor: "text-muted-foreground",
       borderColor: "border-accent/20",
       badge: "Catalogue",
       ariaLabel: "Explorer la base de données TCGdex"
@@ -147,15 +147,20 @@ export default function HomePage() {
                   </h1>
                   
                   <p className="text-base sm:text-lg lg:text-xl text-muted-foreground/90 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                    <span className="font-semibold text-foreground">Accédez à un index global des prix du marché secondaire</span> <span className="font-semibold text-foreground">Pokémon.</span> Nous analysons{" "} 
+                    Accédez gratuitement à un{" "}
+                    <span className="font-semibold text-foreground">
+                      index des prix du marché secondaire Pokémon
+                    </span>.
+                    Nous analysons{" "}
                     <span className="font-semibold text-[#0066CC]">Cardmarket</span>,{" "}
                     <span className="font-semibold text-[#EC5A13]">LeBonCoin</span>,{" "}
                     <span className="font-semibold text-[#92c821]">eBay</span> et{" "}
-                    <span className="font-semibold text-[#09B1BA]">Vinted</span> en amont pour vous fournir
-                    une vision claire et fiable des prix réels du marché.{" "}
-                    <span className="block mt-2 sm:mt-3">
-                      Suivez l'évolution des prix et explorez 100K+ cartes et items scellés.
-                    </span>
+                    <span className="font-semibold text-[#09B1BA]">Vinted</span>{" "}
+                    pour vous aider à repérer{" "}
+                    <span className="font-semibold text-foreground">
+                      le prix le plus bas observable
+                    </span>{" "}
+                    sur le marché, sans comparaison manuelle.
                   </p>
                 </div>
 
@@ -192,7 +197,7 @@ export default function HomePage() {
                     aria-label="Accéder à la recherche de produits"
                   >
                     <Link href="/tcgdex">
-                      <span className="hidden sm:inline">Rechercher des Produits</span>
+                      <span className="hidden sm:inline">Rechercher une carte ou une série</span>
                       <span className="sm:hidden">Rechercher</span>
                       <Icons.search className="ml-2 h-4 sm:h-5 w-4 sm:w-5 transition-transform group-hover:scale-110" aria-hidden="true" />
                     </Link>
@@ -207,8 +212,8 @@ export default function HomePage() {
                     aria-label="Explorer la base de cartes TCGdex"
                   >
                     <Link href="/analyse">
-                      <span className="hidden sm:inline">Explorer les Cartes</span>
-                      <span className="sm:hidden">Explorer</span>
+                      <span className="hidden sm:inline">Analyser les produits scellés</span>
+                      <span className="sm:hidden">Analyser</span>
                       <Icons.zap className="ml-2 h-4 sm:h-5 w-4 sm:w-5" aria-hidden="true" />
                     </Link>
                   </Button>
@@ -217,7 +222,11 @@ export default function HomePage() {
                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-6 pt-4 sm:pt-6">
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
                     <Icons.zap className="h-3 w-3 text-green-600 dark:text-green-400" aria-hidden="true" />
-                    <span className="text-xs font-semibold text-green-700 dark:text-green-300">API TCGdex Officielle</span>
+                    <span className="text-xs font-semibold text-green-700 dark:text-green-300">API TCGdex</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
+                    <Icons.zap className="h-3 w-3 text-green-600 dark:text-green-400" aria-hidden="true" />
+                    <span className="text-xs font-semibold text-green-700 dark:text-green-300">API PokePriceTracker</span>
                   </div>
                   <div className="text-center sm:text-left">
                     <p className="text-sm font-semibold">Données en continu</p>
@@ -350,37 +359,137 @@ export default function HomePage() {
         </section>
 
         {/* Stats Section */}
-        <section 
+        <section
           className="py-12 sm:py-16 lg:py-20 border-y border-border/40 bg-muted/20"
           aria-labelledby="stats-title"
         >
-          <h2 id="stats-title" className="sr-only">Statistiques de la plateforme</h2>
           <div className="container mx-auto px-4 sm:px-6 md:px-8">
+            <h2 id="stats-title" className="sr-only">
+              Statistiques de la plateforme
+            </h2>
+
+            {/* Intro copy */}
+            <div className="mb-6 sm:mb-8 text-center">
+              <p className="text-sm sm:text-base text-muted-foreground">
+                Un projet libre, maintenu avec passion pour suivre le marché secondaire
+                francophone et aider à repérer{" "}
+                <span className="font-semibold text-foreground">
+                  le prix le plus bas observable
+                </span>.
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {stats.map((stat, index) => {
-                const IconComponent = stat.icon
-                return (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: prefersReducedMotion ? 0 : index * 0.1 }}
-                    className="flex flex-col items-center text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl 
-                      bg-background/50 backdrop-blur-sm border border-border/50
-                      hover:bg-background/80 transition-all duration-300 hover:scale-105"
+              {/* Card 1 — Projet libre */}
+              <div className="flex flex-col items-center text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 hover:bg-background/80 transition-all duration-300 hover:scale-[1.02]">
+                <div
+                  className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4"
+                  aria-hidden="true"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
                   >
-                    <div className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4" aria-hidden="true">
-                      <IconComponent className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-primary" strokeWidth={2} />
-                    </div>
-                    <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">{stat.value}</p>
-                    <p className="text-sm sm:text-base text-muted-foreground">{stat.label}</p>
-                  </motion.div>
-                )
-              })}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M14 2v6h6"
+                    />
+                  </svg>
+                </div>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">
+                  Projet libre
+                </p>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Code ouvert, méthode transparente, améliorations continues par la
+                  communauté.
+                </p>
+              </div>
+
+              {/* Card 2 — Prix le plus bas */}
+              <div className="flex flex-col items-center text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 hover:bg-background/80 transition-all duration-300 hover:scale-[1.02]">
+                <div
+                  className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4"
+                  aria-hidden="true"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M17 7H9.5a3.5 3.5 0 1 0 0 7H15a3 3 0 1 1 0 6H7"
+                    />
+                  </svg>
+                </div>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">
+                  Prix le plus bas
+                </p>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Estimation du minimum{" "}
+                  <span className="font-medium text-foreground">observé</span> via
+                  recoupement d’annonces publiques.
+                </p>
+              </div>
+
+              {/* Card 3 — Sources */}
+              <div className="flex flex-col items-center text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 hover:bg-background/80 transition-all duration-300 hover:scale-[1.02]">
+                <div
+                  className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4"
+                  aria-hidden="true"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-primary"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M7 14l4-4 4 4 5-7"
+                    />
+                  </svg>
+                </div>
+                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">
+                  Sources multiples
+                </p>
+                <p className="text-sm sm:text-base text-muted-foreground">
+                  Cardmarket, eBay, Vinted, Leboncoin… agrégés et normalisés pour comparer
+                  facilement.
+                </p>
+              </div>
+            </div>
+
+            {/* Legal disclaimer */}
+            <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground">
+              Pokéindex est un projet indépendant. Les prix affichés sont des
+              estimations basées sur des informations publiquement accessibles au moment
+              du relevé et peuvent évoluer. Pokéindex n’est affilié à aucune des plateformes
+              citées. Les marques, noms et logos appartiennent à leurs propriétaires
+              respectifs.
             </div>
           </div>
         </section>
+
 
         {/* Features Section */}
         <section 

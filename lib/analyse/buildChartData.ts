@@ -1,18 +1,10 @@
+import { Item } from "./types";
+
 // Types
 export type Point = { 
   date: number; // Timestamp (getTime())
   price: number;
 };
-
-export type Item = {
-    name: string;
-    releaseDate: string;
-    bloc: string;
-    image?: string;
-    type: "ETB" | "Display" | "Demi-Display" | "Tri-Pack" | "UPC" | "Artset" | "Bundle"; // ajouter tous les types existants
-    retailPrice?: number; // prix retail à la sortie en magasin
-    prices?: { date: string; price: number }[]; // historique des prix
-  };
   
   // Exemple de modification de buildChartData :
   export function buildChartData(item: Item): Point[] {

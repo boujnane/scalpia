@@ -2,7 +2,6 @@
 
 import { TCGdexCardExtended } from '@/lib/tcgdex/types'
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator" 
 import { getCardImageUrl } from '@/lib/utils' 
 import { PriceChartDisplay } from './PriceChartDisplay'
 import { DollarSign, Euro, MapPin, Sparkles } from 'lucide-react'
@@ -16,7 +15,9 @@ const getAssetUrl = (baseUrl: string | null | undefined, extension: 'png' | 'web
 
 export const TCGCardItem = ({ card }: { card: TCGCardResult }) => {
     const setSymbolUrl = getAssetUrl(card.set?.symbol);
-
+    const ebayFr = card.pricing?.['ebay-fr']
+    console.log('PRICING', card.pricing)
+    console.log('EBAY FR', card.pricing?.['ebay-fr'])
     return (
         <Card key={card.id} className="group overflow-hidden flex flex-col transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-primary/50 cursor-pointer bg-card">
             <CardHeader className="p-4 pb-2 flex flex-row justify-between items-start space-x-2">
@@ -67,6 +68,45 @@ export const TCGCardItem = ({ card }: { card: TCGCardResult }) => {
                             
                             <PriceChartDisplay pricing={card.pricing} />
                             
+                            {/* eBay France */}
+                            {ebayFr && (
+                            <div className="mt-4 pt-3 border-t border-dashed border-border">
+                                <div className="flex items-center gap-2 mb-2">
+                                <div className="p-1 bg-blue-500/10 rounded-full">
+                                    <Euro className="w-4 h-4 text-blue-500"/>
+                                </div>
+                                <span className="font-bold text-sm">eBay France</span>
+                                </div>
+
+                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                {ebayFr.avg1 != null && (
+                                    <div className="bg-background p-2 rounded border text-center">
+                                    <p className="text-muted-foreground">24h</p>
+                                    <p className="font-mono font-semibold">{ebayFr.avg1.toFixed(2)} €</p>
+                                    </div>
+                                )}
+
+                                {ebayFr.avg7 != null && (
+                                    <div className="bg-background p-2 rounded border text-center">
+                                    <p className="text-muted-foreground">7j</p>
+                                    <p className="font-mono font-semibold">{ebayFr.avg7.toFixed(2)} €</p>
+                                    </div>
+                                )}
+
+                                {ebayFr.avg28 != null && (
+                                    <div className="bg-background p-2 rounded border text-center">
+                                    <p className="text-muted-foreground">28j</p>
+                                    <p className="font-mono font-semibold">{ebayFr.avg28.toFixed(2)} €</p>
+                                    </div>
+                                )}
+                                </div>
+
+                                <p className="text-[10px] text-muted-foreground mt-2">
+                                Source eBay • MAJ {new Date(ebayFr.updated).toLocaleDateString('fr-FR')}
+                                </p>
+                            </div>
+                            )}
+
                             {card.pricing.tcgplayer && (
                                 <div className="mt-4 pt-3 border-t border-dashed border-border">
                                     <p className="font-semibold text-xs text-chart-3 flex items-center mb-2">
