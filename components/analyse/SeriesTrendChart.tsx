@@ -8,35 +8,16 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  BarProps,
-  Cell
+  Cell,
 } from "recharts";
 import { TrendingUp, TrendingDown, Minus, ImageOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-export interface SeriesSummary {
-  seriesName: string;
-  averageVariation: number;
-  minPrice: number;
-  maxPrice: number;
-  
-  // Trends
-  longTermTrend: "up" | "down" | "stable";      // Trend globale (tout l'historique)
-  shortTermTrend?: "up" | "down" | "stable";    // Trend récente (7 derniers jours)
-  
-  // Métadonnées
-  coverageIndex: number;
-  shortTermVariation?: number;  // % variation sur 7j
-  hasRecentData?: boolean;      // True si on a des données < 7j
-}
-
-type CustomBarProps = BarProps & { payload: SeriesSummary };
+import type { SeriesFinanceSummary } from "@/lib/analyse/finance/series";
 
 interface SeriesTrendChartProps {
-  data: SeriesSummary[];
+  data: SeriesFinanceSummary[];
 }
 
-// Table de correspondance des séries vers les images
 const SERIES_IMAGE_MAP: Record<string, string> = {
   "zenith supreme": "/EB/EB12.5.png",
   "tempete argentee": "/EB/EB12.png",
@@ -72,17 +53,15 @@ const SERIES_IMAGE_MAP: Record<string, string> = {
   "mascarade crepusculaire": "/EV/TWM.png",
   "flamme blanche": "/EV/WHT.png",
   "mega evolution": "/MEG/MEG.png",
-  "flammes fantasmagoriques": "/MEG/PFL.png"
+  "flammes fantasmagoriques": "/MEG/PFL.png",
 };
 
-// Fonction utilitaire pour obtenir l'image d'une série
 const getSeriesImage = (seriesName: string): string | null => {
   const normalized = seriesName
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
-  
   return SERIES_IMAGE_MAP[normalized] || null;
 };
 
@@ -91,53 +70,45 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const sortedData = [...data]
-  .sort((a, b) => b.averageVariation - a.averageVariation)
-  .slice(0, 30);
-  
+    .sort((a, b) => (b.metrics.premiumNow ?? -999) - (a.metrics.premiumNow ?? -999))
+    .slice(0, 30);
+
   const baseHeight = 50;
   const minHeight = 300;
   const maxHeight = 800;
   const calculatedHeight = Math.max(minHeight, Math.min(sortedData.length * baseHeight, maxHeight));
 
   const handleImageError = (seriesName: string) => {
-    setImageErrors(prev => new Set(prev).add(seriesName));
+    setImageErrors((prev) => new Set(prev).add(seriesName));
   };
 
   const getBarColor = (variation: number) => {
-    // Vert-Bleu (Cyan / Turquoise) pour les fortes hausses
-    const CYAN_GREEN = "rgba(0, 180, 150, "; // Teinte verte/bleue pour un contraste différent
-
-    // Vert standard pour les hausses faibles
-    const LIME_GREEN = "rgba(100, 220, 100, "; // Teinte plus jaune/lime pour un contraste différent
-
-    // Rouge
+    const CYAN_GREEN = "rgba(0, 180, 150, ";
+    const LIME_GREEN = "rgba(100, 220, 100, ";
     const RED = "rgba(239,68,68,";
+    const GRAY = "rgba(148,163,184,";
 
-    // Gris/Stable
-    const GRAY = "rgba(148,163,184,"; 
-    
-    // Niveaux de Vert (contrastés)
-    if (variation > 2) return CYAN_GREEN + "1)";      // +200% ou plus (Cyan Opaque)
-    if (variation > 1) return CYAN_GREEN + "0.95)";    // +100% (Cyan Très Opaque)
-    if (variation > 0.5) return LIME_GREEN + "0.8)"; // +50% (Vert Lime Opaque)
-    if (variation > 0) return LIME_GREEN + "0.6)";   // +0% (Vert Lime Lisible)
+    if (variation > 2) return CYAN_GREEN + "1)";
+    if (variation > 1) return CYAN_GREEN + "0.95)";
+    if (variation > 0.5) return LIME_GREEN + "0.8)";
+    if (variation > 0) return LIME_GREEN + "0.6)";
 
-    // Niveaux de Rouge (inchangés mais avec la variable RED)
-    if (variation < -0.5) return RED + "1)"; // -50% ou plus (Rouge Opaque)
-    if (variation < -0.25) return RED + "0.85)"; // -25% (Rouge Opaque)
+    if (variation < -0.5) return RED + "1)";
+    if (variation < -0.25) return RED + "0.85)";
 
-    // Stable
-    return GRAY + "0.7)"; // Stable (Gris, opacité de 70%)
-};
-  
+    return GRAY + "0.7)";
+  };
 
-  const formatValue = (value?: number) => {
+  const formatPct = (value?: number | null) => {
     if (value == null) return "0.0%";
     const formatted = (value * 100).toFixed(1);
     return value > 0 ? `+${formatted}%` : `${formatted}%`;
   };
 
-  const SeriesImage: React.FC<{ seriesName: string; className?: string }> = ({ seriesName, className = "" }) => {
+  const SeriesImage: React.FC<{ seriesName: string; className?: string }> = ({
+    seriesName,
+    className = "",
+  }) => {
     const imagePath = getSeriesImage(seriesName);
     const hasError = imageErrors.has(seriesName);
 
@@ -179,7 +150,7 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
         className={isActive ? "fill-foreground" : "fill-muted-foreground"}
         textAnchor={textAnchor}
       >
-        {formatValue(value)}
+        {formatPct(value)}
       </text>
     );
   };
@@ -187,42 +158,37 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
   const CustomTooltip: React.FC<any> = ({ active, payload }) => {
     if (!active || !payload || !payload[0]) return null;
 
-    const data: SeriesSummary = payload[0].payload;
-    const getTrendIcon = () => {
-      const trendToShow = data.shortTermTrend || data.longTermTrend;
-      switch (trendToShow) {
-        case "up":
-          return <TrendingUp className="h-4 w-4 text-success" />;
-        case "down":
-          return <TrendingDown className="h-4 w-4 text-destructive" />;
-        default:
-          return <Minus className="h-4 w-4 text-muted-foreground" />;
-      }
-    };
+    const row: SeriesFinanceSummary = payload[0].payload;
+
+    const minP = row.metrics.lastPrice ?? 0;
+    const maxP = row.metrics.lastPrice ?? 0;
 
     return (
       <div className="bg-card border border-border rounded-lg shadow-lg p-4 space-y-3 min-w-[360px]">
         <div className="flex items-start gap-3">
-          <SeriesImage seriesName={data.seriesName} className="w-32 h-26 shrink-0" />
+          <SeriesImage seriesName={row.seriesName} className="w-32 h-26 shrink-0" />
           <div className="space-y-1 flex-1 min-w-0">
-            <h4 className="font-semibold text-sm capitalize leading-tight">{data.seriesName}</h4>
+            <h4 className="font-semibold text-sm capitalize leading-tight">{row.seriesName}</h4>
             <div className="flex items-center gap-2">
-              {getTrendIcon()}
+              {row.trend7d === "up" ? (
+                <TrendingUp className="h-4 w-4 text-success" />
+              ) : row.trend7d === "down" ? (
+                <TrendingDown className="h-4 w-4 text-destructive" />
+              ) : (
+                <Minus className="h-4 w-4 text-muted-foreground" />
+              )}
+
               <Badge
                 variant={
-                  data.shortTermTrend === "up"
+                  row.trend7d === "up"
                     ? "success"
-                    : data.shortTermTrend === "down"
+                    : row.trend7d === "down"
                     ? "destructive"
                     : "secondary"
                 }
                 className="text-xs"
               >
-                {data.shortTermTrend === "up" 
-                  ? "Hausse (7j)" 
-                  : data.shortTermTrend === "down" 
-                  ? "Baisse (7j)" 
-                  : "Stable (7j)"}
+                {row.trend7d === "up" ? "Hausse (7j)" : row.trend7d === "down" ? "Baisse (7j)" : "Stable (7j)"}
               </Badge>
             </div>
           </div>
@@ -230,39 +196,66 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
 
         <div className="space-y-2 text-xs">
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Variation pondérée</span>
+            <span className="text-muted-foreground">Premium actuel</span>
             <span
               className={`font-bold text-sm ${
-                data.averageVariation > 0
+                (row.metrics.premiumNow ?? 0) > 0
                   ? "text-success"
-                  : data.averageVariation < 0
+                  : (row.metrics.premiumNow ?? 0) < 0
                   ? "text-destructive"
                   : "text-muted-foreground"
               }`}
             >
-              {formatValue(data.averageVariation)}
+              {formatPct(row.metrics.premiumNow)}
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Fourchette de prix</span>
+            <span className="text-muted-foreground">Retour 7j</span>
+            <span className="font-semibold">{row.metrics.return7d == null ? "-" : formatPct(row.metrics.return7d)}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Retour 30j</span>
+            <span className="font-semibold">{row.metrics.return30d == null ? "-" : formatPct(row.metrics.return30d)}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Fourchette (last)</span>
             <span className="font-semibold">
-              {data.minPrice.toFixed(2)} - {data.maxPrice.toFixed(2)} €
+              {minP.toFixed(2)} - {maxP.toFixed(2)} €
             </span>
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Indice de couverture</span>
+            <span className="text-muted-foreground">Coverage 30j</span>
             <Badge
-              variant={data.coverageIndex >= 1.0 ? "default" : "secondary"}
+              variant={(row.metrics.coverage30d ?? 0) >= 0.9 ? "default" : "secondary"}
               className={
-                data.coverageIndex < 1.0
+                (row.metrics.coverage30d ?? 0) < 0.9
                   ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-500/30"
                   : "bg-success/10 text-success border-success/30"
               }
             >
-              {(data.coverageIndex * 100).toFixed(0)}%
+              {(((row.metrics.coverage30d ?? 0) * 100) || 0).toFixed(0)}%
             </Badge>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Freshness</span>
+            <span className="font-semibold">
+              {row.metrics.freshnessDays == null ? "-" : `${row.metrics.freshnessDays}j`}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Score</span>
+            <span className="font-semibold">{row.metrics.score == null ? "-" : row.metrics.score.toFixed(0)}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Points index</span>
+            <span className="font-semibold">{row.indexPointsCount}</span>
           </div>
         </div>
       </div>
@@ -272,22 +265,20 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
   const CustomYAxisTick: React.FC<any> = (props) => {
     const { x, y, payload, index } = props;
     const isActive = activeIndex === index;
-  
+
     const seriesName: string = payload.value;
     const truncated = seriesName.length > 18 ? seriesName.slice(0, 18) + "…" : seriesName;
-  
+
     const imgPath = getSeriesImage(seriesName);
     const hasError = imageErrors.has(seriesName);
-  
-    // ✅ Paramètres d’alignement fixes
-    const ICON_SIZE = 28;              // taille du logo
-    const ICON_X = x - 190;            // position X du logo
-    const ICON_Y = y - ICON_SIZE / 2;  // centre vertical du logo sur le tick
-    const TEXT_X = x - 150;            // position du texte
-  
+
+    const ICON_SIZE = 28;
+    const ICON_X = x - 190;
+    const ICON_Y = y - ICON_SIZE / 2;
+    const TEXT_X = x - 150;
+
     return (
       <g>
-        {/* Logo (SVG pur) */}
         {imgPath && !hasError ? (
           <image
             href={imgPath}
@@ -299,19 +290,9 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
             onError={() => handleImageError(seriesName)}
           />
         ) : (
-          // fallback simple (carré)
-          <rect
-            x={ICON_X}
-            y={ICON_Y}
-            width={ICON_SIZE}
-            height={ICON_SIZE}
-            rx={6}
-            ry={6}
-            fill="rgba(148,163,184,0.25)"
-          />
+          <rect x={ICON_X} y={ICON_Y} width={ICON_SIZE} height={ICON_SIZE} rx={6} ry={6} fill="rgba(148,163,184,0.25)" />
         )}
-  
-        {/* Nom */}
+
         <text
           x={TEXT_X}
           y={y}
@@ -327,95 +308,36 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
       </g>
     );
   };
-  
 
   return (
     <div className="w-full">
-      {/* Mobile: Stack view avec images */}
-      <div className="block md:hidden space-y-3">
-        {sortedData.map((series, index) => (
-          <div
-            key={series.seriesName}
-            className="flex items-center gap-3 p-3 rounded-lg border border-border/50 hover:border-border transition-colors"
-          >
-            {/* Image de la série */}
-            <SeriesImage seriesName={series.seriesName} className="w-12 h-12 shrink-0" />
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-medium text-sm capitalize truncate">
-                  {series.seriesName}
-                </h4>
-                {series.shortTermTrend === "up" && <TrendingUp className="h-3 w-3 text-success shrink-0" />}
-                {series.shortTermTrend === "down" && <TrendingDown className="h-3 w-3 text-destructive shrink-0" />}
-                {series.shortTermTrend === "stable" && <Minus className="h-3 w-3 text-muted-foreground shrink-0" />}
-              </div>
-              
-              {/* Barre de progression visuelle */}
-              <div className="relative h-2 bg-secondary rounded-full overflow-hidden">
-                <div
-                  className="absolute top-0 left-0 h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min(Math.abs(series.averageVariation) * 200, 100)}%`,
-                    backgroundColor: getBarColor(series.averageVariation),                  }}
-                />
-              </div>
-            </div>
-            
-            <div className="text-right shrink-0">
-              <div
-                className={`text-base font-bold ${
-                  series.averageVariation > 0
-                    ? "text-success"
-                    : series.averageVariation < 0
-                    ? "text-destructive"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {formatValue(series.averageVariation)}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                IC: {(series.coverageIndex * 100).toFixed(0)}%
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Desktop: Chart avec images dans l'axe Y */}
       <div className="hidden md:block" style={{ width: "100%", height: calculatedHeight }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={sortedData}
             layout="vertical"
             margin={{ top: 20, right: 80, left: 210, bottom: 20 }}
-            onMouseMove={(state) => {
-              if (state.isTooltipActive) {
-                setActiveIndex(state.activeTooltipIndex ?? null);
-              } else {
-                setActiveIndex(null);
-              }
-            }}
+            onMouseMove={(state) => setActiveIndex(state.isTooltipActive ? state.activeTooltipIndex ?? null : null)}
             onMouseLeave={() => setActiveIndex(null)}
           >
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="currentColor"
               className="stroke-border/30"
-              horizontal={true}
-              vertical={true}
+              horizontal
+              vertical
             />
-            
+
             <XAxis
               type="number"
-              dataKey="averageVariation"
-              tickFormatter={formatValue}
+              dataKey={(d: SeriesFinanceSummary) => d.metrics.premiumNow ?? 0}
+              tickFormatter={(v) => formatPct(v)}
               domain={["dataMin - 0.05", "dataMax + 0.05"]}
               tick={{ fontSize: 11, fill: "currentColor" }}
               className="fill-muted-foreground"
               stroke="currentColor"
             />
-            
+
             <YAxis
               type="category"
               dataKey="seriesName"
@@ -426,24 +348,20 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
               stroke="currentColor"
             />
 
-            
-            <Tooltip
-              content={<CustomTooltip />}
-              cursor={{ fill: "rgba(0, 0, 0, 0.05)" }}
-            />
-            
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0, 0, 0, 0.05)" }} />
+
             <Bar
-              dataKey="averageVariation"
+              dataKey={(d: SeriesFinanceSummary) => d.metrics.premiumNow ?? 0}
               background={{ fill: "var(--color-secondary)", opacity: 0.3 }}
               radius={[0, 4, 4, 0]}
             >
-              {sortedData.map((entry, index) => (
+              {sortedData.map((entry, idx) => (
                 <Cell
-                  key={`cell-${index}`}
-                  fill={getBarColor(entry.averageVariation)}
+                  key={`cell-${idx}`}
+                  fill={getBarColor(entry.metrics.premiumNow ?? 0)}
                   style={{
                     transition: "all 0.2s ease",
-                    filter: activeIndex === index ? "brightness(1.1)" : "none"
+                    filter: activeIndex === idx ? "brightness(1.1)" : "none",
                   }}
                 />
               ))}
@@ -451,22 +369,6 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </div>
-
-      {/* Légende */}
-      <div className="flex flex-wrap items-center justify-center gap-4 mt-6 pt-4 border-t border-border/50">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm bg-success" />
-          <span className="text-xs text-muted-foreground">Tendance haussière</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm bg-destructive" />
-          <span className="text-xs text-muted-foreground">Tendance baissière</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm bg-muted-foreground/50" />
-          <span className="text-xs text-muted-foreground">Stable</span>
-        </div>
       </div>
     </div>
   );

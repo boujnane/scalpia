@@ -3,6 +3,7 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { LBCOffer } from "@/types";
 import { blocImages } from "./analyse/blocImages";
+import { KNOWN_SERIES } from "./analyse/finance/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -162,4 +163,8 @@ export function calculateTrend(
 export function getBlocImage(bloc?: string) {
   if (!bloc) return null;
   return blocImages[bloc] ?? null;
+}
+
+export function isKnownSeriesName(normalizedSeriesName: string): boolean {
+  return KNOWN_SERIES.has(normalizedSeriesName);
 }

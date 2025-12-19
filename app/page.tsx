@@ -156,11 +156,11 @@ export default function HomePage() {
                     <span className="font-semibold text-[#EC5A13]">LeBonCoin</span>,{" "}
                     <span className="font-semibold text-[#92c821]">eBay</span> et{" "}
                     <span className="font-semibold text-[#09B1BA]">Vinted</span>{" "}
-                    pour vous aider à repérer{" "}
+                    pour vous permettre de connaître{" "}
                     <span className="font-semibold text-foreground">
-                      le prix le plus bas observable
+                    le meilleur prix du marché francophone
                     </span>{" "}
-                    sur le marché, sans comparaison manuelle.
+                    pour des produits Pokémon neufs et scellés.
                   </p>
                 </div>
 
