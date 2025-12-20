@@ -16,6 +16,11 @@ export type SeriesFinanceSummary = {
   // tags UI rapides
   trend7d: "up" | "down" | "stable" | "na";
   trend30d: "up" | "down" | "stable" | "na";
+
+  minItemPrice: number | null;
+  maxItemPrice: number | null;
+  itemsCount: number;
+
 };
 
 export type SeriesFinanceKPIs = {

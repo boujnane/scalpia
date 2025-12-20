@@ -160,8 +160,9 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
 
     const row: SeriesFinanceSummary = payload[0].payload;
 
-    const minP = row.metrics.lastPrice ?? 0;
-    const maxP = row.metrics.lastPrice ?? 0;
+    const minP = row.minItemPrice;
+    const maxP = row.maxItemPrice;
+
 
     return (
       <div className="bg-card border border-border rounded-lg shadow-lg p-4 space-y-3 min-w-[360px]">
@@ -223,7 +224,7 @@ export const SeriesTrendChart: React.FC<SeriesTrendChartProps> = ({ data }) => {
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Fourchette (last)</span>
             <span className="font-semibold">
-              {minP.toFixed(2)} - {maxP.toFixed(2)} €
+              {minP == null || maxP == null ? "-" : `${minP.toFixed(2)} - ${maxP.toFixed(2)} €`}
             </span>
           </div>
 
