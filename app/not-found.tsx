@@ -60,7 +60,7 @@ export default function NotFound() {
               >
                 <Link href="/" aria-label="Retour à l'accueil">
                   Retour à l’accueil
-                  <Icons.LineChart className="ml-2 h-4 w-4" aria-hidden="true" />
+                  <Icons.linechart className="ml-2 h-4 w-4" aria-hidden="true" />
                 </Link>
               </Button>
             </div>

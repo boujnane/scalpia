@@ -267,7 +267,7 @@ export default function AnalyseDashboard({ items }: AnalyseDashboardProps) {
             </h1>
             <p className="text-muted-foreground font-medium text-sm sm:text-base">
               {selectedBloc === "all"
-                ? "Vue globale (Finance)"
+                ? "Vue globale (indicateur financiers)"
                 : `Focus : Bloc ${selectedBloc}`}
             </p>
           </div>

@@ -20,19 +20,19 @@ export default function HomePage() {
   const features = [
     {
       icon: Icons.search,
-      title: "Prix Minimum Garanti",
-      description: "Consultez instantanément le prix le plus bas pour chaque carte ou item Pokémon scellé sur le marché secondaire, sans avoir à comparer manuellement.",
+      title: "Prix Planchers Observés",
+      description: "Accédez quotidiennement aux prix les plus bas détectés sur les principales marketplaces francophones pour chaque carte ou item Pokémon scellé. Données consolidées et analysées, sans garantie.",
       href: "/analyse",
       gradient: "from-primary/10 to-primary/30",
       iconColor: "text-primary",
       borderColor: "border-primary/20",
-      badge: "Meilleur Prix",
-      ariaLabel: "Voir les prix minimums des items Pokémon"
+      badge: "Prix Min",
+      ariaLabel: "Voir les prix planchers des items Pokémon"
     },
     {
-      icon: Icons.LineChart,
-      title: "Analyse de l'Évolution des Prix",
-      description: "Suivez l’historique des prix des cartes et items scellés pour identifier les tendances et décider du meilleur moment pour acheter ou vendre.",
+      icon: Icons.linechart,
+      title: "Analyse des Tendances",
+      description: "Suivez l’évolution des prix et les fluctuations du marché secondaire pour identifier les tendances et éclairer vos décisions d’achat ou de vente.",
       href: "/analyse",
       gradient: "from-muted-foreground/10 to-vinted/20",
       iconColor: "text-muted-foreground",
@@ -42,8 +42,8 @@ export default function HomePage() {
     },
     {
       icon: Icons.zap,
-      title: "Base Complète TCGdex",
-      description: "Explorez chaque carte Pokémon avec images haute résolution, informations détaillées et disponibilité sur le marché secondaire.",
+      title: "Base Complète",
+      description: "Explorez une base détaillée de cartes Pokémon avec images haute résolution, informations techniques et suivi de leur prix sur le marché secondaire, grâce aux API TCGdex et Pokémon Price Tracker.",
       href: "/tcgdex",
       gradient: "from-accent/10 to-cardmarket/30",
       iconColor: "text-muted-foreground",
@@ -52,6 +52,7 @@ export default function HomePage() {
       ariaLabel: "Explorer la base de données TCGdex"
     },
   ]
+  
   
 
   const platforms = [
@@ -64,7 +65,7 @@ export default function HomePage() {
   const stats = [
     { value: "3", label: "Plateformes Connectées", icon: Icons.search },
     { value: "100K+", label: "Cartes Référencées", icon: Icons.zap },
-    { value: "Temps réel", label: "Mise à jour des Prix", icon: Icons.LineChart },
+    { value: "Temps réel", label: "Mise à jour des Prix", icon: Icons.linechart },
   ]
 
   const fadeInUp = {
@@ -322,7 +323,7 @@ export default function HomePage() {
                       transition={{ duration: 3, repeat: Infinity, delay: 1 }}
                     >
                       <div className="flex items-center gap-2 xl:gap-3">
-                        <Icons.LineChart className="h-5 xl:h-6 w-5 xl:w-6 text-green-600 dark:text-green-400" aria-hidden="true" />
+                        <Icons.linechart className="h-5 xl:h-6 w-5 xl:w-6 text-green-600 dark:text-green-400" aria-hidden="true" />
                         <div>
                           <p className="text-xl xl:text-2xl font-bold text-green-600 dark:text-green-400">+18%</p>
                           <p className="text-[10px] xl:text-xs text-muted-foreground">30 jours</p>
@@ -358,138 +359,92 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Stats Section */}
         <section
-          className="py-12 sm:py-16 lg:py-20 border-y border-border/40 bg-muted/20"
-          aria-labelledby="stats-title"
-        >
-          <div className="container mx-auto px-4 sm:px-6 md:px-8">
-            <h2 id="stats-title" className="sr-only">
-              Statistiques de la plateforme
-            </h2>
+  className="relative border-y border-border/50 bg-muted/10 py-16 sm:py-24"
+  aria-labelledby="stats-title"
+>
+  {/* Background subtle effect to match the Hero */}
+  <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_center,var(--tw-gradient-from)_0%,transparent_70%)] from-primary/5 opacity-50" aria-hidden="true" />
 
-            {/* Intro copy */}
-            <div className="mb-6 sm:mb-8 text-center">
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Un projet libre, maintenu avec passion pour suivre le marché secondaire
-                francophone et aider à repérer{" "}
-                <span className="font-semibold text-foreground">
-                  le prix le plus bas observable
-                </span>.
-              </p>
-            </div>
+  <div className="container mx-auto px-4 sm:px-6 md:px-8">
+    <h2 id="stats-title" className="sr-only">
+      Méthodologie et sources de Pokéindex
+    </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
-              {/* Card 1 — Projet libre */}
-              <div className="flex flex-col items-center text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 hover:bg-background/80 transition-all duration-300 hover:scale-[1.02]">
-                <div
-                  className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4"
-                  aria-hidden="true"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-primary"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M14 2v6h6"
-                    />
-                  </svg>
-                </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">
-                  Projet libre
-                </p>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Code ouvert, méthode transparente, améliorations continues par la
-                  communauté.
-                </p>
-              </div>
+    {/* Intro Copy - Alignée avec le style du Hero */}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="mb-12 text-center"
+    >
+      <p className="mx-auto max-w-2xl text-base sm:text-lg text-muted-foreground leading-relaxed">
+        Pokéindex fonctionne comme un <span className="font-semibold text-foreground">observatoire neutre</span>. 
+        Nous consolidons les informations de vente publiques pour vous offrir une vision claire de la cote actuelle.
+      </p>
+    </motion.div>
 
-              {/* Card 2 — Prix le plus bas */}
-              <div className="flex flex-col items-center text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 hover:bg-background/80 transition-all duration-300 hover:scale-[1.02]">
-                <div
-                  className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4"
-                  aria-hidden="true"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-primary"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18" />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17 7H9.5a3.5 3.5 0 1 0 0 7H15a3 3 0 1 1 0 6H7"
-                    />
-                  </svg>
-                </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">
-                  Prix le plus bas
-                </p>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Estimation du minimum{" "}
-                  <span className="font-medium text-foreground">observé</span> via
-                  recoupement d’annonces publiques.
-                </p>
-              </div>
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:gap-8">
+      {/* Card 1 — Indépendance & Rigueur */}
+      <motion.div 
+        whileHover={{ y: -5 }}
+        className="relative flex flex-col items-center p-6 text-center rounded-2xl bg-background/60 backdrop-blur-md border border-border/50 shadow-sm transition-colors hover:border-primary/30"
+      >
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
+          <Icons.brain className="h-7 w-7" />
+        </div>
+        <h3 className="mb-2 text-xl font-bold tracking-tight">Analyse Indépendante</h3>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Une méthodologie rigoureuse de recoupement pour filtrer les anomalies et fournir des estimations basées sur des relevés factuels.
+        </p>
+      </motion.div>
 
-              {/* Card 3 — Sources */}
-              <div className="flex flex-col items-center text-center p-6 sm:p-8 rounded-xl sm:rounded-2xl bg-background/50 backdrop-blur-sm border border-border/50 hover:bg-background/80 transition-all duration-300 hover:scale-[1.02]">
-                <div
-                  className="w-12 sm:w-14 lg:w-16 h-12 sm:h-14 lg:h-16 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center mb-3 sm:mb-4"
-                  aria-hidden="true"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 sm:h-7 lg:h-8 w-6 sm:w-7 lg:w-8 text-primary"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18h18" />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M7 14l4-4 4 4 5-7"
-                    />
-                  </svg>
-                </div>
-                <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-1 sm:mb-2">
-                  Sources multiples
-                </p>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  Cardmarket, eBay, Vinted, Leboncoin… agrégés et normalisés pour comparer
-                  facilement.
-                </p>
-              </div>
-            </div>
+      {/* Card 2 — Observation des prix */}
+      <motion.div 
+        whileHover={{ y: -5 }}
+        className="relative flex flex-col items-center p-6 text-center rounded-2xl bg-background/60 backdrop-blur-md border border-border/50 shadow-sm transition-colors hover:border-primary/30"
+      >
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
+          <Icons.search className="h-7 w-7" />
+        </div>
+        <h3 className="mb-2 text-xl font-bold tracking-tight">Prix Planchers</h3>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Identification quotidienne des <span className="font-medium text-foreground">prix planchers observés</span> sur les annonces publiques, facilitant votre veille tarifaire.
+        </p>
+      </motion.div>
 
-            {/* Legal disclaimer */}
-            <div className="mt-6 sm:mt-8 text-center text-xs sm:text-sm text-muted-foreground">
-              Pokéindex est un projet indépendant. Les prix affichés sont des
-              estimations basées sur des informations publiquement accessibles au moment
-              du relevé et peuvent évoluer. Pokéindex n’est affilié à aucune des plateformes
-              citées. Les marques, noms et logos appartiennent à leurs propriétaires
-              respectifs.
-            </div>
-          </div>
-        </section>
+      {/* Card 3 — Consolidation multi-sources */}
+      <motion.div 
+        whileHover={{ y: -5 }}
+        className="relative flex flex-col items-center p-6 text-center rounded-2xl bg-background/60 backdrop-blur-md border border-border/50 shadow-sm transition-colors hover:border-primary/30"
+      >
+        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-hidden="true">
+          <Icons.barChart3 className="h-7 w-7" />
+        </div>
+        <h3 className="mb-2 text-xl font-bold tracking-tight">Sources Publiques</h3>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Données issues de la consultation des places de marché leaders : Cardmarket, eBay, Vinted et LeBonCoin.
+        </p>
+      </motion.div>
+    </div>
 
+    {/* Mentions Légales - Plus structurées pour la protection juridique */}
+    <motion.div 
+      initial={{ opacity: 0 }}
+      whileInView={{ opacity: 1 }}
+      viewport={{ once: true }}
+      className="mt-12 space-y-4 border-t border-border/40 pt-8 text-center"
+    >
+      <p className="mx-auto max-w-4xl text-[11px] leading-relaxed text-muted-foreground/80 sm:text-xs">
+        <strong className="text-foreground/90">Avertissement :</strong> Pokéindex est un outil de consultation indépendant. 
+        Les marques, logos et noms cités sont la propriété exclusive de leurs détenteurs respectifs (The Pokémon Company, eBay, Cardmarket, etc.). 
+        Les prix affichés sont des <span className="italic">estimations à titre indicatif</span> obtenues par l'analyse d'informations publiquement accessibles au moment du relevé. 
+        Pokéindex n'exécute aucune transaction et ne garantit pas la disponibilité des produits chez les tiers. 
+        L'utilisateur est invité à vérifier chaque information sur la plateforme source avant toute décision d'achat.
+      </p>
+    </motion.div>
+  </div>
+</section>
 
         {/* Features Section */}
         <section 
@@ -606,63 +561,67 @@ export default function HomePage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <div className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8">
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full 
-                bg-primary/10 border border-primary/20 backdrop-blur-sm"
-                role="status"
-                aria-live="polite"
-              >
-                <Icons.zap className="h-3 sm:h-4 w-3 sm:w-4 text-primary" aria-hidden="true" />
-                <span className="text-xs sm:text-sm font-semibold text-primary">
-                  100% Gratuit · Sans Inscription
-                </span>
-              </div>
-
-              <h2 id="cta-title" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight px-4">
-                Prêt à trouver les
-                <span className="block mt-2 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                  meilleures offres ?
-                </span>
-              </h2>
-              
-              <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
-                Comparez les prix sur Cardmarket, eBay et Vinted dès maintenant. 
-                Aucune inscription requise.
-              </p>
-
-              <div className="flex flex-wrap gap-3 sm:gap-4 justify-center pt-2 sm:pt-4 px-4">
-                <Button 
-                  asChild
-                  size="lg" 
-                  className="h-14 sm:h-16 px-8 sm:px-10 text-base sm:text-lg font-semibold rounded-xl
-                    shadow-lg hover:shadow-xl
-                    bg-gradient-to-r from-primary to-primary/90
-                    transition-all duration-300 hover:scale-105 group w-full sm:w-auto"
-                  aria-label="Commencer la recherche de produits"
-                >
-                  <Link href="/analyse">
-                    <span className="hidden sm:inline">Commencer l'analyse</span>
-                    <span className="sm:hidden">Commencer</span>
-                    <Icons.brain className="ml-2 h-5 sm:h-6 w-5 sm:w-6 transition-transform group-hover:scale-110" aria-hidden="true" />
-                  </Link>
-                </Button>
-              </div>
-
-              <ul className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 justify-center pt-6 sm:pt-8 text-xs sm:text-sm text-muted-foreground px-4 list-none">
-                <li className="flex items-center justify-center gap-2">
-                  <Icons.zap className="h-3 sm:h-4 w-3 sm:w-4 text-green-600 dark:text-green-400 flex-shrink-0" aria-hidden="true" />
-                  <span>Gratuit à vie</span>
-                </li>
-                <li className="flex items-center justify-center gap-2">
-                  <Icons.zap className="h-3 sm:h-4 w-3 sm:w-4 text-green-600 dark:text-green-400 flex-shrink-0" aria-hidden="true" />
-                  <span>Sans inscription</span>
-                </li>
-                <li className="flex items-center justify-center gap-2">
-                  <Icons.zap className="h-3 sm:h-4 w-3 sm:w-4 text-green-600 dark:text-green-400 flex-shrink-0" aria-hidden="true" />
-                  <span>Données en temps réel</span>
-                </li>
-              </ul>
+          <div className="max-w-4xl mx-auto text-center space-y-8 py-12">
+            {/* Badge : On passe de "Gratuit" à "Fréquence de mise à jour" (plus pro) */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full 
+              bg-secondary/50 border border-secondary text-secondary-foreground backdrop-blur-sm"
+              role="status"
+              aria-live="polite"
+            >
+              <Icons.refreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="text-sm font-medium">
+                Index mis à jour quotidiennement
+              </span>
             </div>
+
+            {/* Titre : On vend de la donnée (Data), pas du rêve */}
+            <h2 id="cta-title" className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight px-4">
+              L'observatoire des prix du
+              <span className="block mt-2 text-primary">
+                marché Pokémon scellé
+              </span>
+              francophone
+            </h2>
+            
+            {/* Sous-titre : Explication technique et factuelle */}
+            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4 leading-relaxed">
+              Accédez à un index consolidé des prix planchers observés sur les principales marketplaces européennes (Cardmarket, eBay, Vinted, LeBonCoin). 
+              Une vision claire pour suivre la cote de vos items.
+            </p>
+
+            {/* Actions : On "Consulte" des données, on ne "Commence" pas un jeu */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6 px-4">
+              <Button 
+                asChild
+                size="lg" 
+                className="h-12 px-8 text-base font-medium rounded-lg
+                  bg-primary text-primary-foreground hover:bg-primary/90
+                  shadow-sm transition-all"
+                aria-label="Accéder aux cotations"
+              >
+                <Link href="/analyse">
+                  <Icons.barChart3 className="mr-2 h-5 w-5" aria-hidden="true" />
+                  Consulter l'index des prix
+                </Link>
+              </Button>
+
+              {/* Bouton secondaire pour rassurer sur la méthodologie (Optionnel) */}
+              <Button 
+                variant="outline"
+                size="lg" 
+                className="h-12 px-8 text-base font-medium rounded-lg"
+              >
+                <Link href="/methodologie">
+                  Comment ça marche ?
+                </Link>
+              </Button>
+            </div>
+
+            {/* Disclaimer légal discret mais présent */}
+            <p className="text-xs text-muted-foreground/60 pt-4">
+              Données agrégées à titre indicatif. Nous ne sommes pas affiliés aux plateformes citées.
+            </p>
+          </div>
           </motion.div>
         </section>
 

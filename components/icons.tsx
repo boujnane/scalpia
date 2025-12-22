@@ -16,7 +16,8 @@ import {
   Search,
   Upload,
   Image as ImageIcon,
-  RefreshCcw,
+  RefreshCcw, // Celui que tu avais déjà (Counter Clockwise)
+  RefreshCw,  // Le nouveau pour l'update (Clockwise)
   ExternalLink,
   Package,
   ShoppingBag,
@@ -24,23 +25,23 @@ import {
   TrendingDown,
   Minus,
   LineChart,
+  BarChart3, // Le nouveau pour l'aspect "Données/Index"
   Wallet,
   Zap,
   Menu,
   Brain,
-  Activity, // <-- Ajout de l'icône Activity
+  Activity,
 } from "lucide-react";
 
-
-
 export const Icons = {
-  // Trading / TCG
-  TrendingUp: TrendingUp,
-  TrendingDown: TrendingDown,
-  LineChart: LineChart,
+  // Trading / Data / Market Intelligence
+  trendingUp: TrendingUp,
+  trendingDown: TrendingDown,
+  linechart: LineChart,
+  barChart3: BarChart3, // Utilisé dans le nouveau CTA
   wallet: Wallet,
   zap: Zap,
-  activity: Activity, // <-- Ajout de la référence 'activity' ici
+  activity: Activity,
   
   // Core UI
   user: User,
@@ -57,13 +58,13 @@ export const Icons = {
   search: Search,
   upload: Upload,
   image: ImageIcon,
-  refresh: RefreshCcw,
+  refresh: RefreshCcw,    // Ton ancien refresh
+  refreshCw: RefreshCw,   // Le nouveau refresh pour le badge "Mise à jour"
   external: ExternalLink,
   package: Package,
   bag: ShoppingBag,
   info: Info,
   minus: Minus,
   menu: Menu,
-
   brain: Brain,
 };

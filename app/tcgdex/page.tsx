@@ -53,7 +53,7 @@ export default function TCGdexExplorerPage() {
   }
 
   const placeholder = mode === 'cards'
-    ? 'Rechercher une carte (ex: Pikachu, Charizard...)'
+    ? 'Rechercher une carte (ex: Pikachu, Pikachu 238...)'
     : 'Rechercher un set (ex: Darkness Ablaze, Scarlet & Violet...)'
 
   const hasResults = cards.length > 0

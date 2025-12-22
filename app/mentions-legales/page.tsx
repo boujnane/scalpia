@@ -62,7 +62,7 @@ export default function MentionsLegalesPage() {
               </ul>
             </Section>
 
-            <Section title="Hébergement" icon={<Icons.LineChart className="h-5 w-5 text-primary" />}>
+            <Section title="Hébergement" icon={<Icons.linechart className="h-5 w-5 text-primary" />}>
               <ul className="space-y-2">
                 <li>
                   <strong>Hébergeur :</strong> Vercel Inc.
@@ -151,7 +151,7 @@ export default function MentionsLegalesPage() {
               >
                 <Link href="/" aria-label="Retour à l'accueil">
                   Retour à l’accueil
-                  <Icons.LineChart className="ml-2 h-4 w-4" />
+                  <Icons.linechart className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
             </div>

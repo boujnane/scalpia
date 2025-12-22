@@ -108,7 +108,7 @@ export default function CGUPage() {
                     >
                       <Link href="/" aria-label="Retourner à l'accueil">
                         Retour à l’accueil
-                        <Icons.LineChart className="ml-2 h-4 w-4" aria-hidden="true" />
+                        <Icons.linechart className="ml-2 h-4 w-4" aria-hidden="true" />
                       </Link>
                     </Button>
 
@@ -173,7 +173,7 @@ export default function CGUPage() {
                 </p>
               </Article>
 
-              <Article id="acces" title="2. Accès au service" icon={<Icons.LineChart className="h-5 w-5 text-primary" />}>
+              <Article id="acces" title="2. Accès au service" icon={<Icons.linechart className="h-5 w-5 text-primary" />}>
                 <p>
                   L’accès au Service est en principe gratuit. L’éditeur peut interrompre ou suspendre
                   temporairement l’accès (maintenance, sécurité, évolution), sans obligation de
@@ -234,7 +234,7 @@ export default function CGUPage() {
                 </p>
               </Article>
 
-              <Article id="liens" title="8. Liens vers des services tiers" icon={<Icons.LineChart className="h-5 w-5 text-primary" />}>
+              <Article id="liens" title="8. Liens vers des services tiers" icon={<Icons.linechart className="h-5 w-5 text-primary" />}>
                 <p>
                   Le Service peut contenir des liens vers des sites tiers. Pokéindex n’exerce aucun
                   contrôle sur ces sites et décline toute responsabilité quant à leur contenu ou

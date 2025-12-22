@@ -130,7 +130,7 @@ export default function UnderConstructionPage() {
                 >
                   <Link href="/analyse" aria-label="Analyser les produits scellés">
                     Analyser
-                    <Icons.LineChart className="ml-2 h-4 w-4" aria-hidden="true" />
+                    <Icons.linechart className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Link>
                 </Button>
               </div>
@@ -153,7 +153,7 @@ export default function UnderConstructionPage() {
                 >
                   <Link href="/" aria-label="Retourner à l'accueil">
                     Retour à l’accueil
-                    <Icons.LineChart className="ml-2 h-4 w-4" aria-hidden="true" />
+                    <Icons.linechart className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Link>
                 </Button>
               </div>

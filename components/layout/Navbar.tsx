@@ -27,7 +27,7 @@ const navLinks = [
   {
     name: "Rechercher",
     href: "/rechercher",
-    icon: Icons.LineChart,
+    icon: Icons.linechart,
     description: "Comparez sur le marché secondaire",
   },
   {
@@ -169,9 +169,9 @@ export function Navbar() {
         
         {/* LOGO SECTION */}
         <Link href="/" className="flex items-center space-x-2.5 transition-all duration-300 hover:opacity-90 group mr-12">
-          <div className="relative h-20 w-20 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+          <div className="relative h-16 w-16 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
             <Image
-              src="/logo/logopokeindex1.png"
+              src="/logo/logo_pokéindex.png"
               alt="PokéIndex"
               fill
               className="object-contain"
@@ -217,7 +217,7 @@ export function Navbar() {
                 <SheetHeader>
                   <SheetTitle className="flex items-center text-lg font-bold">
                     <div className="relative h-16 w-16">
-                      <Image src="/logo/logopokeindex1.png" alt="Logo" fill className="object-contain" />
+                      <Image src="/logo/logo_pokéindex.png" alt="Logo" fill className="object-contain" />
                     </div>
                     <span>Pokéindex</span>
                   </SheetTitle>

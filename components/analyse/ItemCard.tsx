@@ -27,7 +27,7 @@ export default function ItemCard({ item }: { item: Item }) {
     trend7d > 0.5 ? "text-success" : 
     "text-destructive";
   
-  const TrendIcon = trend7d === null || Math.abs(trend7d) <= 0.5 ? Icons.minus : trend7d > 0.5 ? Icons.TrendingUp : Icons.TrendingDown;
+  const TrendIcon = trend7d === null || Math.abs(trend7d) <= 0.5 ? Icons.minus : trend7d > 0.5 ? Icons.trendingUp : Icons.trendingDown;
 
 
   return (
@@ -73,7 +73,7 @@ export default function ItemCard({ item }: { item: Item }) {
             <div className="flex items-center gap-2 sm:gap-3 mb-3">
               {/* Icône de prix : utilise primary */}
               <div className="p-2 sm:p-3 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-                <Icons.LineChart size={20} />
+                <Icons.linechart size={20} />
               </div>
               <span className="text-muted-foreground font-semibold text-sm sm:text-base uppercase tracking-wide">
                 Dernière Évaluation

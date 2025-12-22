@@ -1,25 +1,33 @@
-// app/api/ppt/sets/route.ts
 import { NextResponse } from 'next/server'
 
-export const dynamic = 'force-dynamic'
+// Cache serveur avec gestion des timestamps
+const serverCache = new Map<string, { data: any; timestamp: number }>()
+const SETS_CACHE_TTL = 30 * 60 * 1000 // 30 minutes (les sets changent rarement)
 
-// Côté serveur, utilise une variable d'environnement normale (sans NEXT_PUBLIC_)
 const PPT_API_KEY = process.env.POKEMON_PRICE_TRACKER_KEY
 const BASE_URL = 'https://www.pokemonpricetracker.com/api/v2/sets'
 
 export async function GET() {
   try {
     if (!PPT_API_KEY) {
-      // Gestion claire si la clé n'est pas définie
       return NextResponse.json({ error: 'Server API key not defined' }, { status: 500 })
     }
 
+    // Vérifier le cache
+    const cached = serverCache.get('sets')
+    if (cached && Date.now() - cached.timestamp < SETS_CACHE_TTL) {
+      console.log('✅ Serving sets from server cache')
+      return NextResponse.json(cached.data)
+    }
+
+    console.log('🌐 Fetching sets from API...')
     const res = await fetch(BASE_URL, {
       headers: {
         'Authorization': `Bearer ${PPT_API_KEY}`,
         'Accept': 'application/json',
       },
-      cache: 'no-store',
+      // On peut utiliser next: { revalidate } pour le cache Next.js
+      next: { revalidate: 1800 } // 30 minutes
     })
 
     if (!res.ok) {
@@ -28,9 +36,13 @@ export async function GET() {
     }
 
     const data = await res.json()
-    // data.data contient tous les sets
+    
+    // Mettre en cache
+    serverCache.set('sets', { data: data.data, timestamp: Date.now() })
+    
     return NextResponse.json(data.data)
   } catch (err: any) {
+    console.error('Error fetching sets:', err)
     return NextResponse.json({ error: err?.message ?? 'Internal error' }, { status: 500 })
   }
 }

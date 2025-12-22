@@ -241,7 +241,7 @@ export default function BlocTabs({ items }: BlocTabsProps) {
                     "
                   >
                     <span className="flex items-center gap-2">
-                      <Icons.LineChart className="w-5 h-5 text-primary" />
+                      <Icons.linechart className="w-5 h-5 text-primary" />
                       Historique des variations de prix
                     </span>
                   </AccordionTrigger>
