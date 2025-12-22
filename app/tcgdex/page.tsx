@@ -7,9 +7,11 @@ import { TCGCardItem } from '@/components/tcgdex/TCGCardItem'
 import { PPTSetViewer } from '@/components/tcgdex/PPTSetViewer'
 import { SearchBar } from '@/components/tcgdex/SearchBar'
 import { Grid3x3, Package, Loader2, AlertCircle } from 'lucide-react'
+import { CardmarketTester } from '@/components/cardmarket/CardmarketTester'
+import { CardmarketSetViewer } from '@/components/cardmarket/CardmarketSetViewer'
 
 type TCGCardResult = TCGdexCardExtended
-type SearchMode = 'cards' | 'sets'
+type SearchMode = 'cards' | 'sets' | 'cardmarket'
 
 export default function TCGdexExplorerPage() {
   const [mode, setMode] = useState<SearchMode>('cards')
@@ -76,30 +78,62 @@ export default function TCGdexExplorerPage() {
         <div className="max-w-3xl mx-auto">
           <div className="bg-card rounded-2xl shadow-xl border border-border/50 p-6 space-y-6">
             {/* Mode */}
-            <div className="flex gap-2 p-1 bg-muted/50 rounded-xl">
-              <button
-                onClick={() => handleModeChange('cards')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all ${
-                  mode === 'cards'
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                <Grid3x3 className="w-5 h-5" />
-                Cartes
-              </button>
-              <button
-                onClick={() => handleModeChange('sets')}
-                className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all ${
-                  mode === 'sets'
-                    ? 'bg-primary text-primary-foreground shadow-md'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                }`}
-              >
-                <Package className="w-5 h-5" />
-                Sets
-              </button>
-            </div>
+            <div className="flex flex-col sm:flex-row gap-2 p-1 bg-muted/50 rounded-xl">
+  {/* CARTES */}
+  <button
+    onClick={() => handleModeChange('cards')}
+    className={`
+      flex items-center justify-center gap-2
+      py-3 px-4 rounded-lg font-semibold transition-all
+      sm:flex-1
+      ${
+        mode === 'cards'
+          ? 'bg-primary text-primary-foreground shadow-md'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+      }
+    `}
+  >
+    <Grid3x3 className="w-5 h-5 shrink-0" />
+    <span className="text-sm sm:text-base">Cartes</span>
+  </button>
+
+  {/* SETS */}
+  <button
+    onClick={() => handleModeChange('sets')}
+    className={`
+      flex items-center justify-center gap-2
+      py-3 px-4 rounded-lg font-semibold transition-all
+      sm:flex-1
+      ${
+        mode === 'sets'
+          ? 'bg-primary text-primary-foreground shadow-md'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+      }
+    `}
+  >
+    <Package className="w-5 h-5 shrink-0" />
+    <span className="text-sm sm:text-base">Sets</span>
+  </button>
+
+  {/* CARDMARKET */}
+  <button
+    onClick={() => handleModeChange('cardmarket')}
+    className={`
+      flex items-center justify-center gap-2
+      py-3 px-4 rounded-lg font-semibold transition-all
+      sm:flex-1
+      ${
+        mode === 'cardmarket'
+          ? 'bg-primary text-primary-foreground shadow-md'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+      }
+    `}
+  >
+    <span className="text-lg">💰</span>
+    <span className="text-sm sm:text-base">New API</span>
+  </button>
+</div>
+
 
             {/* SearchBar */}
             {mode === 'cards' && (
@@ -133,7 +167,7 @@ export default function TCGdexExplorerPage() {
 
         {/* Résultats sets PPT */}
         {mode === 'sets' && <PPTSetViewer />}
-
+        {mode === 'cardmarket' && <CardmarketSetViewer />}
       </div>
     </div>
   )

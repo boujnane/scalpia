@@ -92,3 +92,9 @@ export interface TCGdexCardExtended extends Card {
     pricing: CardPricing | null; 
 }
 
+export interface CardmarketPrice {
+    lowPrice?: number
+    trendPrice?: number
+    avgPrice?: number
+  }
+  
