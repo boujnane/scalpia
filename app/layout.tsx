@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Pokéindex | Market Analytics",
-  description: "Analysez et tradez vos cartes Pokémon comme un pro.",
+  description: "L'observatoire des prix du marché Pokémon scellé francophone",
 };
 
 export default function RootLayout({
