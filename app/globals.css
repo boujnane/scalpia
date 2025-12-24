@@ -266,6 +266,25 @@
   }
 }
 
+@layer utilities {
+  .surface-card {
+    @apply bg-card text-card-foreground border border-border rounded-xl;
+  }
+
+  .surface-muted {
+    @apply bg-muted text-muted-foreground border border-border/60;
+  }
+
+  .focus-ring {
+    @apply outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .shadow-soft {
+    box-shadow: 0 10px 30px -18px rgba(0,0,0,.35);
+  }
+}
+
+
 /* --- IMPORTS SWIPER --- */
 @import "swiper/css";
 @import "swiper/css/free-mode";

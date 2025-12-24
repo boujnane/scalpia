@@ -11,6 +11,18 @@ export interface CMSet {
     }
     game?: string
   }
+
+  export type GradedPrices = {
+    psa?: Record<string, number>
+    cgc?: Record<string, number>
+    bgs?: Record<string, number>
+  }
+  
+  export type Prices = {
+    fr?: number
+    avg7?: number
+    graded?: GradedPrices
+  }
   
   export interface CMCard {
     id: number
@@ -18,15 +30,7 @@ export interface CMSet {
     card_number?: string
     rarity?: string
     image?: string
-    prices?: {
-      fr?: number
-      avg7?: number
-      graded?: {
-        psa?: Record<string, number>
-        bgs?: Record<string, number>
-        cgc?: Record<string, number>
-      }
-    }
+    prices?: Prices
     episode: {
       name: string
       id?: number
