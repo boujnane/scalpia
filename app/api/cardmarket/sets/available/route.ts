@@ -18,14 +18,12 @@ export async function GET(req: Request) {
   const cacheKey = "sets:available:v2";
   const cached = CACHE.get(cacheKey);
   if (!force && cached && Date.now() - cached.ts < TTL) {
-    console.log("[sets-available]", { reqId, step: "cache-hit", ageMs: Date.now() - cached.ts });
     return NextResponse.json(cached.data);
   }
 
   const apiKey = process.env.CARDMARKET_RAPIDAPI_KEY;
   if (!apiKey) return NextResponse.json({ error: "Missing API key" }, { status: 500 });
   const API_KEY: string = apiKey;
-  console.log("[sets-available]", { reqId, step: "start" });
 
   // 1) Fetch ALL sets (multi-pages) ✅ (copie ta logique qui marche)
   let allSets: any[] = [];
@@ -63,8 +61,6 @@ export async function GET(req: Request) {
     }));
 
     allSets = [...allSets, ...normalized];
-    console.log("[sets-available]", { reqId, step: "episodes-page-ok", page: currentPage, totalPages, totalSets: allSets.length });
-
     currentPage++;
   }
 
@@ -107,21 +103,12 @@ export async function GET(req: Request) {
       if (ok && count > 0) available.push(s);
     });
 
-    console.log("[sets-available]", {
-      reqId,
-      step: "scan-progress",
-      scanned: Math.min(i + CONCURRENCY, allSets.length),
-      total: allSets.length,
-      keptSoFar: available.length,
-    });
   }
 
   const payload = {
     data: available,
     stats: { before: allSets.length, after: available.length },
   };
-
-  console.log("[sets-available]", { reqId, step: "done", ...payload.stats });
 
   CACHE.set(cacheKey, { data: payload, ts: Date.now() });
   return NextResponse.json(payload);

@@ -1,66 +1,114 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { BASE_URL, headers } from '@/app/api/cardmarket/_utils'
-import * as cheerio from 'cheerio'
+// app/api/cardmarket/cards/[id]/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { BASE_URL, headers } from "@/app/api/cardmarket/_utils";
+import { resolveCardmarketUrl } from "@/lib/cardmarket/tcggoscrapper";
 
-const CACHE = new Map<string, { data: any; ts: number }>()
-const TTL = 30 * 60 * 1000 // 30 min
+const CACHE = new Map<string, { data: any; ts: number }>();
+const TTL = 30 * 60 * 1000;
+
+function rid() {
+  return `${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
+}
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params
-    const apiKey = process.env.CARDMARKET_RAPIDAPI_KEY
+  const reqId = rid();
 
-    // 1. Check Cache
-    const cached = CACHE.get(id)
-    if (cached && Date.now() - cached.ts < TTL) {
-      return NextResponse.json(cached.data)
+  try {
+    const { id } = await params;
+    const apiKey = process.env.CARDMARKET_RAPIDAPI_KEY;
+
+    const url = new URL(req.url);
+    const scrape = url.searchParams.get("scrape") === "1";
+
+    console.log("[card-route]", { reqId, step: "start", id, scrape });
+
+    if (!apiKey) {
+      console.log("[card-route]", { reqId, step: "missing-api-key" });
+      return NextResponse.json({ error: "Missing API key" }, { status: 500 });
     }
 
-    // 2. Fetch Card Data from API
+    const cacheKey = `${id}:${scrape ? "scrape" : "noscrape"}`;
+    const cached = CACHE.get(cacheKey);
+    if (cached && Date.now() - cached.ts < TTL) {
+      console.log("[card-route]", { reqId, step: "cache-hit", cacheKey, ageMs: Date.now() - cached.ts });
+      return NextResponse.json(cached.data);
+    }
+    console.log("[card-route]", { reqId, step: "cache-miss", cacheKey });
+
+    // 1) Fetch card details (RapidAPI / Cardmarket API wrapper)
     const res = await fetch(`${BASE_URL}/pokemon/cards/${id}`, {
-      headers: headers(apiKey!),
+      headers: headers(apiKey),
       next: { revalidate: 1800 },
-    })
+    });
 
-    if (!res.ok) return NextResponse.json({ error: 'Card not found' }, { status: res.status })
+    console.log("[card-route]", { reqId, step: "fetch-cm-done", status: res.status });
 
-    const json = await res.json()
-    const cardData = json.data
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.log("[card-route]", { reqId, step: "fetch-cm-failed", status: res.status, text: text.slice(0, 200) });
+      return NextResponse.json({ error: "Card not found" }, { status: res.status });
+    }
 
-    // 3. Scraping "gentil" de l'URL Cardmarket
-    if (cardData.tcggo_url) {
-      try {
-        // On récupère le HTML de la page TCGGO
-        const htmlRes = await fetch(cardData.tcggo_url, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; PokeBot/1.0)' },
-          signal: AbortSignal.timeout(5000) // Timeout de 5s pour ne pas bloquer l'API
-        })
-        
-        const html = await htmlRes.text()
-        const $ = cheerio.load(html)
-        
-        // On cherche le lien qui pointe vers Cardmarket
-        // Souvent dans des boutons ou liens avec la classe ou l'href contenant 'cardmarket'
-        const cmLink = $('a[href*="cardmarket.com"]').attr('href')
-        
-        if (cmLink) {
-          // On ajoute le lien direct à l'objet cardData
-          cardData.cardmarket_url = cmLink
-        }
-      } catch (scrapeErr) {
-        console.error(`Scraping failed for card ${id}:`, scrapeErr)
-        // On ne bloque pas la réponse si le scraping échoue, on continue sans le lien CM
+    const json = await res.json();
+    const cardData = json.data ?? {};
+
+    // 2) champs selon versions d’API
+    const directCardmarketUrl: string | null =
+      cardData?.cardmarket_url ?? cardData?.cardmarketUrl ?? null;
+
+    const tcggoUrl: string | null = cardData?.tcggo_url ?? cardData?.tcggoUrl ?? null;
+
+    // parfois ça n'existe pas -> on le reconstruit avec l'id
+    const tcggoExternalUrl: string | null =
+      cardData?.links?.cardmarket ??
+      (id ? `https://www.tcggo.com/external/cm/${String(id)}` : null);
+
+    console.log("[card-route]", {
+      reqId,
+      step: "payload",
+      hasDirectCm: !!directCardmarketUrl,
+      tcggoUrl,
+      tcggoExternalUrl,
+    });
+
+    // 3) résoudre uniquement si modal (scrape=1) ET pas déjà de CM url
+    if (scrape && !directCardmarketUrl) {
+      const resolved = await resolveCardmarketUrl({
+        reqId,
+        tcggoUrl,
+        tcggoExternalUrl,
+        cardId: id,
+      });
+
+      console.log("[card-route]", {
+        reqId,
+        step: "resolved",
+        method: resolved.method,
+        status: resolved.status,
+        blocked: resolved.blocked,
+        found: !!resolved.cardmarket_url,
+      });
+
+      if (resolved.cardmarket_url) {
+        cardData.cardmarket_url = resolved.cardmarket_url;
       }
     }
 
-    // 4. Save to Cache & Return
-    CACHE.set(id, { data: cardData, ts: Date.now() })
-    return NextResponse.json(cardData)
+    console.log("[card-route]", {
+      reqId,
+      step: "final",
+      cardmarket_url: cardData?.cardmarket_url ?? null,
+      tcggo_url: cardData?.tcggo_url ?? tcggoUrl ?? null,
+      tcggo_external: tcggoExternalUrl ?? null,
+    });
 
+    CACHE.set(cacheKey, { data: cardData, ts: Date.now() });
+    return NextResponse.json(cardData);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    console.log("[card-route]", { reqId, step: "error", message: err?.message ?? String(err) });
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

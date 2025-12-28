@@ -1,6 +1,8 @@
 "use client";
 
 import { SetFinancePanel, pickGradedSpotlight } from "@/components/cardmarket/SetFinancePanel";
+import { mapSeriesNameToFR } from "@/lib/cardmarket/seriesNameMapper";
+import { mapSetNameToFR } from "@/lib/cardmarket/setNameMapper";
 import { useEffect, useMemo, useState } from "react";
 
 /* =======================
@@ -47,6 +49,7 @@ const ExternalLink = () => (
 ======================= */
 interface CMCard {
   id: number;
+  cardmarketId?: number;
   name: string;
   rarity?: string;
   card_number?: string;
@@ -61,8 +64,8 @@ interface CMCard {
     };
   };
   episode: { name: string };
-  cardmarket_url?: string;
-  tcggo_url?: string;
+ cardmarket_url?: string | null;  // ✅ ici
+  tcggo_url?: string | null;    
 }
 
 interface CMSet {
@@ -190,27 +193,50 @@ const CardDetailModal = ({ card: initialCard, onClose }: { card: CMCard; onClose
     };
     window.addEventListener("keydown", onKeyDown);
 
-    const fetchFullDetails = async () => {
-      if (!initialCard.cardmarket_url) {
-        setIsScraping(true);
-        try {
-          const res = await fetch(`/api/cardmarket/cards/${initialCard.id}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.cardmarket_url) {
-              const urlWithLang = data.cardmarket_url.includes("?")
-                ? `${data.cardmarket_url}&language=2`
-                : `${data.cardmarket_url}?language=2`;
-              setCard((prev) => ({ ...prev, cardmarket_url: urlWithLang }));
-            }
-          }
-        } catch (err) {
-          console.error("Erreur scraping:", err);
-        } finally {
-          setIsScraping(false);
-        }
-      }
-    };
+const fetchFullDetails = async () => {
+  // ⚠️ utiliser l’id CM stable si dispo
+  const cmId = initialCard.cardmarketId ?? initialCard.id;
+
+  // déjà présent => rien à faire
+  if (initialCard.cardmarket_url) return;
+
+  setIsScraping(true);
+  try {
+    // ✅ IMPORTANT : déclenche le scraping côté API
+    const res = await fetch(`/api/cardmarket/cards/${cmId}?scrape=1`, {
+      cache: "no-store",
+    });
+
+    const data = await res.json().catch(() => null);
+
+    console.log("[ui-modal] fetchFullDetails", {
+      cmId,
+      ok: res.ok,
+      status: res.status,
+      hasCardmarketUrl: !!data?.cardmarket_url,
+      cardmarket_url: data?.cardmarket_url ?? null,
+      tcggo_url: data?.tcggo_url ?? null,
+    });
+
+    if (res.ok && data?.cardmarket_url) {
+      const raw = String(data.cardmarket_url);
+      const urlWithLang = raw.includes("?") ? `${raw}&language=2` : `${raw}?language=2`;
+
+      setCard((prev) => ({
+        ...prev,
+        cardmarket_url: urlWithLang,
+        // optionnel: on complète tcggo_url si jamais il manquait
+        tcggo_url: prev.tcggo_url ?? (data?.tcggo_url ?? null),
+      }));
+    }
+  } catch (err) {
+    console.error("[ui-modal] Erreur scraping:", err);
+  } finally {
+    setIsScraping(false);
+  }
+};
+
+fetchFullDetails();
 
     fetchFullDetails();
 
@@ -291,7 +317,7 @@ const CardDetailModal = ({ card: initialCard, onClose }: { card: CMCard; onClose
                 </button>
               ) : card.cardmarket_url ? (
                 <a
-                  href={card.cardmarket_url}
+                  href={card.cardmarket_url ?? undefined}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="
@@ -306,7 +332,7 @@ const CardDetailModal = ({ card: initialCard, onClose }: { card: CMCard; onClose
                 </a>
               ) : (
                 <a
-                  href={card.tcggo_url}
+                  href={card.tcggo_url ?? undefined}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="
@@ -348,74 +374,98 @@ export default function CardmarketSetViewer() {
   // Finance drawer
   const [financeOpen, setFinanceOpen] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/cardmarket/sets")
-      .then((res) => res.json())
-      .then((data) => {
-        const results = Array.isArray(data) ? data : data.data || [];
-        setSets(results);
-        if (results.length > 0) {
-          const firstSeries = results[0]?.series?.name || "Autres";
-          setExpandedSeries(new Set([firstSeries]));
-        }
-      })
-      .catch((e) => console.error(e));
-  }, []);
+ useEffect(() => {
+ fetch("/api/cardmarket/sets/available")
+    .then((res) => res.json())
+    .then((data) => {
+      const results = Array.isArray(data) ? data : data.data || [];
 
-  const groupedBySeries = useMemo(() => {
-    const grouped: Record<string, CMSet[]> = {};
-    sets.forEach((set) => {
-      const series = set.series?.name ?? "Autres";
-      if (!grouped[series]) grouped[series] = [];
-      grouped[series].push(set);
-    });
-    return grouped;
-  }, [sets]);
+      const mapped = results.map((s: CMSet) => ({
+        ...s,
+        name: mapSetNameToFR(s.name),
+      }));
 
-  const fetchAllCards = async (setId: string) => {
-    setLoading(true);
-    setAllCards([]);
-    setLoadingProgress({ current: 0, total: 0 });
+      setSets(mapped);
 
-    try {
-      const firstRes = await fetch(`/api/cardmarket/sets/${setId}/cards?page=1`);
-      const firstJson = await firstRes.json();
+      if (mapped.length > 0) {
+        const firstSeriesRaw = mapped[0]?.series?.name || "Autres";
+        const firstSeries = mapSeriesNameToFR(firstSeriesRaw);
+        setExpandedSeries(new Set([firstSeries]));
+      }
+    })
+    .catch((e) => console.error(e));
+}, []);
 
-      const totalPages = firstJson.paging?.total || 1;
-      const firstPageCards = firstJson.data || [];
+const groupedBySeries = useMemo(() => {
+  const grouped: Record<string, CMSet[]> = {};
+  sets.forEach((set) => {
+    const seriesRaw = set.series?.name ?? "Autres";
+    const series = mapSeriesNameToFR(seriesRaw); // ✅ ici
+    if (!grouped[series]) grouped[series] = [];
+    grouped[series].push(set);
+  });
+  return grouped;
+}, [sets]);
 
-      setLoadingProgress({ current: 1, total: totalPages });
+// components/CardmarketSetViewer.tsx
+// Modification de la fonction fetchAllCards pour utiliser la route mappée
 
-      let rawCards = [...firstPageCards];
+// ... (garde tous tes imports et types actuels)
 
-      if (totalPages > 1) {
-        const allPromises: Promise<CMCard[]>[] = [];
-        for (let page = 2; page <= totalPages; page++) {
-          allPromises.push(
-            fetch(`/api/cardmarket/sets/${setId}/cards?page=${page}`)
-              .then((res) => res.json())
-              .then((json) => {
-                setLoadingProgress((prev) => ({ ...prev, current: prev.current + 1 }));
-                return (json.data || []) as CMCard[];
-              })
-          );
-        }
-        const allPagesResults = await Promise.all(allPromises);
-        rawCards = [...rawCards, ...allPagesResults.flat()];
+// Remplace seulement cette fonction :
+
+const fetchAllCards = async (setId: string) => {
+  setLoading(true);
+  setAllCards([]);
+  setLoadingProgress({ current: 0, total: 0 });
+
+  try {
+    // 1. Première page pour connaître le nombre total
+    const firstRes = await fetch(`/api/cardmarket/sets/${setId}/cards/mapped?page=1`);
+    const firstJson = await firstRes.json();
+
+    const totalPages = firstJson.paging?.total || 1;
+    const firstPageCards = firstJson.data || [];
+
+    setLoadingProgress({ current: 1, total: totalPages });
+
+    let allMappedCards = [...firstPageCards];
+
+    // 2. Fetch des pages suivantes en parallèle
+    if (totalPages > 1) {
+      const pagePromises: Promise<any[]>[] = [];
+      
+      for (let page = 2; page <= totalPages; page++) {
+        pagePromises.push(
+          fetch(`/api/cardmarket/sets/${setId}/cards/mapped?page=${page}`)
+            .then((res) => res.json())
+            .then((json) => {
+              setLoadingProgress((prev) => ({ 
+                ...prev, 
+                current: prev.current + 1 
+              }));
+              return json.data || [];
+            })
+        );
       }
 
-      const uniqueCardsMap = new Map<number, CMCard>();
-      rawCards.forEach((card) => {
-        if (card && card.id) uniqueCardsMap.set(card.id, card);
-      });
-
-      setAllCards(Array.from(uniqueCardsMap.values()));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+      const allPagesResults = await Promise.all(pagePromises);
+      allMappedCards = [...allMappedCards, ...allPagesResults.flat()];
     }
-  };
+
+   const uniqueCardsMap = new Map<number, any>();
+    allMappedCards.forEach((card) => {
+      if (card && typeof card.id === "number") uniqueCardsMap.set(card.id, card);
+    });
+    setAllCards(Array.from(uniqueCardsMap.values()));
+      } catch (err) {
+        console.error('Error fetching cards:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+// ... (garde le reste de ton composant identique)
 
   const handleSelectSet = (set: CMSet) => {
     setSelectedSet(set);

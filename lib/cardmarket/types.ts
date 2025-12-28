@@ -25,14 +25,30 @@ export interface CMSet {
   }
   
   export interface CMCard {
-    id: number
-    name: string
-    card_number?: string
-    rarity?: string
-    image?: string
-    prices?: Prices
-    episode: {
-      name: string
-      id?: number
-    }
-  }
+  id: number;
+  cardmarketId?: number;
+  name: string;
+  rarity?: string;
+  card_number?: string;
+  image?: string;
+  prices?: {
+    fr?: number;
+    avg7?: number;
+    graded?: {
+      psa?: Record<string, number>;
+      cgc?: Record<string, number>;
+      bgs?: Record<string, number>;
+    };
+  };
+  episode: { name: string };
+ cardmarket_url?: string | null;  // ✅ ici
+  tcggo_url?: string | null;    
+}
+
+export interface CMSet {
+  id: number;
+  name: string;
+  slug: string;
+  logo?: string;
+  series?: { name: string };
+}

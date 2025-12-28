@@ -67,6 +67,7 @@ export async function GET(
       },
       episode: {
         name: card.episode?.name ?? null,
+        slug: card.episode?.slug ?? null,
         id: card.episode?.id ?? null,
       },
     }))
