@@ -43,6 +43,12 @@ const ExternalLink = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
   </svg>
 );
+const LoaderSpinner = () => (
+  <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+  </svg>
+);
 
 /* =======================
    Types
@@ -354,6 +360,46 @@ fetchFullDetails();
   );
 };
 
+const LoadingOverlay = ({
+  progress,
+  message
+}: {
+  progress: { current: number; total: number };
+  message: string;
+}) => {
+  const percentage = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="bg-card text-card-foreground p-8 rounded-2xl shadow-2xl border border-border max-w-md w-full mx-4">
+        <div className="flex flex-col items-center gap-6">
+          <LoaderSpinner />
+
+          <div className="w-full space-y-3">
+            <p className="text-center font-semibold text-lg">{message}</p>
+
+            {progress.total > 0 && (
+              <>
+                <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300 ease-out rounded-full"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Page {progress.current} / {progress.total}</span>
+                  <span>{percentage}%</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* =======================
    Main Component
 ======================= */
@@ -362,6 +408,8 @@ export default function CardmarketSetViewer() {
   const [allCards, setAllCards] = useState<CMCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
+  const [loadingMessage, setLoadingMessage] = useState("Chargement...");
+  const [loadingSets, setLoadingSets] = useState(true);
 
   const [selectedSet, setSelectedSet] = useState<CMSet | null>(null);
   const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
@@ -375,6 +423,7 @@ export default function CardmarketSetViewer() {
   const [financeOpen, setFinanceOpen] = useState(false);
 
  useEffect(() => {
+ setLoadingSets(true);
  fetch("/api/cardmarket/sets/available")
     .then((res) => res.json())
     .then((data) => {
@@ -393,7 +442,8 @@ export default function CardmarketSetViewer() {
         setExpandedSeries(new Set([firstSeries]));
       }
     })
-    .catch((e) => console.error(e));
+    .catch((e) => console.error(e))
+    .finally(() => setLoadingSets(false));
 }, []);
 
 const groupedBySeries = useMemo(() => {
@@ -418,52 +468,77 @@ const fetchAllCards = async (setId: string) => {
   setLoading(true);
   setAllCards([]);
   setLoadingProgress({ current: 0, total: 0 });
+  setLoadingMessage("Chargement de la première page...");
 
   try {
-    // 1. Première page pour connaître le nombre total
+    // 1. Première page pour connaître le nombre total ET afficher immédiatement
     const firstRes = await fetch(`/api/cardmarket/sets/${setId}/cards/mapped?page=1`);
     const firstJson = await firstRes.json();
 
     const totalPages = firstJson.paging?.total || 1;
     const firstPageCards = firstJson.data || [];
 
-    setLoadingProgress({ current: 1, total: totalPages });
-
-    let allMappedCards = [...firstPageCards];
-
-    // 2. Fetch des pages suivantes en parallèle
-    if (totalPages > 1) {
-      const pagePromises: Promise<any[]>[] = [];
-      
-      for (let page = 2; page <= totalPages; page++) {
-        pagePromises.push(
-          fetch(`/api/cardmarket/sets/${setId}/cards/mapped?page=${page}`)
-            .then((res) => res.json())
-            .then((json) => {
-              setLoadingProgress((prev) => ({ 
-                ...prev, 
-                current: prev.current + 1 
-              }));
-              return json.data || [];
-            })
-        );
-      }
-
-      const allPagesResults = await Promise.all(pagePromises);
-      allMappedCards = [...allMappedCards, ...allPagesResults.flat()];
-    }
-
-   const uniqueCardsMap = new Map<number, any>();
-    allMappedCards.forEach((card) => {
+    // Afficher immédiatement la première page
+    const uniqueCardsMap = new Map<number, any>();
+    firstPageCards.forEach((card: any) => {
       if (card && typeof card.id === "number") uniqueCardsMap.set(card.id, card);
     });
     setAllCards(Array.from(uniqueCardsMap.values()));
-      } catch (err) {
-        console.error('Error fetching cards:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+
+    setLoadingProgress({ current: 1, total: totalPages });
+
+    // 2. Si une seule page, on a fini
+    if (totalPages <= 1) {
+      setLoading(false);
+      return;
+    }
+
+    // 3. Charger les pages suivantes par lots de 5 pour ne pas surcharger
+    const BATCH_SIZE = 5;
+    const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+
+    for (let i = 0; i < remainingPages.length; i += BATCH_SIZE) {
+      const batch = remainingPages.slice(i, i + BATCH_SIZE);
+      const batchEnd = Math.min(i + BATCH_SIZE, remainingPages.length);
+
+      setLoadingMessage(`Chargement des pages ${i + 2}-${batchEnd + 1}...`);
+
+      const batchPromises = batch.map((page) =>
+        fetch(`/api/cardmarket/sets/${setId}/cards/mapped?page=${page}`)
+          .then((res) => res.json())
+          .then((json) => {
+            setLoadingProgress((prev) => ({
+              ...prev,
+              current: prev.current + 1
+            }));
+            return json.data || [];
+          })
+          .catch((err) => {
+            console.error(`Error fetching page ${page}:`, err);
+            return [];
+          })
+      );
+
+      const batchResults = await Promise.all(batchPromises);
+      const batchCards = batchResults.flat();
+
+      // Mettre à jour progressivement les cartes
+      setAllCards((prev) => {
+        const newMap = new Map(prev.map((c) => [c.id, c]));
+        batchCards.forEach((card: any) => {
+          if (card && typeof card.id === "number") newMap.set(card.id, card);
+        });
+        return Array.from(newMap.values());
+      });
+    }
+
+  } catch (err) {
+    console.error('Error fetching cards:', err);
+    setLoadingMessage("Erreur lors du chargement");
+  } finally {
+    setLoading(false);
+  }
+};
 
 // ... (garde le reste de ton composant identique)
 
@@ -518,6 +593,26 @@ const fetchAllCards = async (setId: string) => {
 
   return (
     <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans">
+      {/* Loading Overlay for initial sets loading */}
+      {loadingSets && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
+          <div className="bg-card text-card-foreground p-8 rounded-2xl shadow-2xl border border-border max-w-md w-full mx-4">
+            <div className="flex flex-col items-center gap-6">
+              <LoaderSpinner />
+              <div className="w-full space-y-2 text-center">
+                <p className="font-semibold text-lg">Chargement des sets...</p>
+                <p className="text-sm text-muted-foreground">Récupération de la liste des séries et sets disponibles</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay for cards */}
+      {loading && (
+        <LoadingOverlay progress={loadingProgress} message={loadingMessage} />
+      )}
+
       {/* SIDEBAR */}
       <aside
         className={`
@@ -639,17 +734,6 @@ const fetchAllCards = async (setId: string) => {
                 </button>
               </div>
 
-              {loading && (
-                <div className="h-1 w-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-300"
-                    style={{
-                      width: `${loadingProgress.total > 0 ? (loadingProgress.current / loadingProgress.total) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
-              )}
-
               <div className="px-4 py-3 flex gap-2 overflow-x-auto border-t border-border bg-background/40 backdrop-blur">
                 {/* Search */}
                 <div className="relative flex-1 min-w-[150px] max-w-sm">
@@ -728,21 +812,34 @@ const fetchAllCards = async (setId: string) => {
             <div className="flex-1 overflow-y-auto p-3 md:p-6 bg-background">
               {loading && allCards.length === 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4 animate-pulse">
-                  {[...Array(10)].map((_, i) => (
+                  {[...Array(12)].map((_, i) => (
                     <div key={i} className="aspect-[2/3] bg-muted rounded-xl border border-border/50" />
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-20">
-                  {filteredCards.map((card) => (
-                    <CardGridItem key={card.id} card={card} onClick={() => setSelectedCard(card)} />
-                  ))}
-                  {filteredCards.length === 0 && !loading && (
-                    <div className="col-span-full text-center py-12 text-muted-foreground">
-                      Aucune carte ne correspond à votre recherche.
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-20">
+                    {filteredCards.map((card) => (
+                      <CardGridItem key={card.id} card={card} onClick={() => setSelectedCard(card)} />
+                    ))}
+                    {filteredCards.length === 0 && !loading && (
+                      <div className="col-span-full text-center py-12 text-muted-foreground">
+                        Aucune carte ne correspond à votre recherche.
+                      </div>
+                    )}
+                  </div>
+
+                  {loading && allCards.length > 0 && (
+                    <div className="flex justify-center items-center py-8 text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5">
+                          <LoaderSpinner />
+                        </div>
+                        <span className="text-sm">Chargement de plus de cartes...</span>
+                      </div>
                     </div>
                   )}
-                </div>
+                </>
               )}
             </div>
 
