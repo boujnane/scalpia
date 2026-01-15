@@ -21,8 +21,17 @@ const SERIES_FR_NORM = Object.fromEntries(
   Object.entries(SERIES_FR).map(([k, v]) => [normSeriesKey(k), v])
 );
 
+// Set pour éviter de logger plusieurs fois le même nom manquant
+const loggedMissingSeries = new Set<string>();
+
 export function mapSeriesNameToFR(seriesName?: string | null) {
   if (!seriesName) return "Autres";
   const hit = SERIES_FR_NORM[normSeriesKey(seriesName)];
+
+  if (!hit && !loggedMissingSeries.has(seriesName)) {
+    loggedMissingSeries.add(seriesName);
+    console.warn(`[SERIES MANQUANTE] "${seriesName}" → pas de traduction FR`);
+  }
+
   return hit ?? seriesName; // fallback = anglais si inconnu
 }

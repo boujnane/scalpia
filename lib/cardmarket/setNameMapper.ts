@@ -173,7 +173,17 @@ const SETS_FR_NORM = Object.fromEntries(
   Object.entries(SETS_FR).map(([k, v]) => [norm(k), v])
 );
 
+// Set pour éviter de logger plusieurs fois le même nom manquant
+const loggedMissingSets = new Set<string>();
+
 export function mapSetNameToFR(name?: string | null) {
   if (!name) return "Set inconnu";
-  return SETS_FR_NORM[norm(name)] ?? name; // fallback EN safe
+  const hit = SETS_FR_NORM[norm(name)];
+
+  if (!hit && !loggedMissingSets.has(name)) {
+    loggedMissingSets.add(name);
+    console.warn(`[SET MANQUANT] "${name}" → pas de traduction FR`);
+  }
+
+  return hit ?? name; // fallback EN safe
 }

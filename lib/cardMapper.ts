@@ -4,12 +4,15 @@ export const SET_MAPPING: Record<string, string> = {
   // ===================== MEGA EVOLUTION =====================
   "phantasmal-flames": "me02",
   "mega-evolution": "me01",
+  "black-bolt": "sv10.5b",
+  "white-flare": "sv10.5w",
 
   // ===================== SCARLET & VIOLET =====================
   "scarlet-violet": "sv01",
   "scarlet-violet-base-set": "sv01",
   "paldea-evolved": "sv02",
   "obsidian-flames": "sv03",
+  "151": "sv03.5",
   "paradox-rift": "sv04",
   "paldean-fates": "sv04.5",
   "temporal-forces": "sv05",
@@ -18,6 +21,9 @@ export const SET_MAPPING: Record<string, string> = {
   "stellar-crown": "sv07",
   "surging-sparks": "sv08",
   "prismatic-evolutions": "sv08.5",
+  "journey-together": "sv09",
+  "destined-rivals": "sv10",
+  "sv-black-star-promos": "svp",
 
   // ===================== SWORD & SHIELD =====================
   "sword-shield": "swsh1",
@@ -58,8 +64,10 @@ export const SET_MAPPING: Record<string, string> = {
   "team-up": "sm9",
   "unbroken-bonds": "sm10",
   "unified-minds": "sm11",
-  "hidden-fates": "sm11.5",
+  "hidden-fates": "sm115",
   "cosmic-eclipse": "sm12",
+  "sm-black-star-promos": "smp",
+  "detective-pikachu": "det1",
 
   // ===================== XY =====================
   "xy": "xy1",
@@ -202,8 +210,17 @@ export const SET_MAPPING: Record<string, string> = {
   "dp-black-star-promos": "dpp",
 };
 
+// Set pour éviter de logger plusieurs fois le même slug manquant
+const loggedMissingSlugs = new Set<string>();
+
 export function cardmarketSlugToTCGdex(slug: string): string | null {
   const normalized = String(slug || "").toLowerCase().trim();
+
+  if (!(normalized in SET_MAPPING) && normalized && !loggedMissingSlugs.has(normalized)) {
+    loggedMissingSlugs.add(normalized);
+    console.warn(`[SLUG MANQUANT] "${slug}" → pas de mapping TCGdex`);
+  }
+
   return normalized in SET_MAPPING ? SET_MAPPING[normalized] : null;
 }
 
@@ -392,7 +409,11 @@ export async function mapCardsBatch(cmCards: any[]): Promise<MappedCard[]> {
       const key = localId ? normalizeLocalIdForCompare(localId) : "";
       const tcgdexCard = key ? index.get(key) : null;
 
-      if (tcgdexCard) successfulMappings++;
+      if (tcgdexCard) {
+        successfulMappings++;
+      } else if (localId) {
+        console.warn(`[CARTE NON MAPPÉE] Set "${setId}" | #${localId} "${cmCard.name}" → pas trouvé dans TCGdex`);
+      }
 
       mapped.push({
         cardmarketId: cmCard.id,
