@@ -82,10 +82,6 @@ interface CMSet {
 ======================= */
 const normalizeRarity = (rarity?: string) => (rarity ? rarity.trim().toLowerCase() : "");
 
-function isNum(v: unknown): v is number {
-  return typeof v === "number" && Number.isFinite(v);
-}
-
 
 /* =======================
 Sub-Components
@@ -717,9 +713,9 @@ const fetchAllCards = async (setId: string) => {
                   })
                 }
                 className={`
-                  group w-full flex items-center justify-between px-4 py-3 rounded-xl text-left
+                  group w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left
                   transition-all duration-300 ease-out
-                  hover:bg-sidebar-accent/80 hover:shadow-md hover:scale-[1.02]
+                  active:scale-[0.98] md:hover:bg-sidebar-accent/80 md:hover:shadow-md md:hover:scale-[1.02]
                   ${expandedSeries.has(series) ? "bg-sidebar-accent/60 shadow-sm" : ""}
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring
                 `}
