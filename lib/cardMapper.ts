@@ -47,6 +47,8 @@ export const SET_MAPPING: Record<string, string> = {
   "lost-origin": "swsh11",
   "silver-tempest": "swsh12",
   "crown-zenith": "swsh12.5",
+  "swsh-black-star-promos": "swshp",
+  "celebrations": "cel25",
 
   // ===================== SUN & MOON =====================
   "sun-moon": "sm1",
@@ -83,6 +85,8 @@ export const SET_MAPPING: Record<string, string> = {
   "fates-collide": "xy10",
   "steam-siege": "xy11",
   "evolutions": "xy12",
+  "xy-black-star-promos": "xyp",
+  "kalos-starter-set": "xy0",
 
   // ===================== BLACK & WHITE =====================
   "black-white": "bw1",
@@ -112,15 +116,19 @@ export const SET_MAPPING: Record<string, string> = {
   "platinum-base-set": "pl1",
   "rising-rivals": "pl2",
   "supreme-victors": "pl3",
-  "arceus": "pl4",
+  // "arceus": "pl4", // ⚠️ Set Arceus absent de TCGdex FR (pas de pl4)
 
   // ===================== HEARTGOLD & SOULSILVER =====================
   "heartgold-soulsilver": "hgss1",
   "heartgold-soulsilver-base-set": "hgss1",
+  "hs-triumphant": "hgss4",
+  "hs-undaunted": "hgss3",
+  "hs-unleashed": "hgss2",
   "unleashed": "hgss2",
   "undaunted": "hgss3",
   "triumphant": "hgss4",
   "call-of-legends": "col1",
+  "hgss-black-star-promos": "hgssp",
 
   // ===================== EX (RUBY & SAPPHIRE ERA) =====================
   "ruby-sapphire": "ex1",
@@ -208,6 +216,11 @@ export const SET_MAPPING: Record<string, string> = {
   // ===================== PROMOS =====================
   "bw-black-star-promos": "bwp",
   "dp-black-star-promos": "dpp",
+  "wizards-black-star-promos": "basep",
+  "nintendo-black-star-promos": "np",
+
+  // ===================== AUTRES / SPÉCIAUX =====================
+  "dragon-vault": "dv1",
 };
 
 // Set pour éviter de logger plusieurs fois le même slug manquant

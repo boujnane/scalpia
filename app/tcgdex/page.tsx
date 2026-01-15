@@ -13,11 +13,6 @@ const ChevronDown = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
   </svg>
 );
-const ChevronUp = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-  </svg>
-);
 const ArrowLeft = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7 7-7M8 12h13" />
@@ -447,15 +442,79 @@ export default function CardmarketSetViewer() {
     .finally(() => setLoadingSets(false));
 }, []);
 
+// Ordre chronologique des séries (du plus récent au plus ancien)
+const SERIES_ORDER = [
+  "Méga-Évolution",
+  "Écarlate et Violet",
+  "Épée et Bouclier",
+  "Soleil et Lune",
+  "XY",
+  "Noir et Blanc",
+  "HeartGold & SoulSilver",
+  "Platine",
+  "Diamant et Perle",
+  "EX",
+  "E-Card",
+  "Neo",
+  "Gym",
+  "Base",
+  "Promos & Autres", // Regroupe NP, Other, POP, etc.
+];
+
+// Images des séries (ajouter au fur et à mesure)
+const SERIES_IMAGES: Record<string, string> = {
+  "Méga-Évolution": "/MEG/MEG.png",
+  "Écarlate et Violet": "/EV/SVI.png",
+  "Épée et Bouclier": "/EB/SWSH1.webp",
+  "Soleil et Lune": "/SL/SM01.webp",
+  "XY": "/XY/XY.webp",
+  "Noir et Blanc": "/NB/BLW.webp",
+  "HeartGold & SoulSilver": "/HGSS/HGSS.webp",
+  "Platine": "/Platine/PT.webp",
+  "Diamant et Perle": "/DP/DP.webp",
+  "EX":"/EX/ex.webp",
+  "E-Card":"/Wizards/ecard.png",
+  "Neo":"/Neo/neo.png",
+  "Gym":"/Wizards/gym.png",
+  "Base":"/Wizards/wizards.png",
+  "Promos & Autres": "/Wizards/promo.png"
+};
+
+// Séries à regrouper dans "Promos & Autres"
+const SPECIAL_SERIES = ["NP", "Other", "POP", "Promos Nintendo", "Autres"];
+
 const groupedBySeries = useMemo(() => {
   const grouped: Record<string, CMSet[]> = {};
+
   sets.forEach((set) => {
     const seriesRaw = set.series?.name ?? "Autres";
-    const series = mapSeriesNameToFR(seriesRaw); // ✅ ici
+    let series = mapSeriesNameToFR(seriesRaw);
+
+    // Regrouper les séries spéciales
+    if (SPECIAL_SERIES.includes(series) || SPECIAL_SERIES.includes(seriesRaw)) {
+      series = "Promos & Autres";
+    }
+
     if (!grouped[series]) grouped[series] = [];
     grouped[series].push(set);
   });
-  return grouped;
+
+  // Trier selon l'ordre chronologique défini
+  const sortedGrouped: Record<string, CMSet[]> = {};
+  SERIES_ORDER.forEach((series) => {
+    if (grouped[series]) {
+      sortedGrouped[series] = grouped[series];
+    }
+  });
+
+  // Ajouter les séries non listées à la fin
+  Object.keys(grouped).forEach((series) => {
+    if (!sortedGrouped[series]) {
+      sortedGrouped[series] = grouped[series];
+    }
+  });
+
+  return sortedGrouped;
 }, [sets]);
 
 // components/CardmarketSetViewer.tsx
@@ -657,14 +716,31 @@ const fetchAllCards = async (setId: string) => {
                     return s;
                   })
                 }
-                className="
-                  w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition
-                  hover:bg-sidebar-accent
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                "
+                className={`
+                  group w-full flex items-center justify-between px-4 py-3 rounded-xl text-left
+                  transition-all duration-300 ease-out
+                  hover:bg-sidebar-accent/80 hover:shadow-md hover:scale-[1.02]
+                  ${expandedSeries.has(series) ? "bg-sidebar-accent/60 shadow-sm" : ""}
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring
+                `}
               >
-                <span className="font-semibold text-sm">{series}</span>
-                {expandedSeries.has(series) ? <ChevronUp /> : <ChevronDown />}
+                <div className="flex-1 flex justify-center">
+                  {SERIES_IMAGES[series] ? (
+                    <img
+                      src={SERIES_IMAGES[series]}
+                      alt={series}
+                      className="h-8 object-contain transition-transform duration-300 group-hover:scale-105"
+                    />
+                  ) : (
+                    <span className="font-semibold text-sm">{series}</span>
+                  )}
+                </div>
+                <div className={`
+                  ml-2 p-1 rounded-full transition-all duration-300
+                  ${expandedSeries.has(series) ? "bg-sidebar-accent rotate-180" : "group-hover:bg-sidebar-accent/50"}
+                `}>
+                  <ChevronDown />
+                </div>
               </button>
 
               {expandedSeries.has(series) && (

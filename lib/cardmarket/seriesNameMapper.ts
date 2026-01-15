@@ -1,15 +1,23 @@
 // lib/seriesNameMapper.ts
 
-// 1) Dictionnaire minimal (tu l'étends au fur et à mesure)
+// Dictionnaire complet des séries Pokémon TCG
 const SERIES_FR: Record<string, string> = {
+  // Séries récentes
+  "Mega Evolution": "Méga-Évolution",
   "Scarlet & Violet": "Écarlate et Violet",
   "Sword & Shield": "Épée et Bouclier",
   "Sun & Moon": "Soleil et Lune",
   "XY": "XY",
   "Black & White": "Noir et Blanc",
-  "Diamond & Pearl": "Diamant et Perle",
-  "Platinum": "Platine",
+  // Séries classiques
   "HeartGold & SoulSilver": "HeartGold & SoulSilver",
+  "Platinum": "Platine",
+  "Diamond & Pearl": "Diamant et Perle",
+  "EX": "EX",
+  "E-Card": "E-Card",
+  "Neo": "Neo",
+  "Gym": "Gym",
+  "Base": "Base",
 };
 
 // 2) Normalisation (évite les mismatch sur espaces/casse)
