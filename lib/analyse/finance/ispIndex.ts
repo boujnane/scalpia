@@ -102,7 +102,12 @@ export function buildISPIndex(
     }
   }
 
-  const sortedDays = Array.from(allDays).sort((a, b) => a.localeCompare(b));
+  // Date de début officielle de l'ISP-FR
+  const ISP_START_DATE = "2025-12-04";
+
+  const sortedDays = Array.from(allDays)
+    .filter((day) => day >= ISP_START_DATE)
+    .sort((a, b) => a.localeCompare(b));
 
   if (sortedDays.length === 0) return [];
 

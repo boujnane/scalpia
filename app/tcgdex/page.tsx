@@ -116,6 +116,7 @@ const CardGridItem = ({ card, onClick }: { card: CMCard; onClick: () => void }) 
             src={card.image}
             alt={card.name}
             loading="lazy"
+            decoding="async"
             className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-[1.07]"
           />
         ) : (
@@ -244,13 +245,11 @@ const CardDetailModal = ({ card: initialCard, onClose }: { card: CMCard; onClose
 
 fetchFullDetails();
 
-fetchFullDetails();
-
 return () => {
   document.body.style.overflow = "auto";
   window.removeEventListener("keydown", onKeyDown);
 };
-}, [initialCard.id, initialCard.cardmarket_url, onClose]);
+}, [initialCard.id, initialCard.cardmarketId, initialCard.cardmarket_url, onClose]);
 
 return (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
@@ -270,6 +269,7 @@ return (
           <img
             src={card.image}
             alt={card.name}
+            decoding="async"
             className="max-h-[50vh] md:max-h-[70vh] w-auto object-contain drop-shadow-2xl"
           />
         </div>
@@ -480,12 +480,11 @@ const fetchAllCards = async (setId: string) => {
     const firstPageCards = firstJson.data || [];
 
     // Afficher immédiatement la première page
-    const uniqueCardsMap = new Map<number, any>();
-    firstPageCards.forEach((card: any) => {
+    const uniqueCardsMap = new Map<number, CMCard>();
+    firstPageCards.forEach((card: CMCard) => {
       if (card && typeof card.id === "number") uniqueCardsMap.set(card.id, card);
     });
     setAllCards(Array.from(uniqueCardsMap.values()));
-
     setLoadingProgress({ current: 1, total: totalPages });
 
     // 2. Si une seule page, on a fini
@@ -494,43 +493,39 @@ const fetchAllCards = async (setId: string) => {
       return;
     }
 
-    // 3. Charger les pages suivantes par lots de 5 pour ne pas surcharger
-    const BATCH_SIZE = 5;
+    // 3. Charger toutes les pages restantes en parallèle (max 10 simultanées)
+    const BATCH_SIZE = 10;
     const remainingPages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+    let loadedPages = 1;
 
     for (let i = 0; i < remainingPages.length; i += BATCH_SIZE) {
       const batch = remainingPages.slice(i, i + BATCH_SIZE);
-      const batchEnd = Math.min(i + BATCH_SIZE, remainingPages.length);
 
-      setLoadingMessage(`Chargement des pages ${i + 2}-${batchEnd + 1}...`);
+      setLoadingMessage(`Chargement des pages ${loadedPages + 1}-${Math.min(loadedPages + batch.length, totalPages)}/${totalPages}...`);
 
-      const batchPromises = batch.map((page) =>
-        fetch(`/api/cardmarket/sets/${setId}/cards/mapped?page=${page}`)
-          .then((res) => res.json())
-          .then((json) => {
-            setLoadingProgress((prev) => ({
-              ...prev,
-              current: prev.current + 1
-            }));
-            return json.data || [];
-          })
-          .catch((err) => {
-            console.error(`Error fetching page ${page}:`, err);
-            return [];
-          })
+      const batchResults = await Promise.all(
+        batch.map((page) =>
+          fetch(`/api/cardmarket/sets/${setId}/cards/mapped?page=${page}`)
+            .then((res) => res.json())
+            .then((json) => json.data || [])
+            .catch((err) => {
+              console.error(`Error fetching page ${page}:`, err);
+              return [];
+            })
+        )
       );
 
-      const batchResults = await Promise.all(batchPromises);
+      // Accumuler les cartes du batch
       const batchCards = batchResults.flat();
-
-      // Mettre à jour progressivement les cartes
-      setAllCards((prev) => {
-        const newMap = new Map(prev.map((c) => [c.id, c]));
-        batchCards.forEach((card: any) => {
-          if (card && typeof card.id === "number") newMap.set(card.id, card);
-        });
-        return Array.from(newMap.values());
+      batchCards.forEach((card: CMCard) => {
+        if (card && typeof card.id === "number") uniqueCardsMap.set(card.id, card);
       });
+
+      loadedPages += batch.length;
+
+      // Mise à jour groupée : état + progress en une seule "frame"
+      setAllCards(Array.from(uniqueCardsMap.values()));
+      setLoadingProgress({ current: loadedPages, total: totalPages });
     }
 
   } catch (err) {
@@ -688,7 +683,7 @@ const fetchAllCards = async (setId: string) => {
                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
                       `}
                     >
-                      {set.logo && <img src={set.logo} alt="" className="w-6 h-6 object-contain" />}
+                      {set.logo && <img src={set.logo} alt="" loading="lazy" decoding="async" className="w-6 h-6 object-contain" />}
                       <span className="text-xs font-medium line-clamp-1">{set.name}</span>
                     </button>
                   ))}
@@ -728,7 +723,7 @@ const fetchAllCards = async (setId: string) => {
                   <ArrowLeft />
                 </button>
 
-                {selectedSet.logo && <img src={selectedSet.logo} alt="" className="h-8 md:h-10 object-contain" />}
+                {selectedSet.logo && <img src={selectedSet.logo} alt="" decoding="async" className="h-8 md:h-10 object-contain" />}
 
                 <div className="flex-1 min-w-0">
                   <h2 className="text-lg md:text-xl font-bold truncate">{selectedSet.name}</h2>
