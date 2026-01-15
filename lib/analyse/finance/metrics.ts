@@ -5,10 +5,16 @@ import { volatilityFromLogReturns, maxDrawdown } from "./risk";
 import { slopeLogPricePerDay } from "./trend";
 import { lastPrice, premiumVsRetail } from "./retail";
 import { scoreComposite } from "./score";
+import {
+  computeRiskAdjustedMetrics,
+  computeMomentumIndicators,
+  computeAdvancedRiskMetrics,
+} from "./indicators";
 
 export function computeFinanceMetrics(input: {
   prices: PricePoint[];
   retailPrice?: number | null;
+  marketReturns?: number[]; // Pour calculer le beta
   now?: Date; // for tests
 }): FinanceMetrics {
   const now = input.now ?? new Date();
@@ -40,6 +46,17 @@ export function computeFinanceMetrics(input: {
 
   const slope30d = slopeLogPricePerDay(w30);
 
+  // Indicateurs avancés de performance ajustée au risque
+  const riskAdjusted = computeRiskAdjustedMetrics(w30, return30d, vol30d, maxDrawdown90d, 30);
+
+  // Indicateurs de momentum - utiliser la série COMPLÈTE pour avoir plus de données
+  // Le RSI adapté fonctionne avec tous les points disponibles, pas juste 30 jours
+  const momentum = computeMomentumIndicators(base);
+
+  // Indicateurs de risque avancés
+  const advancedRisk = computeAdvancedRiskMetrics(base, input.marketReturns);
+
+  // Score V1 (pour compatibilité)
   const score = scoreComposite({
     premium30d,
     slope30d,
@@ -67,5 +84,23 @@ export function computeFinanceMetrics(input: {
     freshnessDays,
 
     score,
+
+    // Indicateurs avancés (adaptés au marché scellé)
+    sharpeRatio: riskAdjusted.returnToVolRatio,
+    sortinoRatio: riskAdjusted.returnToDownsideRatio,
+    calmarRatio: riskAdjusted.returnToDrawdownRatio,
+    volAnnualized: riskAdjusted.volatilityAnnualized,
+    downsideVol: riskAdjusted.downsideDeviation,
+
+    // Momentum
+    rsi14: momentum.rsi,
+    rsiSignal: momentum.rsiSignal,
+
+    // Risque avancé (simplifié)
+    var95: advancedRisk.var95,
+    cvar95: advancedRisk.cvar95,
+    skewness: advancedRisk.skewness,
+    kurtosis: advancedRisk.kurtosis,
+    beta: advancedRisk.beta,
   };
 }

@@ -93,7 +93,7 @@ function isNum(v: unknown): v is number {
 
 
 /* =======================
-   Sub-Components
+Sub-Components
 ======================= */
 
 const CardGridItem = ({ card, onClick }: { card: CMCard; onClick: () => void }) => {
@@ -191,19 +191,19 @@ const CardGridItem = ({ card, onClick }: { card: CMCard; onClick: () => void }) 
 const CardDetailModal = ({ card: initialCard, onClose }: { card: CMCard; onClose: () => void }) => {
   const [card, setCard] = useState<CMCard>(initialCard);
   const [isScraping, setIsScraping] = useState(false);
-
+  
   useEffect(() => {
     document.body.style.overflow = "hidden";
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
+    
+    const fetchFullDetails = async () => {
+      // ⚠️ utiliser l’id CM stable si dispo
+      const cmId = initialCard.cardmarketId ?? initialCard.id;
 
-const fetchFullDetails = async () => {
-  // ⚠️ utiliser l’id CM stable si dispo
-  const cmId = initialCard.cardmarketId ?? initialCard.id;
-
-  // déjà présent => rien à faire
+      // déjà présent => rien à faire
   if (initialCard.cardmarket_url) return;
 
   setIsScraping(true);
@@ -212,9 +212,9 @@ const fetchFullDetails = async () => {
     const res = await fetch(`/api/cardmarket/cards/${cmId}?scrape=1`, {
       cache: "no-store",
     });
-
+    
     const data = await res.json().catch(() => null);
-
+    
     console.log("[ui-modal] fetchFullDetails", {
       cmId,
       ok: res.ok,
@@ -227,7 +227,7 @@ const fetchFullDetails = async () => {
     if (res.ok && data?.cardmarket_url) {
       const raw = String(data.cardmarket_url);
       const urlWithLang = raw.includes("?") ? `${raw}&language=2` : `${raw}?language=2`;
-
+      
       setCard((prev) => ({
         ...prev,
         cardmarket_url: urlWithLang,
@@ -244,16 +244,16 @@ const fetchFullDetails = async () => {
 
 fetchFullDetails();
 
-    fetchFullDetails();
+fetchFullDetails();
 
-    return () => {
-      document.body.style.overflow = "auto";
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [initialCard.id, initialCard.cardmarket_url, onClose]);
+return () => {
+  document.body.style.overflow = "auto";
+  window.removeEventListener("keydown", onKeyDown);
+};
+}, [initialCard.id, initialCard.cardmarket_url, onClose]);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+return (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-card text-card-foreground w-full max-w-4xl max-h-[90vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in-95 duration-200 border border-border">
@@ -419,6 +419,7 @@ export default function CardmarketSetViewer() {
   const [selectedRarities, setSelectedRarities] = useState<Set<string>>(new Set());
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
+  const [sortByFRPrice, setSortByFRPrice] = useState<"desc" | "asc">("desc");
   // Finance drawer
   const [financeOpen, setFinanceOpen] = useState(false);
 
@@ -582,6 +583,26 @@ const fetchAllCards = async (setId: string) => {
 
     return filtered;
   }, [allCards, selectedRarities, searchQuery]);
+
+  const sortedCards = useMemo(() => {
+    // 1) on reprend ton filteredCards (déjà filtré par rareté + recherche)
+    const arr = [...filteredCards];
+  
+    // 2) on trie par prix FR (Cardmarket)
+    arr.sort((a, b) => {
+      const pa = a.prices?.fr;
+      const pb = b.prices?.fr;
+  
+      // On met les cartes sans prix à la fin
+      const va = typeof pa === "number" && Number.isFinite(pa) ? pa : -Infinity;
+      const vb = typeof pb === "number" && Number.isFinite(pb) ? pb : -Infinity;
+  
+      return sortByFRPrice === "desc" ? vb - va : va - vb;
+    });
+  
+    return arr;
+  }, [filteredCards, sortByFRPrice]);
+  
 
   const toggleRarity = (r: string) => {
     setSelectedRarities((prev) => {
@@ -806,7 +827,27 @@ const fetchAllCards = async (setId: string) => {
                     </button>
                   )}
                 </div>
+                <button
+                onClick={() => setSortByFRPrice((p) => (p === "desc" ? "asc" : "desc"))}
+                className={`
+                  inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-semibold whitespace-nowrap
+                  transition
+                  ${
+                    sortByFRPrice
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background text-muted-foreground border-border hover:bg-muted"
+                  }
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                `}
+                aria-label="Trier par prix Cardmarket FR"
+              >
+                <FilterIcon />
+                Prix FR
+                <span className="font-mono">{sortByFRPrice === "desc" ? "↓" : "↑"}</span>
+              </button>
+
               </div>
+              
             </header>
 
             <div className="flex-1 overflow-y-auto p-3 md:p-6 bg-background">
@@ -819,9 +860,9 @@ const fetchAllCards = async (setId: string) => {
               ) : (
                 <>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 pb-20">
-                    {filteredCards.map((card) => (
-                      <CardGridItem key={card.id} card={card} onClick={() => setSelectedCard(card)} />
-                    ))}
+                  {sortedCards.map((card) => (
+                    <CardGridItem key={card.id} card={card} onClick={() => setSelectedCard(card)} />
+                  ))}
                     {filteredCards.length === 0 && !loading && (
                       <div className="col-span-full text-center py-12 text-muted-foreground">
                         Aucune carte ne correspond à votre recherche.

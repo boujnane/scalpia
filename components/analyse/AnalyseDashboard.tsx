@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { Item } from "@/lib/analyse/types";
 import { getBlocImage } from "@/lib/utils";
 import { SeriesTrendChart } from "./SeriesTrendChart";
+import AdvancedMetricsPanel from "./AdvancedMetricsPanel";
 
 import {
   TrendingUp,
@@ -13,6 +14,8 @@ import {
   LayoutGrid,
   List,
   AlertCircle,
+  ChevronRight,
+  BarChart3,
 } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
@@ -124,6 +127,7 @@ export default function AnalyseDashboard({ items }: AnalyseDashboardProps) {
     key: "premiumNow",
     direction: "desc",
   });
+  const [selectedSeries, setSelectedSeries] = useState<SeriesFinanceSummary | null>(null);
 
   const { blocs, series, kpis } = useSeriesFinance(items, selectedBloc);
 
@@ -299,14 +303,19 @@ export default function AnalyseDashboard({ items }: AnalyseDashboardProps) {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-muted/50 p-1 w-full sm:w-auto grid grid-cols-2 sm:inline-flex rounded-xl">
+          <TabsList className="bg-muted/50 p-1 w-full sm:w-auto grid grid-cols-3 sm:inline-flex rounded-xl">
             <TabsTrigger value="overview">
               <span className="sm:hidden">Vue</span>
-              <span className="hidden sm:inline">Vue d’ensemble</span>
+              <span className="hidden sm:inline">Vue d'ensemble</span>
             </TabsTrigger>
             <TabsTrigger value="data">
               <span className="sm:hidden">Données</span>
               <span className="hidden sm:inline">Données détaillées</span>
+            </TabsTrigger>
+            <TabsTrigger value="advanced">
+              <BarChart3 className="w-3.5 h-3.5 mr-1 hidden sm:inline" />
+              <span className="sm:hidden">Avancé</span>
+              <span className="hidden sm:inline">Indicateurs avancés</span>
             </TabsTrigger>
           </TabsList>
 
@@ -626,6 +635,209 @@ export default function AnalyseDashboard({ items }: AnalyseDashboardProps) {
                 </Table>
               </div>
             </Card>
+          </TabsContent>
+
+          {/* TAB 3: INDICATEURS AVANCÉS */}
+          <TabsContent value="advanced" className="animate-in slide-in-from-bottom-2">
+            <div className="space-y-6">
+              {/* Sélecteur de série */}
+              <Card className="border-border/50 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                    Analyse détaillée par série
+                  </CardTitle>
+                  <CardDescription>
+                    Sélectionnez une série pour voir ses indicateurs financiers avancés
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Select
+                    value={selectedSeries?.seriesName || ""}
+                    onValueChange={(value) => {
+                      const found = filteredAndSortedSeries.find((s) => s.seriesName === value);
+                      setSelectedSeries(found || null);
+                    }}
+                  >
+                    <SelectTrigger className="w-full sm:w-[400px]">
+                      <SelectValue placeholder="Choisir une série à analyser..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredAndSortedSeries.map((s) => (
+                        <SelectItem key={s.seriesName} value={s.seriesName}>
+                          <div className="flex items-center justify-between gap-4 w-full">
+                            <span className="capitalize">{s.seriesName}</span>
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                variant={
+                                  s.trend7d === "up"
+                                    ? "success"
+                                    : s.trend7d === "down"
+                                    ? "destructive"
+                                    : "secondary"
+                                }
+                                className="text-[10px]"
+                              >
+                                {s.metrics.return7d != null
+                                  ? `${s.metrics.return7d > 0 ? "+" : ""}${(s.metrics.return7d * 100).toFixed(1)}%`
+                                  : "-"}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                Score: {s.metrics.score ?? "-"}
+                              </span>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </CardContent>
+              </Card>
+
+              {/* Panneau de métriques avancées */}
+              {selectedSeries ? (
+                <Card className="border-border/50 shadow-sm overflow-hidden">
+                  <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent pb-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="capitalize text-xl">
+                          {selectedSeries.seriesName}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-3 mt-1">
+                          <span>{selectedSeries.itemsCount} produit(s)</span>
+                          <span>•</span>
+                          <span>{selectedSeries.indexPointsCount} points de données</span>
+                          {selectedSeries.lastDate && (
+                            <>
+                              <span>•</span>
+                              <span>
+                                Dernière MAJ:{" "}
+                                {new Date(selectedSeries.lastDate).toLocaleDateString("fr-FR")}
+                              </span>
+                            </>
+                          )}
+                        </CardDescription>
+                      </div>
+                      <button
+                        onClick={() => setSelectedSeries(null)}
+                        className="text-muted-foreground hover:text-foreground transition p-2 rounded-lg hover:bg-muted"
+                      >
+                        <ChevronRight className="w-5 h-5 rotate-90" />
+                      </button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <AdvancedMetricsPanel
+                      metrics={selectedSeries.metrics}
+                      seriesName={selectedSeries.seriesName}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-dashed border-2 border-border/50 bg-muted/20">
+                  <CardContent className="py-16 text-center">
+                    <BarChart3 className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-muted-foreground font-medium">
+                      Sélectionnez une série ci-dessus
+                    </p>
+                    <p className="text-sm text-muted-foreground/70 mt-1">
+                      pour afficher ses indicateurs financiers avancés
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Top séries par indicateur */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-success" />
+                      Meilleurs Sharpe Ratio
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Meilleures performances ajustées au risque
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    {filteredAndSortedSeries
+                      .filter((s) => s.metrics.sharpeRatio != null)
+                      .sort((a, b) => (b.metrics.sharpeRatio ?? -999) - (a.metrics.sharpeRatio ?? -999))
+                      .slice(0, 5)
+                      .map((s, idx) => (
+                        <button
+                          key={s.seriesName}
+                          onClick={() => setSelectedSeries(s)}
+                          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-4">{idx + 1}.</span>
+                            <span className="text-sm font-medium capitalize truncate">
+                              {s.seriesName}
+                            </span>
+                          </div>
+                          <span
+                            className={`text-sm font-bold tabular-nums ${
+                              (s.metrics.sharpeRatio ?? 0) > 1
+                                ? "text-success"
+                                : (s.metrics.sharpeRatio ?? 0) > 0
+                                ? "text-foreground"
+                                : "text-destructive"
+                            }`}
+                          >
+                            {s.metrics.sharpeRatio?.toFixed(2) ?? "-"}
+                          </span>
+                        </button>
+                      ))}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/50 shadow-sm">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 text-primary" />
+                      RSI Survendu (opportunités)
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      Séries avec RSI &lt; 35 - potentiel rebond
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-1">
+                    {filteredAndSortedSeries
+                      .filter((s) => s.metrics.rsi14 != null && s.metrics.rsi14 < 35)
+                      .sort((a, b) => (a.metrics.rsi14 ?? 100) - (b.metrics.rsi14 ?? 100))
+                      .slice(0, 5)
+                      .map((s, idx) => (
+                        <button
+                          key={s.seriesName}
+                          onClick={() => setSelectedSeries(s)}
+                          className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground w-4">{idx + 1}.</span>
+                            <span className="text-sm font-medium capitalize truncate">
+                              {s.seriesName}
+                            </span>
+                          </div>
+                          <Badge
+                            variant="success"
+                            className="font-mono"
+                          >
+                            RSI {s.metrics.rsi14?.toFixed(0) ?? "-"}
+                          </Badge>
+                        </button>
+                      ))}
+                    {filteredAndSortedSeries.filter(
+                      (s) => s.metrics.rsi14 != null && s.metrics.rsi14 < 35
+                    ).length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Aucune série en zone de survente actuellement
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

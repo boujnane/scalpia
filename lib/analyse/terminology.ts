@@ -11,6 +11,7 @@ export type TerminologyKey =
   | "return7d"
   | "return30d"
   | "volatility"
+  | "volAnnualized"
   | "maxDrawdown"
   | "coverage"
   | "freshness"
@@ -18,7 +19,18 @@ export type TerminologyKey =
   | "slope"
   | "index"
   | "ispfr"
-  | "retail";
+  | "retail"
+  // Nouveaux indicateurs avancés
+  | "sharpeRatio"
+  | "sortinoRatio"
+  | "calmarRatio"
+  | "rsi"
+  | "var95"
+  | "cvar95"
+  | "beta"
+  | "skewness"
+  | "kurtosis"
+  | "downsideVol";
 
 export type TermDefinition = {
   simple: string; // Terme simple pour le grand public
@@ -131,6 +143,106 @@ export const TERMINOLOGY: Record<TerminologyKey, TermDefinition> = {
     explanation:
       "Le prix de vente conseillé lors de la sortie du produit. Sert de référence pour calculer la surcote.",
     example: "Un ETB sorti à 59,99€ = prix retail",
+  },
+
+  // ============================================================================
+  // INDICATEURS AVANCÉS DE PERFORMANCE AJUSTÉE AU RISQUE
+  // ============================================================================
+
+  sharpeRatio: {
+    simple: "Rendement/Risque",
+    technical: "Sharpe Ratio",
+    explanation:
+      "Mesure si les gains compensent les risques pris. Un ratio > 1 signifie que le rendement est bon par rapport au risque. Plus le Sharpe est élevé, meilleur est l'investissement ajusté au risque.",
+    example: "Sharpe de 1.5 = très bon rendement pour le niveau de risque encouru",
+  },
+
+  sortinoRatio: {
+    simple: "Rendement/Risque de perte",
+    technical: "Sortino Ratio",
+    explanation:
+      "Comme le Sharpe, mais ne pénalise que les baisses (pas les hausses volatiles). Plus pertinent car une forte hausse n'est pas un 'risque'. Un Sortino > 1.5 est excellent.",
+    example: "Sortino de 2.0 = excellent rendement par rapport aux risques de perte uniquement",
+  },
+
+  calmarRatio: {
+    simple: "Rendement/Pire chute",
+    technical: "Calmar Ratio",
+    explanation:
+      "Compare le rendement annualisé à la plus forte chute observée. Indique la capacité à générer des gains par rapport aux pertes maximales possibles.",
+    example: "Calmar de 1.0 = le rendement annuel compense la pire chute observée",
+  },
+
+  volAnnualized: {
+    simple: "Volatilité annuelle",
+    technical: "Volatilité Annualisée",
+    explanation:
+      "L'amplitude des variations de prix exprimée sur une année. Permet de comparer différents investissements sur une base commune. Typiquement entre 10% et 50% pour les collectibles.",
+    example: "Vol. de 25% = les prix peuvent varier de ±25% sur un an en conditions normales",
+  },
+
+  downsideVol: {
+    simple: "Volatilité négative",
+    technical: "Downside Deviation",
+    explanation:
+      "Mesure uniquement les variations de prix à la baisse. Plus pertinent que la volatilité classique car seules les baisses sont un vrai risque pour l'investisseur.",
+    example: "Downside de 8% vs Vol de 15% = les baisses sont moins fréquentes que les hausses",
+  },
+
+  // ============================================================================
+  // INDICATEURS DE MOMENTUM
+  // ============================================================================
+
+  rsi: {
+    simple: "Force du momentum",
+    technical: "RSI (Relative Strength Index)",
+    explanation:
+      "Indique si un produit est en phase de surachat (>70) ou de survente (<30). Entre 30 et 70, le marché est équilibré. Utile pour identifier des points d'entrée potentiels.",
+    example: "RSI à 25 = produit survendu, potentiel rebond. RSI à 80 = suracheté, prudence",
+  },
+
+  // ============================================================================
+  // INDICATEURS DE RISQUE AVANCÉS
+  // ============================================================================
+
+  var95: {
+    simple: "Perte max probable",
+    technical: "Value at Risk 95%",
+    explanation:
+      "La perte maximale attendue dans 95% des cas sur un jour. En d'autres termes, seuls 5% des jours devraient voir une perte pire que cette valeur.",
+    example: "VaR 95% de -3% = dans 95% des cas, vous ne perdrez pas plus de 3% par jour",
+  },
+
+  cvar95: {
+    simple: "Perte moyenne extrême",
+    technical: "CVaR / Expected Shortfall",
+    explanation:
+      "La perte moyenne dans les pires 5% des scénarios. Plus conservateur que la VaR car indique ce qui se passe vraiment dans les cas extrêmes.",
+    example: "CVaR de -5% = dans les pires jours (5%), la perte moyenne est de 5%",
+  },
+
+  beta: {
+    simple: "Sensibilité au marché",
+    technical: "Beta",
+    explanation:
+      "Mesure comment le prix réagit aux mouvements du marché global (ISP-FR). Beta > 1 = plus volatile que le marché. Beta < 1 = plus stable. Beta négatif = inversement corrélé.",
+    example: "Beta de 1.3 = quand le marché monte de 10%, ce produit monte de 13% en moyenne",
+  },
+
+  skewness: {
+    simple: "Asymétrie des rendements",
+    technical: "Skewness",
+    explanation:
+      "Indique si les variations de prix sont symétriques. Skewness positive = plus de gains extrêmes que de pertes. Skewness négative = plus de pertes extrêmes (plus risqué).",
+    example: "Skewness de +0.5 = tendance à avoir plus de bonnes surprises que de mauvaises",
+  },
+
+  kurtosis: {
+    simple: "Fréquence des extrêmes",
+    technical: "Kurtosis",
+    explanation:
+      "Mesure la fréquence des événements extrêmes (bonnes ou mauvaises nouvelles). Un kurtosis élevé signifie plus de surprises que la normale, donc plus d'incertitude.",
+    example: "Kurtosis de 3 = beaucoup d'événements extrêmes, marché imprévisible",
   },
 };
 

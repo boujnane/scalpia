@@ -14,7 +14,7 @@ import { db } from "@/lib/firebase";
 
 import { insertPriceInDB } from "@/lib/insert-price";
 import { useSearchVinted } from "@/hooks/useSearchVinted";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Check, Square, CheckSquare } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -78,6 +78,12 @@ export default function InsertDbPage() {
   const abortControllersRef = useRef<Map<string, AbortController>>(new Map());
   const [prefetchStatus, setPrefetchStatus] = useState<{itemId: string, status: string} | null>(null);
 
+  // Nouveaux états pour le contrôle manuel
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [autoSkipProcessed, setAutoSkipProcessed] = useState(true);
+  const [showOnlyUnprocessed, setShowOnlyUnprocessed] = useState(false);
+  const [batchPrefetching, setBatchPrefetching] = useState(false);
+
   // Load items from Firestore
   useEffect(() => {
     const fetchItemsWithPriceToday = async () => {
@@ -117,20 +123,7 @@ export default function InsertDbPage() {
 
   const currentItem = items[currentIndex] || null;
 
-  useEffect(() => {
-    if (!currentItem) return;
-  
-    const cached = prefetchCache.current.get(currentItem.id);
-  
-    // Si pas de cache (cas du 1er item) ou cache trop vieux -> on fetch
-    const isFresh =
-      cached?.timestamp && Date.now() - cached.timestamp < 5 * 60 * 1000;
-  
-    if (!cached || !isFresh) {
-      prefetchItem(currentItem);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentItem]);
+  // Prefetch automatique désactivé - contrôle manuel uniquement
   
 
   useEffect(() => {
@@ -308,19 +301,60 @@ export default function InsertDbPage() {
     }
   };
 
-  // Prefetch du prochain item quand on change d'index
-  useEffect(() => {
-    const nextIndex = currentIndex + 1;
-    if (nextIndex < items.length) {
-      const nextItem = items[nextIndex];
-      // Petit délai pour laisser le temps à l'UI de se charger
-      const timeout = setTimeout(() => {
-        prefetchItem(nextItem);
-      }, 500);
-      
-      return () => clearTimeout(timeout);
+  // Fonctions de batch prefetch manuel
+  const handleBatchPrefetch = async (itemIds: string[]) => {
+    setBatchPrefetching(true);
+    for (const id of itemIds) {
+      const item = items.find(i => i.id === id);
+      if (item && !prefetchCache.current.has(id)) {
+        await prefetchItem(item);
+      }
     }
-  }, [currentIndex, items]);
+    setBatchPrefetching(false);
+    setSelectedItems(new Set()); // Clear selection après prefetch
+  };
+
+  const handlePrefetchNext = async (count: number) => {
+    setBatchPrefetching(true);
+    const unprocessedItems = items
+      .slice(currentIndex)
+      .filter(item => !itemsWithPriceToday.has(item.id))
+      .slice(0, count);
+
+    for (const item of unprocessedItems) {
+      if (!prefetchCache.current.has(item.id)) {
+        await prefetchItem(item);
+      }
+    }
+    setBatchPrefetching(false);
+  };
+
+  const handlePrefetchSelected = () => {
+    handleBatchPrefetch(Array.from(selectedItems));
+  };
+
+  const toggleItemSelection = (itemId: string) => {
+    setSelectedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
+
+  const selectAllUnprocessed = () => {
+    const unprocessedIds = items
+      .filter(item => !itemsWithPriceToday.has(item.id))
+      .map(item => item.id);
+    setSelectedItems(new Set(unprocessedIds));
+  };
+
+  const clearSelection = () => {
+    setSelectedItems(new Set());
+  };
 
   // Charger les données depuis le cache pour l'item actuel
   useEffect(() => {
@@ -518,12 +552,38 @@ export default function InsertDbPage() {
 
   const handleInsertPrice = async () => {
     if (!currentItem || currentMinPrice === null) return;
+
+    // Bloquer si déjà traité aujourd'hui
+    if (itemsWithPriceToday.has(currentItem.id)) {
+      return;
+    }
+
     const today = new Date().toISOString().slice(0, 10);
     setSaving(true);
     try {
       await insertPriceInDB(currentItem.id, { date: today, price: currentMinPrice });
       setItemsWithPriceToday((prev) => new Set(prev).add(currentItem.id));
-      alert(`Prix ajouté pour ${currentItem.name}`);
+    } catch {
+      alert("Erreur lors de l'ajout");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Action combinée : Enregistrer + Suivant
+  const handleInsertAndNext = async () => {
+    if (!currentItem || currentMinPrice === null) return;
+    if (itemsWithPriceToday.has(currentItem.id)) {
+      handleNext();
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    setSaving(true);
+    try {
+      await insertPriceInDB(currentItem.id, { date: today, price: currentMinPrice });
+      setItemsWithPriceToday((prev) => new Set(prev).add(currentItem.id));
+      handleNext();
     } catch {
       alert("Erreur lors de l'ajout");
     } finally {
@@ -532,7 +592,29 @@ export default function InsertDbPage() {
   };
 
   const handleNext = () => {
-    setCurrentIndex((i) => (i + 1 < items.length ? i + 1 : 0));
+    let nextIndex = currentIndex + 1;
+
+    // Auto-skip des items déjà traités si l'option est activée
+    if (autoSkipProcessed) {
+      while (nextIndex < items.length && itemsWithPriceToday.has(items[nextIndex].id)) {
+        nextIndex++;
+      }
+    }
+
+    // Boucler au début si on dépasse la liste
+    if (nextIndex >= items.length) {
+      nextIndex = 0;
+      // Re-chercher le premier non-traité si auto-skip
+      if (autoSkipProcessed) {
+        while (nextIndex < items.length && itemsWithPriceToday.has(items[nextIndex].id)) {
+          nextIndex++;
+        }
+        // Si tout est traité, rester sur 0
+        if (nextIndex >= items.length) nextIndex = 0;
+      }
+    }
+
+    setCurrentIndex(nextIndex);
     setCurrentMinPrice(null);
     setCurrentError(null);
     setEditingPrice(false);
@@ -605,39 +687,170 @@ export default function InsertDbPage() {
     await prefetchItem(currentItem);
   };
 
+  // Items filtrés selon les options
+  const filteredItems = showOnlyUnprocessed
+    ? items.filter(item => !itemsWithPriceToday.has(item.id))
+    : items;
+
+  // Compteurs
+  const totalItems = items.length;
+  const processedCount = itemsWithPriceToday.size;
+  const cachedCount = items.filter(item => prefetchCache.current.has(item.id)).length;
+  const unprocessedCount = totalItems - processedCount;
+
   return (
     <ProtectedPage>
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-card overflow-y-auto p-4 hidden md:block h-screen md:sticky md:top-0">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-foreground">Liste des items</h2>
+      <aside className="w-72 border-r border-border bg-card overflow-y-auto hidden md:flex md:flex-col h-screen md:sticky md:top-0">
+        {/* Header avec compteurs */}
+        <div className="p-4 border-b border-border">
+          <h2 className="font-semibold text-foreground mb-2">Liste des items</h2>
+          <div className="flex gap-2 text-xs">
+            <span className="bg-muted px-2 py-1 rounded">{totalItems} total</span>
+            <span className="bg-success/20 text-success px-2 py-1 rounded">{processedCount} traités</span>
+            <span className="bg-primary/20 text-primary px-2 py-1 rounded">{cachedCount} en cache</span>
+          </div>
         </div>
-        <div className="space-y-2">
-          {items.map((it, idx) => {
+
+        {/* Contrôles de prefetch */}
+        <div className="p-3 border-b border-border space-y-2">
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handlePrefetchNext(5)}
+              disabled={batchPrefetching}
+              className="flex-1 text-xs"
+            >
+              {batchPrefetching ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+              Prefetch 5
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handlePrefetchNext(10)}
+              disabled={batchPrefetching}
+              className="flex-1 text-xs"
+            >
+              Prefetch 10
+            </Button>
+          </div>
+
+          {selectedItems.size > 0 && (
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handlePrefetchSelected}
+              disabled={batchPrefetching}
+              className="w-full text-xs"
+            >
+              {batchPrefetching ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+              Prefetch sélection ({selectedItems.size})
+            </Button>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={selectAllUnprocessed}
+              className="flex-1 text-xs"
+            >
+              Sélectionner non-traités
+            </Button>
+            {selectedItems.size > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearSelection}
+                className="text-xs"
+              >
+                Désélectionner
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Options de filtrage */}
+        <div className="p-3 border-b border-border space-y-2">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showOnlyUnprocessed}
+              onChange={(e) => setShowOnlyUnprocessed(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-foreground">Afficher uniquement non-traités</span>
+          </label>
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autoSkipProcessed}
+              onChange={(e) => setAutoSkipProcessed(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-foreground">Auto-skip traités</span>
+          </label>
+        </div>
+
+        {/* Liste des items */}
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
+          {filteredItems.map((it) => {
+            const idx = items.findIndex(i => i.id === it.id);
             const statusIcon = getPrefetchStatusIcon(it.id);
+            const isSelected = selectedItems.has(it.id);
+            const isProcessed = itemsWithPriceToday.has(it.id);
+            const isCached = prefetchCache.current.has(it.id);
+
             return (
               <div
                 key={it.id}
-                onClick={() => {
-                  setCurrentIndex(idx);
-                  setEditingPrice(false);
-                }}
-                className={`p-2 rounded cursor-pointer text-sm transition relative
-                  ${idx === currentIndex ? "bg-primary/10 font-semibold text-primary border-r-4 border-primary" : "hover:bg-muted/50 text-foreground"}
-                  ${itemsWithPriceToday.has(it.id) ? "bg-success/20 border-l-4 border-success" : ""}
+                className={`p-2 rounded text-sm transition relative flex items-start gap-2
+                  ${idx === currentIndex ? "bg-primary/10 font-semibold text-primary ring-2 ring-primary" : "hover:bg-muted/50 text-foreground"}
+                  ${isProcessed ? "bg-success/10" : ""}
                 `}
               >
-                <div className="flex items-center gap-1">
-                  <span className="flex-1">{it.type} {it.name}</span>
+                {/* Checkbox de sélection */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleItemSelection(it.id);
+                  }}
+                  className="mt-0.5 text-muted-foreground hover:text-foreground"
+                >
+                  {isSelected ? (
+                    <CheckSquare className="w-4 h-4 text-primary" />
+                  ) : (
+                    <Square className="w-4 h-4" />
+                  )}
+                </button>
+
+                {/* Contenu de l'item */}
+                <div
+                  className="flex-1 cursor-pointer"
+                  onClick={() => {
+                    setCurrentIndex(idx);
+                    setEditingPrice(false);
+                  }}
+                >
                   <div className="flex items-center gap-1">
-                    {itemsWithPriceToday.has(it.id) && (
-                      <span className="text-success font-bold text-sm">✔</span>
-                    )}
-                    {statusIcon}
+                    <span className="flex-1 truncate">{it.type} {it.name}</span>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {/* Indicateur de statut */}
+                      {isProcessed && (
+                        <span className="text-success" title="Traité aujourd'hui">
+                          <Check className="w-4 h-4" />
+                        </span>
+                      )}
+                      {isCached && !isProcessed && (
+                        <span className="text-primary text-xs" title="En cache">📦</span>
+                      )}
+                      {statusIcon}
+                    </div>
                   </div>
+                  {it.series && <div className="text-xs text-muted-foreground">{it.series}</div>}
                 </div>
-                {it.series && <div className="text-xs text-muted-foreground">{it.series}</div>}
               </div>
             );
           })}
@@ -649,10 +862,12 @@ export default function InsertDbPage() {
 
         {currentItem ? (
           <>
-            <div className="text-muted-foreground text-sm flex items-center gap-2">
+            <div className="text-muted-foreground text-sm flex items-center gap-2 flex-wrap">
               <span>
-                Item {currentIndex + 1} / {items.length} —{" "}
-                restants : {items.length - currentIndex - 1}
+                Item {currentIndex + 1} / {items.length}
+              </span>
+              <span className="text-success">
+                {unprocessedCount} non-traités
               </span>
               {(() => {
                 const cached = prefetchCache.current.get(currentItem.id);
@@ -715,6 +930,28 @@ export default function InsertDbPage() {
                 )}
 
                 <Separator className="bg-border" />
+
+                {/* Bouton de lancement de recherche si pas de résultats */}
+                {!vintedResults && lbcResults.length === 0 && !currentError && (
+                  prefetchStatus?.itemId === currentItem.id && prefetchStatus.status === 'loading' ? (
+                    <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg text-center">
+                      <div className="flex items-center justify-center gap-2 text-primary">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Recherche en cours...</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-muted/30 border border-border rounded-lg text-center">
+                      <p className="text-muted-foreground mb-3">Aucune donnée en cache pour cet item</p>
+                      <Button
+                        onClick={handleManualRefresh}
+                        className="bg-primary text-primary-foreground"
+                      >
+                        Lancer la recherche Vinted + LeBonCoin
+                      </Button>
+                    </div>
+                  )
+                )}
 
                 {/* Vinted Section */}
                 <Collapsible open={openVinted} onOpenChange={setOpenVinted}>
@@ -836,9 +1073,19 @@ export default function InsertDbPage() {
                   </div>
                 )}
 
+                {/* Message si déjà traité */}
+                {currentItem && itemsWithPriceToday.has(currentItem.id) && (
+                  <div className="p-3 bg-success/10 border border-success/30 rounded-lg">
+                    <span className="text-success font-medium flex items-center gap-2">
+                      <Check className="w-4 h-4" />
+                      Prix déjà enregistré aujourd'hui
+                    </span>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3 pt-4">
-                  {currentMinPrice !== null && (
+                  {currentMinPrice !== null && !itemsWithPriceToday.has(currentItem?.id || '') && (
                     <>
                       <Button
                         variant="outline"
@@ -861,6 +1108,21 @@ export default function InsertDbPage() {
                           "Enregistrer le prix"
                         )}
                       </Button>
+
+                      <Button
+                        onClick={handleInsertAndNext}
+                        disabled={saving}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
+                      >
+                        {saving ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Enregistrement…
+                          </>
+                        ) : (
+                          "Enregistrer + Suivant"
+                        )}
+                      </Button>
                     </>
                   )}
 
@@ -872,7 +1134,7 @@ export default function InsertDbPage() {
                     variant="destructive"
                     onClick={handleDeleteItem}
                   >
-                    Supprimer l’item
+                    Supprimer l'item
                   </Button>
                 </div>
               </CardContent>
