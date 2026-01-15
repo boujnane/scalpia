@@ -835,7 +835,7 @@ export default function InsertDbPage() {
                   }}
                 >
                   <div className="flex items-center gap-1">
-                    <span className="flex-1 truncate">{it.type} {it.name}</span>
+                    <span className="flex-1 min-w-0 whitespace-normal break-words">{it.type} {it.name}</span>
                     <div className="flex items-center gap-1 flex-shrink-0">
                       {/* Indicateur de statut */}
                       {isProcessed && (

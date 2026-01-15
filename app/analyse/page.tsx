@@ -16,7 +16,7 @@ import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
 
 // Constante pour gérer la valeur par défaut de l'accordéon (ouvert sur desktop, fermé sur mobile si préféré)
 // Ici, nous le gardons ouvert par défaut pour l'importance de la synthèse.
-const DEFAULT_ACCORDION_VALUE = "dashboard"; 
+const DEFAULT_ACCORDION_VALUE = "dashboard";
 
 export default function AnalysePage() {
   const [items, setItems] = useState<Item[]>([]);

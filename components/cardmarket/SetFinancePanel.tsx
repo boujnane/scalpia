@@ -87,11 +87,8 @@ function gradedSummary(graded?: GradedPrices) {
   ];
 }
 
-function bestSignalPrice(card: CMCard): { value: number; label: "GRADED" | "FR" | "AVG7" } | null {
-  const g = pickGradedSpotlight(card.prices?.graded);
-  if (g) return { value: g.value, label: "GRADED" };
+function bestFrPrice(card: CMCard): { value: number; label: "FR" } | null {
   if (isNum(card.prices?.fr)) return { value: card.prices.fr, label: "FR" };
-  if (isNum(card.prices?.avg7)) return { value: card.prices.avg7, label: "AVG7" };
   return null;
 }
 
@@ -144,8 +141,8 @@ export function SetFinancePanel(props: {
     const avgAvg7 = byAvg7.length ? totalAvg7 / byAvg7.length : 0;
 
     const top10 = cards
-      .map((c) => ({ c, sig: bestSignalPrice(c) }))
-      .filter((x) => x.sig != null) as Array<{ c: CMCard; sig: { value: number; label: "GRADED" | "FR" | "AVG7" } }>;
+      .map((c) => ({ c, sig: bestFrPrice(c) }))
+      .filter((x) => x.sig != null) as Array<{ c: CMCard; sig: { value: number; label: "FR" } }>;
 
     top10.sort((a, b) => b.sig.value - a.sig.value);
 
@@ -285,7 +282,7 @@ export function SetFinancePanel(props: {
                       <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
                         <li>• “Valeur FR” = somme des meilleurs prix Cardmarket FR disponibles.</li>
                         <li>• “Avg7” = moyenne 7 jours (quand présente), utile pour lisser la volatilité.</li>
-                        <li>• “Top 10” = tri par meilleur signal (graded &gt; FR &gt; avg7).</li>
+                        <li>• “Top 10” = tri par meilleur prix Cardmarket FR.</li>
                       </ul>
                     </div>
                   </TabsContent>
@@ -295,9 +292,6 @@ export function SetFinancePanel(props: {
                       <div className="text-sm text-muted-foreground py-8 text-center">Pas assez de données de prix pour établir un top.</div>
                     ) : (
                       finance.top10.map((x, idx) => {
-                        const spotlight = pickGradedSpotlight(x.c.prices?.graded);
-                        const gsum = gradedSummary(x.c.prices?.graded);
-
                         return (
                           <div key={x.c.id} className="rounded-2xl border bg-card p-3 flex items-center gap-3">
                             <div className="w-7 text-center text-xs font-mono text-muted-foreground">{idx + 1}</div>
@@ -312,28 +306,15 @@ export function SetFinancePanel(props: {
                               <div className="mt-1 flex flex-wrap gap-1.5">
                                 {x.c.rarity ? <Badge variant="secondary" className="text-[10px] px-2">{x.c.rarity}</Badge> : null}
                                 <Badge variant="outline" className="text-[10px] px-2 font-mono">#{x.c.card_number ?? "—"}</Badge>
-
-                                {spotlight ? (
-                                  <Badge variant="outline" className="text-[10px] px-2 font-mono tabular-nums">
-                                    {spotlight.label.replace(" ", "")} {Math.round(spotlight.value)}€
-                                  </Badge>
-                                ) : null}
+                                <Badge variant="outline" className="text-[10px] px-2 font-mono tabular-nums">
+                                  FR {Math.round(x.sig.value)}€
+                                </Badge>
                               </div>
-
-                              {spotlight ? (
-                                <div className="mt-1 text-[11px] text-muted-foreground flex flex-wrap gap-2">
-                                  {gsum.filter((g) => g.count > 0).map((g) => (
-                                    <span key={g.brand} className="font-mono tabular-nums">
-                                      {g.brand}: {g.max ? `${Math.round(g.max)}€` : "—"}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : null}
                             </div>
 
                             <div className="text-right">
                               <p className="text-sm font-extrabold tabular-nums">{eur(x.sig.value)}</p>
-                              <p className="text-[11px] text-muted-foreground">{x.sig.label === "GRADED" ? "Graded" : x.sig.label}</p>
+                              <p className="text-[11px] text-muted-foreground">{x.sig.label}</p>
                             </div>
                           </div>
                         );

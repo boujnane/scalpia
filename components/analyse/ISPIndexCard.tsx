@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
   Area,
   AreaChart,
+  ReferenceLine,
 } from "recharts";
 import type { Item } from "@/lib/analyse/types";
 import { computeISPFromItems, ISPIndexSummary } from "@/lib/analyse/finance/ispIndex";
@@ -96,12 +97,16 @@ const CustomTooltip = ({ active, payload }: any) => {
   if (!active || !payload || !payload[0]) return null;
 
   const data = payload[0].payload;
+  const dailyChangePercent = (data.dailyChange * 100).toFixed(2);
+  const dailyChangeSign = data.dailyChange >= 0 ? "+" : "";
 
   return (
     <div className="bg-popover text-popover-foreground border border-border rounded-lg shadow-xl p-3 space-y-1">
       <p className="text-sm font-semibold text-foreground">{formatDate(data.date)}</p>
       <p className="text-lg font-bold text-primary">{data.value.toFixed(2)}</p>
-      <p className="text-xs text-muted-foreground">{data.seriesCount} séries</p>
+      <p className="text-xs text-muted-foreground">
+        {dailyChangeSign}{dailyChangePercent}% ({data.itemCount} items)
+      </p>
     </div>
   );
 };
@@ -190,10 +195,10 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
                   <TooltipContent className="max-w-xs bg-popover text-popover-foreground">
                     <p className="font-semibold mb-1 text-foreground">Index du Scellé Pokémon FR</p>
                     <p className="text-xs text-muted-foreground">
-                      Mesure la <span className="font-semibold text-foreground">valorisation moyenne</span> du marché français par rapport aux prix retail (prix de sortie).
+                      Mesure l'<span className="font-semibold text-foreground">évolution globale</span> du marché français des produits scellés Pokémon.
                     </p>
                     <p className="text-xs text-muted-foreground mt-2">
-                      Base 100 = prix retail moyen. Une valeur de 130 signifie que les produits valent en moyenne 30% de plus que leur prix de sortie.
+                      Index chaîné basé sur les variations quotidiennes. Base 100 au démarrage.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -214,7 +219,7 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
               <p className="text-xs sm:text-sm text-muted-foreground mb-1">Valeur actuelle</p>
               <p className="text-4xl sm:text-5xl font-extrabold text-primary tabular-nums">{ispSummary.current.toFixed(2)}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Base 100 = Prix retail moyen
+                Base 100 = Valeur initiale
               </p>
             </div>
 
@@ -282,9 +287,9 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
               </Tabs>
             </div>
 
-            <div className="w-full h-[280px] sm:h-[320px]">
+            <div className="w-full h-[280px] sm:h-[320px] text-muted-foreground">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <AreaChart data={chartData} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorIndex" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="rgb(59, 130, 246)" stopOpacity={0.6} />
@@ -293,8 +298,8 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="hsl(var(--border))"
-                    opacity={0.5}
+                    stroke="currentColor"
+                    opacity={0.2}
                   />
                   <XAxis
                     dataKey="date"
@@ -302,18 +307,34 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
                       const d = new Date(date);
                       return d.toLocaleDateString("fr-FR", { month: "short", day: "numeric" });
                     }}
-                    tick={{ fontSize: 11 }}
-                    stroke="hsl(var(--muted-foreground))"
-                    tickLine={{ stroke: "hsl(var(--border))" }}
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                    stroke="currentColor"
+                    strokeOpacity={0.3}
+                    tickLine={{ stroke: "currentColor", strokeOpacity: 0.3 }}
                   />
                   <YAxis
                     domain={["dataMin - 5", "dataMax + 5"]}
-                    tick={{ fontSize: 11 }}
-                    stroke="hsl(var(--muted-foreground))"
-                    tickLine={{ stroke: "hsl(var(--border))" }}
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                    stroke="currentColor"
+                    strokeOpacity={0.3}
+                    tickLine={{ stroke: "currentColor", strokeOpacity: 0.3 }}
                     tickFormatter={(v) => v.toFixed(0)}
                   />
                   <RechartsTooltip content={<CustomTooltip />} />
+                  {/* Annotation: Ajout Leboncoin le 30 novembre 2025 */}
+                  <ReferenceLine
+                    x="2025-11-30"
+                    stroke="#f97316"
+                    strokeDasharray="5 5"
+                    strokeWidth={2}
+                    label={{
+                      value: "Ajout Leboncoin",
+                      position: "top",
+                      fill: "#f97316",
+                      fontSize: 10,
+                      fontWeight: 600,
+                    }}
+                  />
                   <Area
                     type="monotone"
                     dataKey="value"
@@ -321,7 +342,7 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
                     strokeWidth={4}
                     fill="url(#colorIndex)"
                     dot={false}
-                    activeDot={{ r: 7, fill: "rgb(59, 130, 246)", stroke: "hsl(var(--background))", strokeWidth: 3 }}
+                    activeDot={{ r: 7, fill: "rgb(59, 130, 246)", stroke: "white", strokeWidth: 3 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -337,12 +358,12 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
                   Comment interpréter l'ISP-FR ?
                 </p>
                 <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">
-                  L'ISP-FR mesure la <span className="font-semibold text-foreground">valorisation moyenne</span> du marché par rapport aux prix retail (prix de sortie).
+                  L'ISP-FR est un <span className="font-semibold text-foreground">index chaîné</span> qui mesure l'évolution globale du marché. Les variations sont calculées jour par jour avec les items présents.
                 </p>
                 <ul className="text-[11px] sm:text-xs text-muted-foreground space-y-0.5 ml-3">
-                  <li>• <span className="font-semibold text-foreground">ISP-FR = 100</span> → Le marché est au prix retail</li>
-                  <li>• <span className="font-semibold text-success">ISP-FR = 130</span> → Le marché vaut 30% de plus que le retail</li>
-                  <li>• <span className="font-semibold text-destructive">ISP-FR = 85</span> → Le marché vaut 15% de moins que le retail</li>
+                  <li>• <span className="font-semibold text-foreground">ISP-FR = 100</span> → Valeur de référence (base)</li>
+                  <li>• <span className="font-semibold text-success">ISP-FR = 130</span> → Le marché a progressé de 30%</li>
+                  <li>• <span className="font-semibold text-destructive">ISP-FR = 85</span> → Le marché a reculé de 15%</li>
                 </ul>
               </div>
             </div>
