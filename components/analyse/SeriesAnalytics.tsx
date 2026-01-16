@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { Item } from "@/lib/analyse/types";
 import { getBlocImage } from "@/lib/utils";
 import { SeriesTrendChart } from "./SeriesTrendChart";
@@ -20,7 +21,10 @@ import {
   AlertCircle,
   ChevronRight,
   Filter,
+  Lock,
+  Sparkles,
 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -73,6 +77,9 @@ interface SeriesAnalyticsProps {
 }
 
 export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
+  const { user } = useAuth();
+  const isPro = !!user; // Connected = Pro for now
+
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selectedBloc, setSelectedBloc] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -205,6 +212,12 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
               >
                 <BarChart3 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Avancé</span>
+                {!isPro && (
+                  <span className="hidden sm:inline-flex items-center gap-0.5 ml-1 px-1 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-semibold">
+                    <Sparkles className="w-2 h-2" />
+                    PRO
+                  </span>
+                )}
               </button>
             </div>
 
@@ -221,17 +234,39 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
               >
                 7 jours
               </button>
-              <button
-                onClick={() => {
-                  setMetricPeriod("return30d");
-                  setSortConfig({ key: "return30d", direction: "desc" });
-                }}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  metricPeriod === "return30d" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                30 jours
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => {
+                      if (isPro) {
+                        setMetricPeriod("return30d");
+                        setSortConfig({ key: "return30d", direction: "desc" });
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      metricPeriod === "return30d"
+                        ? "bg-background shadow-sm text-foreground"
+                        : isPro
+                          ? "text-muted-foreground hover:text-foreground"
+                          : "text-muted-foreground/50 cursor-not-allowed"
+                    }`}
+                  >
+                    {!isPro && <Lock className="w-3 h-3" />}
+                    30 jours
+                    {!isPro && (
+                      <span className="inline-flex items-center gap-0.5 ml-1 px-1 py-0.5 rounded bg-primary/10 text-primary text-[9px] font-semibold">
+                        <Sparkles className="w-2 h-2" />
+                        PRO
+                      </span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                {!isPro && (
+                  <TooltipContent>
+                    <p className="text-xs">Connectez-vous pour accéder aux données 30 jours</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
             </div>
 
             {/* Search */}
@@ -437,9 +472,34 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
             VIEW: ADVANCED (Métriques avancées)
         ───────────────────────────────────────────────────────── */}
         {viewMode === "advanced" && (
-          <div className="p-4 space-y-4">
-            {/* Series selector */}
-            <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative">
+            {/* Blur overlay for non-Pro users */}
+            {!isPro && (
+              <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center gap-4 p-8">
+                <div className="p-4 rounded-full bg-primary/10 border border-primary/20">
+                  <Lock className="w-8 h-8 text-primary" />
+                </div>
+                <div className="text-center max-w-md">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
+                    Indicateurs avancés
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Accédez aux ratios de Sharpe, Sortino, RSI, analyse de risque et bien plus avec le plan Pro.
+                  </p>
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Passer en Pro
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            <div className={`p-4 space-y-4 ${!isPro ? "blur-[6px] pointer-events-none select-none" : ""}`}>
+              {/* Series selector */}
+              <div className="flex flex-col sm:flex-row gap-3">
               <Select
                 value={selectedSeries?.seriesName || ""}
                 onValueChange={(value) => {
@@ -572,6 +632,7 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
                 </CardContent>
               </Card>
             </div>
+          </div>
           </div>
         )}
 

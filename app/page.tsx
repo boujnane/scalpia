@@ -227,7 +227,7 @@ export default function HomePage() {
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
                     <Icons.zap className="h-3 w-3 text-green-600 dark:text-green-400" aria-hidden="true" />
-                    <span className="text-xs font-semibold text-green-700 dark:text-green-300">API PokePriceTracker</span>
+                    <span className="text-xs font-semibold text-green-700 dark:text-green-300">API RapiAPI Cardmarket</span>
                   </div>
                   <div className="text-center sm:text-left">
                     <p className="text-sm font-semibold">Données en continu</p>

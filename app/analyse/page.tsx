@@ -19,6 +19,13 @@ import {
   ArrowRight,
   Sparkles
 } from "lucide-react";
+import { ProWidget, ProBadge } from "@/components/analyse/ProWidget";
+import {
+  MarketSentimentWidget,
+  VolatilityGaugeWidget,
+  SignalsWidget,
+  RiskReturnScatter
+} from "@/components/analyse/widgets";
 
 export default function AnalysePage() {
   const [items, setItems] = useState<Item[]>([]);
@@ -194,6 +201,42 @@ export default function AnalysePage() {
                 <p className="text-sm text-muted-foreground mt-0.5">Séries avec les plus fortes variations</p>
               </div>
               <TopMovers series={series} metric="return7d" limit={3} />
+            </section>
+
+            {/* Indicateurs Pro - Widgets avancés */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-foreground">Indicateurs avancés</h2>
+                <ProBadge />
+              </div>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Sentiment de marché, volatilité, signaux et analyse risque/rendement
+              </p>
+
+              {/* Widget Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Market Sentiment */}
+                <ProWidget title="Sentiment du Marché">
+                  <MarketSentimentWidget series={series} />
+                </ProWidget>
+
+                {/* Volatility Gauge */}
+                <ProWidget title="Volatilité du Marché">
+                  <VolatilityGaugeWidget series={series} />
+                </ProWidget>
+
+                {/* Signals Widget - Spans 2 columns on large screens */}
+                <div className="lg:col-span-2">
+                  <ProWidget title="Signaux Actifs">
+                    <SignalsWidget series={series} />
+                  </ProWidget>
+                </div>
+              </div>
+
+              {/* Risk/Return Scatter - Full width */}
+              <ProWidget title="Graphique Risque/Rendement">
+                <RiskReturnScatter series={series} />
+              </ProWidget>
             </section>
 
             {/* Analyse des séries - Composant unifié */}

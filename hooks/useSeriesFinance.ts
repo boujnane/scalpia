@@ -62,10 +62,39 @@ export function useSeriesFinance(items: Item[], selectedBloc: string) {
 
       const indexDaily = buildSeriesIndexDailyMedian(itemsPrices);
 
+      if (seriesName.includes("fable") || seriesName.includes("nebuleuse")) {
+        const day = "2026-01-16";
+
+        const contrib = group.map((it, idx) => {
+          const raw = (it.prices ?? []).filter(p => p.date.slice(0, 10) === day);
+          return {
+            item: it.name,
+            idx,
+            rawPointsThatDay: raw.map(p => ({ date: p.date, price: p.price })),
+            lastPoint: it.prices?.at(-1),
+          };
+        });
+
+        console.log("[DEBUG] Contributors on 2026-01-16:", contrib);
+      }
+
+
       const metrics = computeFinanceMetrics({
         prices: indexDaily,
         retailPrice: retail,
       });
+
+      // Debug: log fable nebuleuse data
+      if (seriesName.includes("fable") || seriesName.includes("nebuleuse")) {
+        console.log(`[DEBUG] ${seriesName}:`, {
+          itemsCount: group.length,
+          indexPointsCount: indexDaily.length,
+          lastPrice: metrics.lastPrice,
+          return7d: metrics.return7d,
+          return30d: metrics.return30d,
+          prices: indexDaily.slice(-10), // last 10 price points
+        });
+      }
 
       const lastDate = indexDaily.length ? indexDaily[indexDaily.length - 1].date : null;
 

@@ -31,6 +31,8 @@ import {
   Menu,
   Brain,
   Activity,
+  HelpCircle,
+  Sparkles
 } from "lucide-react";
 
 export const Icons = {
@@ -67,4 +69,6 @@ export const Icons = {
   minus: Minus,
   menu: Menu,
   brain: Brain,
+  helpCircle: HelpCircle,
+  sparkles: Sparkles
 };

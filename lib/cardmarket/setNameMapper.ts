@@ -67,9 +67,9 @@ const SETS_FR: Record<string, string> = {
   "Forbidden Light": "Lumière Interdite",
   "Celestial Storm": "Tempête Céleste",
   "Lost Thunder": "Tonnerre Perdu",
-  "Team Up": "Alliance Infaillible",
-  "Unbroken Bonds": "Harmonie des Esprits",
-  "Unified Minds": "Esprits Unifiés",
+  "Team Up": "Duo de Choc",
+  "Unbroken Bonds": "Alliance Infaillible",
+  "Unified Minds": "Harmonie des Esprits",
   "Cosmic Eclipse": "Éclipse Cosmique",
 
   // Special sets SM

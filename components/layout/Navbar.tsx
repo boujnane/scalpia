@@ -42,6 +42,12 @@ const navLinks = [
     icon: Icons.zap,
     description: "Parcourir les cartes",
   },
+  {
+    name: "Tarifs",
+    href: "/pricing",
+    icon: Icons.sparkles,
+    description: "Offres Free et Premium",
+  },
 ]
 
 export function Navbar() {
@@ -217,7 +223,7 @@ export function Navbar() {
                 <SheetHeader>
                   <SheetTitle className="flex items-center text-lg font-bold">
                     <div className="relative h-12 w-12">
-                      <Image src="/logo/logo_poke.png" alt="Logo" fill className="object-contain" />
+                      <Image src="/logo/logo_pki.png" alt="Logo" fill className="object-contain" />
                     </div>
                     <span>Pokéindex</span>
                   </SheetTitle>
