@@ -13,15 +13,15 @@ export default function Footer() {
           {/* Brand & Description */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3 group">
-              <div className="relative h-14 w-14 transition-transform duration-300 group-hover:scale-105">
+              <div className="relative h-32 w-32 transition-transform duration-300 group-hover:scale-115">
                 <Image
-                  src="/logo/logo_pokéindex.png"
+                  src="/logo/logo_pki.png"
                   alt="PokéIndex Logo"
                   fill
                   className="object-contain"
                 />
               </div>
-              <div className="leading-tight">
+              <div className="leading-tight -ml-4">
                 <div className="text-lg font-bold tracking-tight">
                   Poké<span className="text-primary">index</span>
                 </div>

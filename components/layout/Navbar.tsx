@@ -169,16 +169,16 @@ export function Navbar() {
         
         {/* LOGO SECTION */}
         <Link href="/" className="flex items-center space-x-2.5 transition-all duration-300 hover:opacity-90 group mr-12">
-          <div className="relative h-16 w-16 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
+          <div className="relative h-28 w-28 transition-all duration-300 group-hover:scale-125 group-hover:rotate-3 ">
             <Image
-              src="/logo/logo_pokéindex.png"
+              src="/logo/logo_pki.png"
               alt="PokéIndex"
               fill
               className="object-contain"
               priority
             />
           </div>
-          <span className="hidden font-bold sm:inline-block text-lg tracking-tight -ml-4">
+          <span className="hidden font-bold sm:inline-block text-lg tracking-tight -ml-5">
             Poké<span className="text-primary -ml-0.25">index</span>
           </span>
         </Link>
@@ -216,8 +216,8 @@ export function Navbar() {
               <div className="bg-gradient-to-br from-primary/5 to-transparent p-6 border-b border-border/50">
                 <SheetHeader>
                   <SheetTitle className="flex items-center text-lg font-bold">
-                    <div className="relative h-16 w-16">
-                      <Image src="/logo/logo_pokéindex.png" alt="Logo" fill className="object-contain" />
+                    <div className="relative h-12 w-12">
+                      <Image src="/logo/logo_poke.png" alt="Logo" fill className="object-contain" />
                     </div>
                     <span>Pokéindex</span>
                   </SheetTitle>
