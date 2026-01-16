@@ -114,8 +114,8 @@ export default function UnderConstructionPage() {
                     bg-gradient-to-r from-primary to-primary/80
                     hover:shadow-lg transition-all w-full sm:w-auto"
                 >
-                  <Link href="/tcgdex" aria-label="Rechercher une carte ou une série">
-                    Rechercher
+                  <Link href="/cartes" aria-label="Rechercher une carte ou une série">
+                    Rechercher une carte
                     <Icons.search className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Link>
                 </Button>

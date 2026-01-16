@@ -44,7 +44,7 @@ export default function HomePage() {
       icon: Icons.zap,
       title: "Base Complète",
       description: "Explorez une base détaillée de cartes Pokémon avec images haute résolution, informations techniques et suivi de leur prix sur le marché secondaire, grâce aux API TCGdex et Pokémon Price Tracker.",
-      href: "/tcgdex",
+      href: "/cartes",
       gradient: "from-accent/10 to-cardmarket/30",
       iconColor: "text-muted-foreground",
       borderColor: "border-accent/20",
@@ -197,7 +197,7 @@ export default function HomePage() {
                       transition-all duration-300 hover:scale-105 w-full sm:w-auto group"
                     aria-label="Accéder à la recherche de produits"
                   >
-                    <Link href="/tcgdex">
+                    <Link href="/cartes">
                       <span className="hidden sm:inline">Rechercher une carte ou une série</span>
                       <span className="sm:hidden">Rechercher</span>
                       <Icons.search className="ml-2 h-4 sm:h-5 w-4 sm:w-5 transition-transform group-hover:scale-110" aria-hidden="true" />

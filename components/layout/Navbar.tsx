@@ -38,7 +38,7 @@ const navLinks = [
   },
   {
     name: "Cartes",
-    href: "/tcgdex",
+    href: "/cartes",
     icon: Icons.zap,
     description: "Parcourir les cartes",
   },
