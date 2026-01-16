@@ -20,17 +20,20 @@ interface SeriesHeatMapProps {
 export default function SeriesHeatMap({
   series,
   title = "Vue d'ensemble des séries",
-  metric = "return30d",
+  metric: defaultMetric = "return30d",
 }: SeriesHeatMapProps) {
   const [selectedSeries, setSelectedSeries] = useState<string | null>(null);
+  const [activeMetric, setActiveMetric] = useState<"return7d" | "return30d">(
+    defaultMetric === "premiumNow" ? "return30d" : defaultMetric
+  );
 
   const sortedSeries = useMemo(() => {
     return [...series].sort((a, b) => {
-      const aVal = a.metrics[metric] ?? -999;
-      const bVal = b.metrics[metric] ?? -999;
+      const aVal = a.metrics[activeMetric] ?? -999;
+      const bVal = b.metrics[activeMetric] ?? -999;
       return bVal - aVal;
     });
-  }, [series, metric]);
+  }, [series, activeMetric]);
 
   const getColorClass = (value: number | null): string => {
     if (value == null) return "bg-muted border-border text-foreground hover:bg-muted/80";
@@ -56,16 +59,7 @@ export default function SeriesHeatMap({
   };
 
   const getMetricLabel = (): string => {
-    switch (metric) {
-      case "return7d":
-        return "7 jours";
-      case "return30d":
-        return "30 jours";
-      case "premiumNow":
-        return "Surcote actuelle";
-      default:
-        return "";
-    }
+    return activeMetric === "return7d" ? "7 jours" : "30 jours";
   };
 
   const getTrendIcon = (value: number | null) => {
@@ -85,24 +79,52 @@ export default function SeriesHeatMap({
   return (
     <TooltipProvider>
       <Card className="border-border/50 shadow-sm">
-        <CardHeader>
-          <div className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <CardTitle className="text-lg sm:text-xl">{title}</CardTitle>
               <CardDescription>Variation sur {getMetricLabel()}</CardDescription>
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-emerald-500"></div>
-                <span className="text-muted-foreground">Hausse</span>
+
+            <div className="flex items-center gap-3">
+              {/* Toggle 7j / 30j */}
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-muted">
+                <button
+                  onClick={() => setActiveMetric("return7d")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeMetric === "return7d"
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  7 jours
+                </button>
+                <button
+                  onClick={() => setActiveMetric("return30d")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeMetric === "return30d"
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  30 jours
+                </button>
               </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-slate-300 dark:bg-slate-600"></div>
-                <span className="text-muted-foreground">Neutre</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 rounded bg-rose-500"></div>
-                <span className="text-muted-foreground">Baisse</span>
+
+              {/* Légende desktop */}
+              <div className="hidden lg:flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-emerald-500"></div>
+                  <span className="text-muted-foreground">Hausse</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-slate-300 dark:bg-slate-600"></div>
+                  <span className="text-muted-foreground">Neutre</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 rounded bg-rose-500"></div>
+                  <span className="text-muted-foreground">Baisse</span>
+                </div>
               </div>
             </div>
           </div>
@@ -112,7 +134,7 @@ export default function SeriesHeatMap({
           {/* Grille Heat Map */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
             {sortedSeries.map((s) => {
-              const value = s.metrics[metric];
+              const value = s.metrics[activeMetric];
               const signal = detectSeriesSignal(s);
               const isSelected = selectedSeries === s.seriesName;
 
