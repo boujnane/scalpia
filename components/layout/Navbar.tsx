@@ -95,6 +95,7 @@ export function Navbar() {
 
   const router = useRouter();
   const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null)
+    const [sheetOpen, setSheetOpen] = useState(false)
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10)
@@ -179,33 +180,52 @@ export function Navbar() {
     </nav>
   )
 
-  const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
-    <nav className="flex flex-col gap-2">
-      {navLinks.map((link, index) => {
-        const active = isLinkActive(link.href)
-        const IconComponent = link.icon
+const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
+  <nav className="flex flex-col gap-2">
+    {navLinks.map((link, index) => {
+      const active = isLinkActive(link.href)
+      const IconComponent = link.icon
 
-        return (
-          <motion.div key={link.href} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.1 }}>
-            <Link
-              href={link.href}
-              onClick={onClose}
-              className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 relative overflow-hidden ${active ? 'bg-primary/10 text-primary border border-primary/20' : 'text-foreground hover:bg-muted/50 border border-transparent'}`}
-            >
-              <div className={`absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${active ? 'opacity-100' : ''}`} />
-              <div className={`relative flex items-center justify-center w-10 h-10 rounded-lg ${active ? 'bg-primary/20' : 'bg-muted/50 group-hover:bg-muted'} transition-colors duration-300`}>
-                <IconComponent className="h-5 w-5 relative z-10" strokeWidth={active ? 2.5 : 2}/>
-              </div>
-              <div className="flex-1 relative z-10">
-                <p className={`font-semibold text-sm ${active ? 'text-primary' : ''}`}>{link.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{link.description}</p>
-              </div>
-            </Link>
-          </motion.div>
-        )
-      })}
-    </nav>
-  )
+      return (
+        <motion.div
+          key={link.href}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.1 }}
+        >
+          <Link
+            href={link.href}
+            onClick={() => {
+              onClose?.() // ✅ ferme le drawer
+            }}
+            className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 relative overflow-hidden ${
+              active
+                ? "bg-primary/10 text-primary border border-primary/20"
+                : "text-foreground hover:bg-muted/50 border border-transparent"
+            }`}
+          >
+            {/* ... ton contenu inchangé ... */}
+            <div className={`relative flex items-center justify-center w-10 h-10 rounded-lg ${
+              active ? "bg-primary/20" : "bg-muted/50 group-hover:bg-muted"
+            } transition-colors duration-300`}>
+              <IconComponent className="h-5 w-5 relative z-10" strokeWidth={active ? 2.5 : 2} />
+            </div>
+
+            <div className="flex-1 relative z-10">
+              <p className={`font-semibold text-sm ${active ? "text-primary" : ""}`}>
+                {link.name}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {link.description}
+              </p>
+            </div>
+          </Link>
+        </motion.div>
+      )
+    })}
+  </nav>
+)
+
 
   return (
     <header className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${isScrolled ? "border-border/60 bg-background/70 backdrop-blur-xl shadow-lg shadow-black/5" : "border-border/40 bg-background/80 backdrop-blur-md shadow-sm"} supports-[backdrop-filter]:bg-background/60`}>
@@ -272,9 +292,13 @@ export function Navbar() {
             )}
           </div>
 
-          <Sheet>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden h-9 w-9 rounded-xl hover:bg-muted">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden h-9 w-9 rounded-xl hover:bg-muted"
+              >
                 <Icons.menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
@@ -291,7 +315,7 @@ export function Navbar() {
               </div>
               <div className="flex flex-col h-[calc(100%-88px)]">
                 <div className="flex-1 p-6 overflow-y-auto">
-                  <MobileNavigation />
+                        <MobileNavigation onClose={() => setSheetOpen(false)} />
                 </div>
                 <div className="p-6 border-t border-border/50 bg-muted/20 space-y-3">
                   {!loading && !user ? (
