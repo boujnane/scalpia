@@ -259,7 +259,7 @@ export default function CGUPage() {
 
               <Article id="contact" title="11. Contact" icon={<Icons.search className="h-5 w-5 text-primary" />}>
                 <p>
-                  Pour toute question : <strong>[ady.boujnane@hotmail.fr]</strong>
+                  Pour toute question : <strong>[contact@pokeindex.fr]</strong>
                 </p>
               </Article>
             </section>

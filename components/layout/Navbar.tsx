@@ -28,25 +28,25 @@ const navLinks = [
   {
     name: "Rechercher",
     href: "/rechercher",
-    icon: Icons.linechart,
+    icon: Icons.scanSearch,
     description: "Comparez sur le marché secondaire",
   },
   {
     name: "Analyser",
     href: "/analyse",
-    icon: Icons.wallet,
+    icon: Icons.linechart,
     description: "Explorer les données de marché",
   },
   {
     name: "Cartes",
     href: "/cartes",
-    icon: Icons.zap,
+    icon: Icons.walletCards,
     description: "Parcourir les cartes",
   },
   {
     name: "Tarifs",
     href: "/pricing",
-    icon: Icons.sparkles,
+    icon: Icons.badgeDollarSign,
     description: "Offres Free et Premium",
   },
 ]

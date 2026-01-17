@@ -455,12 +455,14 @@ export default function PricingPage() {
                     aria-label={`Offre ${plan.name}`}
                   >
                     {/* Popular ribbon */}
-                    {plan.popular && (
-                      <div className="absolute top-0 right-0 overflow-hidden w-24 h-24" aria-hidden="true">
-                        <div className="absolute top-3 right-[-28px] w-[140px] bg-gradient-to-r from-primary to-purple-500 text-primary-foreground text-[10px] font-bold text-center py-1 rotate-45 shadow-md">
-                          POPULAIRE
+                                        {plan.popular && (
+                    <div className="pointer-events-none absolute right-[-56px] top-6 z-20 rotate-45">
+                        <div className="w-48 bg-gradient-to-r from-primary to-purple-500  text-primary-foreground text-center text-[9.5px] leading-none
+                                        font-extrabold tracking-widest uppercase py-1.25
+                                        shadow-sm border border-primary/40">
+                        Populaire
                         </div>
-                      </div>
+                    </div>
                     )}
 
                     {/* Featured glow */}
@@ -506,11 +508,11 @@ export default function PricingPage() {
                           aria-hidden="true"
                         >
                           {plan.id === "free" ? (
-                            <Icons.zap className="h-5 w-5 text-primary" />
+                            <Icons.play className="h-5 w-5 text-primary" />
                           ) : plan.id === "pro" ? (
-                            <Icons.sparkles className="h-5 w-5 text-primary" />
+                            <Icons.trophy className="h-5 w-5 text-primary" />
                           ) : (
-                            <Icons.barChart3 className="h-5 w-5 text-primary" />
+                            <Icons.building2 className="h-5 w-5 text-primary" />
                           )}
                         </div>
                       </div>

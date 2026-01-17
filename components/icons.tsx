@@ -1,5 +1,4 @@
 // components/icons.tsx
-
 import {
   User,
   Notebook,
@@ -16,8 +15,8 @@ import {
   Search,
   Upload,
   Image as ImageIcon,
-  RefreshCcw, // Celui que tu avais déjà (Counter Clockwise)
-  RefreshCw,  // Le nouveau pour l'update (Clockwise)
+  RefreshCcw,
+  RefreshCw,
   ExternalLink,
   Package,
   ShoppingBag,
@@ -25,7 +24,7 @@ import {
   TrendingDown,
   Minus,
   LineChart,
-  BarChart3, // Le nouveau pour l'aspect "Données/Index"
+  BarChart3,
   Wallet,
   Zap,
   Menu,
@@ -36,19 +35,35 @@ import {
   Shield,
   Settings,
   CreditCard,
-  ArrowRight
-} from "lucide-react";
+  ArrowRight,
+  WalletCards,
+  BadgeDollarSign,
+  ScanSearch,
+  Trophy,
+  Building2,
+  Play,
+
+  // ✅ AJOUTS pour la page Contact
+  LifeBuoy,
+  Database,
+  Send,
+  AlertTriangle,
+  Link as LinkIcon,
+  Bug,
+  FileText,
+  Scale,
+} from "lucide-react"
 
 export const Icons = {
   // Trading / Data / Market Intelligence
   trendingUp: TrendingUp,
   trendingDown: TrendingDown,
   linechart: LineChart,
-  barChart3: BarChart3, // Utilisé dans le nouveau CTA
+  barChart3: BarChart3,
   wallet: Wallet,
   zap: Zap,
   activity: Activity,
-  
+
   // Core UI
   user: User,
   note: Notebook,
@@ -64,8 +79,8 @@ export const Icons = {
   search: Search,
   upload: Upload,
   image: ImageIcon,
-  refresh: RefreshCcw,    // Ton ancien refresh
-  refreshCw: RefreshCw,   // Le nouveau refresh pour le badge "Mise à jour"
+  refresh: RefreshCcw,
+  refreshCw: RefreshCw,
   external: ExternalLink,
   package: Package,
   bag: ShoppingBag,
@@ -79,5 +94,21 @@ export const Icons = {
   settings: Settings,
   creditCard: CreditCard,
   loader: Loader2,
-  arrowRight: ArrowRight
-};
+  arrowRight: ArrowRight,
+  walletCards: WalletCards,
+  badgeDollarSign: BadgeDollarSign,
+  scanSearch: ScanSearch,
+  trophy: Trophy,
+  building2: Building2,
+  play: Play,
+
+  // ✅ Contact page
+  lifeBuoy: LifeBuoy,
+  database: Database,
+  send: Send,
+  alertTriangle: AlertTriangle,
+  link: LinkIcon,
+  bug: Bug,
+  fileText: FileText,
+  scale: Scale,
+}
