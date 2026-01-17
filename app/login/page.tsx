@@ -1,37 +1,30 @@
 "use client";
-import { sendSignInLinkToEmail } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+
 import { useState } from "react";
-import { Mail, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
+import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Mail, ArrowRight, CheckCircle, AlertCircle, UserPlus } from "lucide-react";
 
-export default function LoginPage() {
+export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loadingEmail, setLoadingEmail] = useState(false);
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [error, setError] = useState("");
-  
 
-  const isValidEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  // --- LOGIN PAR EMAIL ---
   const sendLink = async () => {
-    if (!email) {
-      setError("Veuillez entrer votre adresse email");
-      return;
-    }
+    if (!email) return setError("Veuillez entrer votre adresse email");
+    if (!isValidEmail(email)) return setError("Veuillez entrer une adresse email valide");
 
-    if (!isValidEmail(email)) {
-      setError("Veuillez entrer une adresse email valide");
-      return;
-    }
-
-    setLoading(true);
+    setLoadingEmail(true);
     setError("");
 
     const actionCodeSettings = {
@@ -45,24 +38,35 @@ export default function LoginPage() {
       setSent(true);
     } catch (err: any) {
       console.error(err);
-      if (err.code === "auth/invalid-email") {
-        setError("Adresse email invalide");
-      } else if (err.code === "auth/too-many-requests") {
-        setError("Trop de tentatives. Veuillez réessayer plus tard");
-      } else {
-        setError("Erreur lors de l'envoi du lien. Veuillez réessayer");
-      }
+      setError(err.message || "Erreur lors de l'envoi du lien");
     } finally {
-      setLoading(false);
+      setLoadingEmail(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !loading) {
-      sendLink();
+    if (e.key === "Enter" && !loadingEmail) sendLink();
+  };
+
+  // --- LOGIN PAR GOOGLE ---
+  const signInWithGoogle = async () => {
+    setLoadingGoogle(true);
+    setError("");
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      console.log("Utilisateur Google:", user);
+      window.location.href = "/pricing";
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Erreur lors de la connexion avec Google");
+    } finally {
+      setLoadingGoogle(false);
     }
   };
 
+  // --- RENDER EMAIL SENT ---
   if (sent) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -71,31 +75,20 @@ export default function LoginPage() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-full mx-auto">
               <CheckCircle className="w-8 h-8 text-success" />
             </div>
-            <div>
-              <CardTitle className="text-2xl">Email envoyé !</CardTitle>
-              <CardDescription className="mt-2">
-                Un lien de connexion a été envoyé à{" "}
-                <span className="font-semibold text-foreground">{email}</span>
-              </CardDescription>
-            </div>
+            <CardTitle className="text-2xl">Email envoyé !</CardTitle>
+            <CardDescription>Un lien de connexion a été envoyé à <b>{email}</b></CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Alert className="bg-primary/5 border-primary/20">
               <Mail className="h-4 w-4 text-primary" />
               <AlertDescription className="text-sm">
-                <p className="font-medium mb-1">📧 Vérifiez votre boîte de réception</p>
-                <p className="text-xs text-muted-foreground">
-                  Le lien expirera dans 60 minutes
-                </p>
+                Vérifiez votre boîte de réception. Le lien expirera dans 60 minutes.
               </AlertDescription>
             </Alert>
             <Button
               variant="ghost"
               className="w-full"
-              onClick={() => {
-                setSent(false);
-                setEmail("");
-              }}
+              onClick={() => { setSent(false); setEmail(""); }}
             >
               Renvoyer à une autre adresse
             </Button>
@@ -105,66 +98,48 @@ export default function LoginPage() {
     );
   }
 
+  // --- RENDER LOGIN PAGE ---
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="max-w-md w-full">
+      <Card className="max-w-md w-full space-y-6">
         <CardHeader className="text-center space-y-4">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mx-auto">
-            <Mail className="w-8 h-8 text-primary" />
+            <UserPlus className="w-8 h-8 text-primary" />
           </div>
-          <div>
-            <CardTitle className="text-3xl">Connexion</CardTitle>
-            <CardDescription className="mt-2">
-              Entrez votre email pour recevoir un lien de connexion
-            </CardDescription>
-          </div>
+          <CardTitle className="text-3xl">Connexion / Inscription</CardTitle>
+          <CardDescription>Choisissez une méthode pour vous connecter ou créer un compte</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* EMAIL */}
           <div className="space-y-2">
-            <Label htmlFor="email">Adresse email</Label>
+            <Label htmlFor="email">Connexion par email</Label>
             <Input
               id="email"
               type="email"
               placeholder="email@exemple.com"
               value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError("");
-              }}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
               onKeyPress={handleKeyPress}
-              disabled={loading}
-              className={error ? "border-destructive focus-visible:ring-destructive" : ""}
+              disabled={loadingEmail}
             />
-            {error && (
-              <Alert variant="destructive" className="mt-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+            <Button onClick={sendLink} disabled={loadingEmail || !email} className="w-full mt-2">
+              {loadingEmail ? "Envoi en cours..." : "Recevoir le lien"}
+            </Button>
           </div>
 
-          <Button
-            onClick={sendLink}
-            disabled={loading || !email}
-            className="w-full group"
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                <span>Envoi en cours...</span>
-              </>
-            ) : (
-              <>
-                <span>Recevoir le lien</span>
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
-          </Button>
-
-          <p className="text-center text-xs text-muted-foreground pt-2">
-            En continuant, vous acceptez nos conditions d'utilisation
-          </p>
+          {/* Google */}
+          <div className="pt-4 border-t border-muted-foreground/20">
+            <Button onClick={signInWithGoogle} disabled={loadingGoogle} className="w-full mt-2">
+              {loadingGoogle ? "Connexion en cours..." : "Se connecter avec Google"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,40 +1,76 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Icons } from "@/components/icons";
-import { useAuth } from "@/context/AuthContext";
+import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { motion } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Icons } from "@/components/icons"
+import { useAuth } from "@/context/AuthContext"
 
 export default function SuccessClient() {
-  const searchParams = useSearchParams();
-  const sessionId = searchParams.get("session_id");
-  const { user, isPro } = useAuth();
-  const [countdown, setCountdown] = useState(10);
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const sessionId = searchParams.get("session_id")
 
+  const { isPro } = useAuth()
+  const [countdown, setCountdown] = useState(8)
+
+  // 1) Countdown timer
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          window.location.href = "/analyse";
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const timer = window.setInterval(() => {
+      setCountdown((prev) => Math.max(0, prev - 1))
+    }, 1000)
 
-    return () => clearInterval(timer);
-  }, []);
+    return () => window.clearInterval(timer)
+  }, [])
+
+  // 2) Redirect when countdown hits 0
+  useEffect(() => {
+    if (countdown !== 0) return
+    router.replace("/analyse")
+  }, [countdown, router])
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
-      {/* ton JSX inchangé */}
-      <h1>Paiement réussi 🎉</h1>
-      <p>Redirection dans {countdown}s</p>
-      <Link href="/analyse">Continuer</Link>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-md rounded-2xl border border-border/50 bg-background/70 backdrop-blur p-6 sm:p-8 text-center shadow-sm"
+      >
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-500/10 border border-green-500/20">
+          <Icons.check className="h-6 w-6 text-green-600 dark:text-green-400" />
+        </div>
+
+        <h1 className="text-2xl font-bold tracking-tight">Paiement réussi 🎉</h1>
+
+        <p className="mt-2 text-sm text-muted-foreground">
+          {isPro
+            ? "Ton compte Pro est actif. Tu peux retourner à l’index."
+            : "On active ton compte Pro… (ça peut prendre quelques secondes)."}
+        </p>
+
+        {sessionId && (
+          <p className="mt-3 text-[11px] text-muted-foreground/70">
+            Session : <span className="font-mono">{sessionId}</span>
+          </p>
+        )}
+
+        <div className="mt-6 grid gap-3">
+          <Button className="h-11 rounded-xl font-semibold" onClick={() => router.replace("/analyse")}>
+            Continuer vers l’index
+            <Icons.arrowRight className="ml-2 h-4 w-4" />
+          </Button>
+
+          <Button asChild variant="outline" className="h-11 rounded-xl font-semibold">
+            <Link href="/pricing">Retour aux tarifs</Link>
+          </Button>
+        </div>
+
+        <p className="mt-5 text-xs text-muted-foreground/70">
+          Redirection automatique dans <span className="font-semibold">{countdown}</span>s…
+        </p>
+      </motion.div>
     </div>
-  );
+  )
 }

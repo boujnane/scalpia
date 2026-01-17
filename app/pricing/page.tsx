@@ -43,77 +43,91 @@ export default function PricingPage() {
   const router = useRouter()
 
   useEffect(() => setMounted(true), [])
-
+    
   const handleCheckout = async () => {
-    if (!user) {
-      // Redirect to login with return URL
-      router.push("/login?redirect=/pricing")
-      return
-    }
-
-    if (isPro) {
-      // Already Pro, redirect to portal
-      handlePortal()
-      return
-    }
-
-    setCheckoutLoading(true)
-    try {
-      const response = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.uid,
-          email: user.email,
-          interval: billing,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create checkout session")
-      }
-
-      // Redirect to Stripe Checkout
-      if (data.url) {
-        window.location.href = data.url
-      }
-    } catch (error) {
-      console.error("Checkout error:", error)
-      alert("Une erreur est survenue. Veuillez réessayer.")
-    } finally {
-      setCheckoutLoading(false)
-    }
+  if (!user) {
+    router.push("/login?redirect=/pricing")
+    return
   }
+
+  // Si déjà pro => portail
+  if (isPro) {
+    await handlePortal()
+    return
+  }
+
+  setCheckoutLoading(true)
+  try {
+    const token = await user.getIdToken()
+
+    const response = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        interval: billing, // ✅ ton endpoint attend seulement interval
+      }),
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      console.error("Checkout API error:", response.status, data)
+      throw new Error(data?.error || `API error ${response.status}`)
+    }
+
+    if (!data?.url) {
+      throw new Error("No checkout URL returned")
+    }
+
+    window.location.assign(data.url)
+  } catch (error) {
+    console.error("Checkout error:", error)
+    alert(`Une erreur est survenue : ${(error as Error).message}`)
+  } finally {
+    setCheckoutLoading(false)
+  }
+}
+
 
   const handlePortal = async () => {
-    if (!user) return
+  if (!user) return
 
-    setCheckoutLoading(true)
-    try {
-      const response = await fetch("/api/stripe/portal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.uid }),
-      })
+  setCheckoutLoading(true)
+  try {
+    const token = await user.getIdToken()
 
-      const data = await response.json()
+    const response = await fetch("/api/stripe/portal", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({}), // ✅ inutile d'envoyer userId si le serveur lit le token
+    })
 
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create portal session")
-      }
+    const data = await response.json().catch(() => ({}))
 
-      if (data.url) {
-        window.location.href = data.url
-      }
-    } catch (error) {
-      console.error("Portal error:", error)
-      alert("Une erreur est survenue. Veuillez réessayer.")
-    } finally {
-      setCheckoutLoading(false)
+    if (!response.ok) {
+      console.error("Portal API error:", response.status, data)
+      throw new Error(data?.error || `API error ${response.status}`)
     }
+
+    if (!data?.url) {
+      throw new Error("No portal URL returned")
+    }
+
+    window.location.assign(data.url)
+  } catch (error) {
+    console.error("Portal error:", error)
+    alert(`Une erreur est survenue : ${(error as Error).message}`)
+  } finally {
+    setCheckoutLoading(false)
   }
+}
+
 
   const plans: Plan[] = useMemo(
     () => [

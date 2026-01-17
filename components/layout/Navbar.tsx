@@ -58,24 +58,41 @@ export function Navbar() {
   const [portalLoading, setPortalLoading] = useState(false);
 
   const handlePortal = async () => {
-    if (!user) return;
-    setPortalLoading(true);
-    try {
-      const response = await fetch("/api/stripe/portal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.uid }),
-      });
-      const data = await response.json();
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error("Portal error:", error);
-    } finally {
-      setPortalLoading(false);
+  if (!user) return;
+
+  setPortalLoading(true);
+  try {
+    const token = await user.getIdToken();
+
+    const response = await fetch("/api/stripe/portal", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({}), // inutile d'envoyer userId
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error("Portal API error:", response.status, data);
+      throw new Error(data?.error || `API error ${response.status}`);
     }
-  };
+
+    if (!data?.url) {
+      throw new Error("No portal URL returned");
+    }
+
+    window.location.assign(data.url);
+  } catch (error) {
+    console.error("Portal error:", error);
+    alert(`Une erreur est survenue : ${(error as Error).message}`);
+  } finally {
+    setPortalLoading(false);
+  }
+};
+
   const router = useRouter();
   const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null)
 

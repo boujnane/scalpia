@@ -36,6 +36,7 @@ import {
   Shield,
   Settings,
   CreditCard,
+  ArrowRight
 } from "lucide-react";
 
 export const Icons = {
@@ -78,4 +79,5 @@ export const Icons = {
   settings: Settings,
   creditCard: CreditCard,
   loader: Loader2,
+  arrowRight: ArrowRight
 };
