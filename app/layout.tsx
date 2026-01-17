@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pokéindex | Market Analytics",
+  title: "Pokéindex",
   description: "L'observatoire des prix du marché Pokémon scellé francophone",
 };
 
