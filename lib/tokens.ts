@@ -5,7 +5,7 @@ import { SubscriptionTier } from "./subscription";
 
 // Limites de jetons par tier
 export const TOKEN_LIMITS: Record<SubscriptionTier, number> = {
-  free: 30,
+  free: 15,
   pro: 300,
   admin: Infinity, // Illimité
 };

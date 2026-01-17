@@ -140,7 +140,7 @@ export default function PricingPage() {
         priceMonthly: 0,
         priceYearly: 0,
         highlights: [
-          "30 recherches / jour",
+          "15 recherches / jour",
           "Accès à l'index & historique des prix",
           "Toutes les séries accessibles",
           "Prix planchers & tendances basiques",
@@ -192,7 +192,7 @@ export default function PricingPage() {
 
   const comparisonFeatures: FeatureRow[] = useMemo(
     () => [
-      { name: "Recherches / jour", free: "30", pro: "300", enterprise: "Illimité" },
+      { name: "Recherches / jour", free: "15", pro: "300", enterprise: "Illimité" },
       { name: "Historique des prix", free: true, pro: true, enterprise: true },
       { name: "Toutes les séries", free: true, pro: true, enterprise: true },
       { name: "Indicateurs financiers", free: false, pro: true, enterprise: true },
@@ -210,7 +210,7 @@ export default function PricingPage() {
     () => [
       {
         q: "Comment fonctionnent les quotas de recherche ?",
-        a: "Chaque recherche (carte ou série) consomme 1 crédit. Le compteur se réinitialise chaque jour à minuit. Gratuit = 30/jour, Pro = 300/jour, Entreprise = illimité.",
+        a: "Chaque recherche (carte ou série) consomme 1 crédit. Le compteur se réinitialise chaque jour à minuit. Gratuit = 15/jour, Pro = 300/jour, Entreprise = illimité.",
       },
       {
         q: "Les prix sont-ils garantis ?",
@@ -226,7 +226,7 @@ export default function PricingPage() {
       },
       {
         q: "Pro inclut quoi concrètement en plus ?",
-        a: "10× plus de recherches (300/jour), indicateurs financiers avancés (volatilité, momentum, scoring de risque), alertes de prix, exports CSV et support prioritaire.",
+        a: "20× plus de recherches (300/jour), indicateurs financiers avancés (volatilité, momentum, scoring de risque), alertes de prix, exports CSV et support prioritaire.",
       },
     ],
     []

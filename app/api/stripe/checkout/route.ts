@@ -1,3 +1,4 @@
+// app/api/stripe/checkout/route.ts
 import { NextResponse } from "next/server"
 import {
   STRIPE_PRICE_IDS,
@@ -10,13 +11,20 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin"
 
 export const runtime = "nodejs"
 
+function getBaseUrl(req: Request) {
+  // origin peut être null en prod (proxy/vercel). Donc fallback env.
+  const origin = req.headers.get("origin")
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+  return origin || siteUrl || "https://pokeindex.fr"
+}
+
 export async function POST(req: Request) {
   try {
     const { interval } = (await req.json().catch(() => ({}))) as {
       interval?: BillingInterval
     }
 
-    if (!interval || !["monthly", "yearly"].includes(interval)) {
+    if (interval !== "monthly" && interval !== "yearly") {
       return NextResponse.json({ error: "Invalid interval" }, { status: 400 })
     }
 
@@ -36,32 +44,30 @@ export async function POST(req: Request) {
     if (!email) return NextResponse.json({ error: "Email missing on token" }, { status: 400 })
 
     // ✅ Get/Create customer (robust)
-    let customerId = await getOrCreateCustomer(userId, email)
+    let customerId: string | null = await getOrCreateCustomer(userId, email)
 
-    // ✅ Check active subs — and auto-repair if customer was deleted in Stripe
-    try {
-      const existingSubscriptions = await stripe.subscriptions.list({
-        customer: customerId,
-        status: "active",
-      })
+    // ✅ Check active subs — auto-repair if customer was deleted in Stripe
+    if (customerId) {
+      try {
+        const existingSubscriptions = await stripe.subscriptions.list({
+          customer: customerId,
+          status: "active",
+        })
 
-      if (existingSubscriptions.data.length > 0) {
-        // Option A: block
-        return NextResponse.json({ error: "Already subscribed" }, { status: 400 })
-
-        // Option B (better UX): return { redirect: "portal" } and redirect client-side
-        // return NextResponse.json({ error: "Already subscribed", redirect: "portal" }, { status: 400 })
-      }
-    } catch (err: any) {
-      // If customer doesn't exist (you deleted it from Stripe), recreate
-      if (err?.code === "resource_missing" && String(err?.message || "").includes("No such customer")) {
-        customerId = null as any // force Stripe to create a new one in checkout
-      } else {
-        throw err
+        if (existingSubscriptions.data.length > 0) {
+          return NextResponse.json({ error: "Already subscribed" }, { status: 400 })
+        }
+      } catch (err: any) {
+        const msg = String(err?.message || "")
+        if (err?.code === "resource_missing" || msg.includes("No such customer")) {
+          customerId = null // => Stripe créera un customer pendant checkout
+        } else {
+          throw err
+        }
       }
     }
 
-    // Store customer id only if we have one (if null, webhook will populate after checkout)
+    // Store customer id only if we have one (if null, webhook can store later)
     if (customerId) {
       await adminDb().collection("subscriptions").doc(userId).set(
         { stripeCustomerId: customerId, updatedAt: new Date() },
@@ -69,13 +75,13 @@ export async function POST(req: Request) {
       )
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:3000"
-    const successUrl = `${origin}/pricing/success?session_id={CHECKOUT_SESSION_ID}`
-    const cancelUrl = `${origin}/pricing`
+    const baseUrl = getBaseUrl(req)
+    const successUrl = `${baseUrl}/pricing/success?session_id={CHECKOUT_SESSION_ID}`
+    const cancelUrl = `${baseUrl}/pricing`
 
-    // ✅ NEW signature
+    // ✅ createCheckoutSession signature = params object
     const session = await createCheckoutSession({
-      customerId: customerId ?? null, // if null => Stripe creates customer
+      customerId, // string | null
       priceId,
       userId,
       successUrl,

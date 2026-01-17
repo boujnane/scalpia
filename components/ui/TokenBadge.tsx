@@ -97,7 +97,7 @@ export function TokenBadge({ compact = false, onClick }: TokenBadgeProps) {
 }
 
 /**
- * Modal affichée quand l'utilisateur n'a plus de jetons
+ * Modal affichée quand l'utilisateur n'a plus de jetons ou n'est pas connecté
  */
 export function NoTokensModal({
   open,
@@ -106,10 +106,65 @@ export function NoTokensModal({
   open: boolean;
   onClose: () => void;
 }) {
-  const { isPro } = useAuth();
+  const { user, isPro } = useAuth();
 
   if (!open) return null;
 
+  // Cas 1: Utilisateur non connecté
+  if (!user) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={onClose}
+        />
+
+        <div className="relative bg-card text-card-foreground w-full max-w-md rounded-2xl shadow-2xl border border-border p-6 animate-in fade-in zoom-in-95">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition"
+          >
+            <Icons.close className="h-5 w-5" />
+          </button>
+
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mb-4">
+              <Icons.user className="h-8 w-8 text-primary" />
+            </div>
+
+            <h2 className="text-2xl font-bold mb-2">Connexion requise</h2>
+
+            <p className="text-muted-foreground mb-6">
+              Connecte-toi pour explorer les séries et accéder à tes 15 recherches gratuites par jour.
+            </p>
+
+            <div className="space-y-3">
+              <a
+                href="/login?redirect=/cartes"
+                className="
+                  flex items-center justify-center gap-2 w-full py-3 rounded-xl
+                  bg-gradient-to-r from-primary to-purple-600 text-primary-foreground
+                  font-bold transition hover:opacity-90
+                "
+              >
+                <Icons.user className="h-5 w-5" />
+                Se connecter
+              </a>
+
+              <button
+                onClick={onClose}
+                className="w-full py-3 rounded-xl border border-border hover:bg-muted transition"
+              >
+                Plus tard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Cas 2: Utilisateur connecté mais plus de jetons
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
@@ -135,7 +190,7 @@ export function NoTokensModal({
           <p className="text-muted-foreground mb-6">
             {isPro
               ? "Tu as utilisé tes 300 recherches quotidiennes. Reviens demain !"
-              : "Tu as utilisé tes 30 recherches gratuites du jour."}
+              : "Tu as utilisé tes 15 recherches gratuites du jour."}
           </p>
 
           {!isPro && (

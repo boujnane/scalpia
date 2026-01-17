@@ -56,14 +56,14 @@ export function RiskReturnScatter({ series, onSeriesClick, className }: RiskRetu
     return { data: dataPoints, avgRisk, avgReturn };
   }, [series]);
 
-  // Color based on Sharpe ratio
+  // Color based on Sharpe ratio (matching legend colors)
   const getPointColor = (point: DataPoint) => {
     if (point.sharpe == null) return "hsl(var(--muted-foreground))";
-    if (point.sharpe > 1) return "hsl(142, 76%, 36%)"; // Green
-    if (point.sharpe > 0.5) return "hsl(142, 76%, 46%)"; // Light green
-    if (point.sharpe > 0) return "hsl(48, 96%, 53%)"; // Yellow
-    if (point.sharpe > -0.5) return "hsl(25, 95%, 53%)"; // Orange
-    return "hsl(0, 84%, 60%)"; // Red
+    if (point.sharpe > 1) return "#10b981"; // Emerald-500 (Excellent)
+    if (point.sharpe > 0.5) return "#34d399"; // Emerald-400
+    if (point.sharpe > 0) return "#eab308"; // Yellow-500 (Correct)
+    if (point.sharpe > -0.5) return "#f97316"; // Orange-500
+    return "#ef4444"; // Red-500 (Faible)
   };
 
   // Custom tooltip
@@ -138,23 +138,25 @@ export function RiskReturnScatter({ series, onSeriesClick, className }: RiskRetu
             </div>
           ) : (
             <>
-              <div className="h-[280px] -mx-2">
+              <div className="h-[280px] -mx-2 text-muted-foreground">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
+                  <ScatterChart margin={{ top: 20, right: 20, bottom: 30, left: 0 }}>
                     <XAxis
                       type="number"
                       dataKey="risk"
                       name="Volatilité"
                       unit="%"
                       domain={[0, "auto"]}
-                      tick={{ fontSize: 10 }}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
                       tickLine={false}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      stroke="currentColor"
+                      strokeOpacity={0.3}
                       label={{
                         value: "Volatilité 30j (%)",
                         position: "bottom",
-                        fontSize: 10,
-                        fill: "hsl(var(--muted-foreground))",
+                        offset: 10,
+                        fontSize: 11,
+                        fill: "currentColor",
                       }}
                     />
                     <YAxis
@@ -163,15 +165,16 @@ export function RiskReturnScatter({ series, onSeriesClick, className }: RiskRetu
                       name="Rendement"
                       unit="%"
                       domain={["auto", "auto"]}
-                      tick={{ fontSize: 10 }}
+                      tick={{ fontSize: 10, fill: "currentColor" }}
                       tickLine={false}
-                      axisLine={{ stroke: "hsl(var(--border))" }}
+                      stroke="currentColor"
+                      strokeOpacity={0.3}
                       label={{
                         value: "Rendement 30j (%)",
                         angle: -90,
                         position: "insideLeft",
-                        fontSize: 10,
-                        fill: "hsl(var(--muted-foreground))",
+                        fontSize: 11,
+                        fill: "currentColor",
                       }}
                     />
                     <ZAxis type="number" dataKey="score" range={[40, 200]} />
@@ -179,17 +182,17 @@ export function RiskReturnScatter({ series, onSeriesClick, className }: RiskRetu
                     {/* Reference lines for averages */}
                     <ReferenceLine
                       x={avgRisk}
-                      stroke="hsl(var(--muted-foreground))"
+                      stroke="currentColor"
                       strokeDasharray="3 3"
-                      strokeOpacity={0.5}
+                      strokeOpacity={0.4}
                     />
                     <ReferenceLine
                       y={avgReturn}
-                      stroke="hsl(var(--muted-foreground))"
+                      stroke="currentColor"
                       strokeDasharray="3 3"
-                      strokeOpacity={0.5}
+                      strokeOpacity={0.4}
                     />
-                    <ReferenceLine y={0} stroke="hsl(var(--border))" />
+                    <ReferenceLine y={0} stroke="currentColor" strokeOpacity={0.2} />
 
                     <RechartsTooltip content={<CustomTooltip />} />
 
@@ -213,18 +216,19 @@ export function RiskReturnScatter({ series, onSeriesClick, className }: RiskRetu
               </div>
 
               {/* Legend */}
-              <div className="flex flex-wrap items-center justify-center gap-3 mt-2 text-[10px]">
+              <div className="flex flex-wrap items-center justify-center gap-4 mt-3 pt-3 border-t border-border/50 text-[11px]">
+                <span className="text-muted-foreground font-medium">Ratio de Sharpe :</span>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-green-500" />
-                  <span className="text-muted-foreground">Sharpe &gt; 1</span>
+                  <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                  <span className="text-foreground">&gt; 1 (Excellent)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500" />
-                  <span className="text-muted-foreground">0 - 1</span>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <span className="text-foreground">0 - 1 (Correct)</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                  <span className="text-muted-foreground">Sharpe &lt; 0</span>
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <span className="text-foreground">&lt; 0 (Faible)</span>
                 </div>
               </div>
             </>

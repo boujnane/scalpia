@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Item } from "@/lib/analyse/types";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { useState } from "react";
 import AnalyseTabs from "@/components/analyse/AnalyseTabs";
 import ISPIndexCard from "@/components/analyse/ISPIndexCard";
 import TopMovers from "@/components/analyse/TopMovers";
 import SeriesAnalytics from "@/components/analyse/SeriesAnalytics";
 import { useSeriesFinance } from "@/hooks/useSeriesFinance";
+import { useAnalyseItems } from "@/hooks/useAnalyseItems";
 import {
   TrendingUp,
   TrendingDown,
@@ -17,7 +15,8 @@ import {
   Layers,
   PieChart,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from "lucide-react";
 import { ProWidget, ProBadge } from "@/components/analyse/ProWidget";
 import {
@@ -28,28 +27,15 @@ import {
 } from "@/components/analyse/widgets";
 
 export default function AnalysePage() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { items, loading, fromCache, refresh } = useAnalyseItems();
   const [activeSection, setActiveSection] = useState<"overview" | "products">("overview");
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    async function fetchItems() {
-      const querySnapshot = await getDocs(collection(db, "items"));
-      const fetchedItems: Item[] = [];
-
-      for (const docSnap of querySnapshot.docs) {
-        const data = docSnap.data() as Omit<Item, "prices">;
-        const pricesSnap = await getDocs(collection(db, `items/${docSnap.id}/prices`));
-        const prices = pricesSnap.docs.map(p => p.data() as { date: string; price: number });
-        fetchedItems.push({ ...data, prices });
-      }
-
-      setItems(fetchedItems);
-      setLoading(false);
-    }
-
-    fetchItems();
-  }, []);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
 
   const { series } = useSeriesFinance(items, "all");
 
@@ -102,10 +88,24 @@ export default function AnalysePage() {
                   <h1 className="text-3xl sm:text-4xl font-bold text-foreground tracking-tight">
                     Analyse du Marché
                   </h1>
-                  <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                    <Sparkles className="w-3 h-3" />
-                    Live
-                  </span>
+                  {fromCache ? (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+                      Cache
+                    </span>
+                  ) : (
+                    <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                      <Sparkles className="w-3 h-3" />
+                      Live
+                    </span>
+                  )}
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing || loading}
+                    className="hidden sm:inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                    title="Rafraîchir les données"
+                  >
+                    <RefreshCw className={`w-4 h-4 text-muted-foreground ${refreshing ? "animate-spin" : ""}`} />
+                  </button>
                 </div>
               </div>
               <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">

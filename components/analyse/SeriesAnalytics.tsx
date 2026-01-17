@@ -19,7 +19,6 @@ import {
   Table2,
   BarChart3,
   AlertCircle,
-  ChevronRight,
   Filter,
   Lock,
   Sparkles,
@@ -61,7 +60,7 @@ const TrendBadge = ({ value, size = "default" }: { value: number | null; size?: 
   const textSize = size === "sm" ? "text-xs" : "text-sm";
 
   return (
-    <div className={`flex items-center gap-1 font-semibold ${colorClass}`}>
+    <div className={`flex items-center justify-end gap-1 font-semibold ${colorClass}`}>
       <Icon className={iconSize} />
       <span className={textSize}>{formatPercent(value)}</span>
     </div>
@@ -407,12 +406,14 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
                       {sortConfig.key === "return7d" && <ArrowUpDown className="w-3 h-3 ml-1 text-primary" />}
                     </div>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => requestSort("return30d")}>
-                    <div className="flex items-center justify-end">
-                      30 jours
-                      {sortConfig.key === "return30d" && <ArrowUpDown className="w-3 h-3 ml-1 text-primary" />}
-                    </div>
-                  </TableHead>
+                  {isPro && (
+                    <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => requestSort("return30d")}>
+                      <div className="flex items-center justify-end">
+                        30 jours
+                        {sortConfig.key === "return30d" && <ArrowUpDown className="w-3 h-3 ml-1 text-primary" />}
+                      </div>
+                    </TableHead>
+                  )}
                   <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => requestSort("premiumNow")}>
                     <div className="flex items-center justify-end">
                       Premium
@@ -425,7 +426,6 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
                       {sortConfig.key === "score" && <ArrowUpDown className="w-3 h-3 ml-1 text-primary" />}
                     </div>
                   </TableHead>
-                  <TableHead className="w-[50px]" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -442,17 +442,16 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
                     <TableCell className="text-right">
                       <TrendBadge value={s.metrics.return7d} size="sm" />
                     </TableCell>
-                    <TableCell className="text-right">
-                      <TrendBadge value={s.metrics.return30d} size="sm" />
-                    </TableCell>
+                    {isPro && (
+                      <TableCell className="text-right">
+                        <TrendBadge value={s.metrics.return30d} size="sm" />
+                      </TableCell>
+                    )}
                     <TableCell className="text-right">
                       <TrendBadge value={s.metrics.premiumNow} size="sm" />
                     </TableCell>
                     <TableCell className="text-right font-semibold tabular-nums">
                       {s.metrics.score?.toFixed(0) ?? "—"}
-                    </TableCell>
-                    <TableCell>
-                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ))}

@@ -224,7 +224,7 @@ export function SignalsWidget({ series, onSeriesClick, className }: SignalsWidge
               </div>
 
               {/* Signal list */}
-              <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
+              <div className="space-y-1 max-h-[300px] overflow-y-auto px-0.5">
                 {signals.map((signal, idx) => {
                   const config = signalConfig[signal.type];
                   const Icon = config.icon;
@@ -242,9 +242,9 @@ export function SignalsWidget({ series, onSeriesClick, className }: SignalsWidge
                       <div className={cn("p-1.5 rounded-md shrink-0", config.bgColor)}>
                         <Icon className={cn("w-3.5 h-3.5", config.color)} />
                       </div>
-                      <div className="min-w-0 flex-1">
+                      <div className="min-w-0 flex-1 ml-0.5">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium capitalize truncate">
+                          <p className="text-sm font-medium capitalize truncate pl-0.5">
                             {signal.series.seriesName}
                           </p>
                           {signal.strength === "strong" && (
