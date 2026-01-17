@@ -3,9 +3,11 @@
 
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/icons"
+import { useAuth } from "@/context/AuthContext"
 
 type Billing = "monthly" | "yearly"
 
@@ -36,8 +38,82 @@ export default function PricingPage() {
   const [mounted, setMounted] = useState(false)
   const [billing, setBilling] = useState<Billing>("monthly")
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const { user, isPro } = useAuth()
+  const router = useRouter()
 
   useEffect(() => setMounted(true), [])
+
+  const handleCheckout = async () => {
+    if (!user) {
+      // Redirect to login with return URL
+      router.push("/login?redirect=/pricing")
+      return
+    }
+
+    if (isPro) {
+      // Already Pro, redirect to portal
+      handlePortal()
+      return
+    }
+
+    setCheckoutLoading(true)
+    try {
+      const response = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.uid,
+          email: user.email,
+          interval: billing,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session")
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (error) {
+      console.error("Checkout error:", error)
+      alert("Une erreur est survenue. Veuillez réessayer.")
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }
+
+  const handlePortal = async () => {
+    if (!user) return
+
+    setCheckoutLoading(true)
+    try {
+      const response = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.uid }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create portal session")
+      }
+
+      if (data.url) {
+        window.location.href = data.url
+      }
+    } catch (error) {
+      console.error("Portal error:", error)
+      alert("Une erreur est survenue. Veuillez réessayer.")
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }
 
   const plans: Plan[] = useMemo(
     () => [
@@ -468,27 +544,64 @@ export default function PricingPage() {
                       </ul>
 
                       <div className="mt-auto pt-6 border-t border-border/40">
-                        <Button
-                          asChild
-                          size="lg"
-                          variant={plan.cta.variant ?? "default"}
-                          className={[
-                            "w-full h-12 rounded-xl font-semibold transition-all",
-                            isFeatured
-                              ? "bg-gradient-to-r from-primary to-purple-600 shadow-md hover:shadow-lg hover:scale-[1.02]"
-                              : "hover:scale-[1.01]",
-                          ].join(" ")}
-                          aria-label={plan.cta.label}
-                        >
-                          <Link href={plan.cta.href}>
-                            {plan.cta.label}
-                            <IconComponent className="ml-2 h-4 w-4" aria-hidden="true" />
-                          </Link>
-                        </Button>
+                        {plan.id === "pro" ? (
+                          // Pro plan: Special checkout/portal button
+                          <Button
+                            size="lg"
+                            variant={isPro ? "outline" : "default"}
+                            disabled={checkoutLoading}
+                            onClick={isPro ? handlePortal : handleCheckout}
+                            className={[
+                              "w-full h-12 rounded-xl font-semibold transition-all",
+                              !isPro
+                                ? "bg-gradient-to-r from-primary to-purple-600 shadow-md hover:shadow-lg hover:scale-[1.02]"
+                                : "hover:scale-[1.01]",
+                            ].join(" ")}
+                            aria-label={isPro ? "Gérer mon abonnement" : plan.cta.label}
+                          >
+                            {checkoutLoading ? (
+                              <>
+                                <Icons.loader className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+                                Chargement...
+                              </>
+                            ) : isPro ? (
+                              <>
+                                Gérer mon abonnement
+                                <Icons.settings className="ml-2 h-4 w-4" aria-hidden="true" />
+                              </>
+                            ) : (
+                              <>
+                                {plan.cta.label}
+                                <IconComponent className="ml-2 h-4 w-4" aria-hidden="true" />
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          // Free and Enterprise: Keep original Link behavior
+                          <Button
+                            asChild
+                            size="lg"
+                            variant={plan.cta.variant ?? "default"}
+                            className={[
+                              "w-full h-12 rounded-xl font-semibold transition-all",
+                              isFeatured
+                                ? "bg-gradient-to-r from-primary to-purple-600 shadow-md hover:shadow-lg hover:scale-[1.02]"
+                                : "hover:scale-[1.01]",
+                            ].join(" ")}
+                            aria-label={plan.cta.label}
+                          >
+                            <Link href={plan.cta.href}>
+                              {plan.cta.label}
+                              <IconComponent className="ml-2 h-4 w-4" aria-hidden="true" />
+                            </Link>
+                          </Button>
+                        )}
 
                         <p className="mt-3 text-[11px] text-muted-foreground/80 text-center leading-relaxed">
                           {plan.id === "enterprise"
                             ? "Réponse sous 48h ouvrées. Proposition sur mesure."
+                            : plan.id === "pro" && isPro
+                            ? "Gérez votre abonnement via le portail Stripe."
                             : "Accès immédiat. Annulation à tout moment."}
                         </p>
                       </div>

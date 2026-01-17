@@ -1,18 +1,92 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 12, 25);
+
+    // ═══════════════════════════════════════════════════════════
+    // HELPER FUNCTIONS
+    // ═══════════════════════════════════════════════════════════
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/subscriptions/$(request.auth.uid)).data.tier == "admin";
+    }
+
+    function isPro() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/subscriptions/$(request.auth.uid)).data.tier in ["pro", "admin"];
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // SUBSCRIPTIONS
+    // ═══════════════════════════════════════════════════════════
+
+    match /subscriptions/{userId} {
+      // Users can read their own subscription
+      allow read: if isOwner(userId);
+
+      // Only admins can write subscriptions
+      allow write: if isAdmin();
+
+      // Allow first admin to bootstrap (REMOVE AFTER SETUP)
+      allow create: if isOwner(userId) && request.resource.data.tier == "admin";
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // USERS PROFILES
+    // ═══════════════════════════════════════════════════════════
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // PUBLIC DATA (index, items, series)
+    // ═══════════════════════════════════════════════════════════
+
+    match /index/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /items/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /series/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // ALERTS (Pro feature)
+    // ═══════════════════════════════════════════════════════════
+
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isPro() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // USAGE TRACKING
+    // ═══════════════════════════════════════════════════════════
+
+    match /usage/{userId}/{document=**} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
     }
   }
 }

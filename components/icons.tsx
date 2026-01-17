@@ -32,7 +32,10 @@ import {
   Brain,
   Activity,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Shield,
+  Settings,
+  CreditCard,
 } from "lucide-react";
 
 export const Icons = {
@@ -70,5 +73,9 @@ export const Icons = {
   menu: Menu,
   brain: Brain,
   helpCircle: HelpCircle,
-  sparkles: Sparkles
+  sparkles: Sparkles,
+  shield: Shield,
+  settings: Settings,
+  creditCard: CreditCard,
+  loader: Loader2,
 };

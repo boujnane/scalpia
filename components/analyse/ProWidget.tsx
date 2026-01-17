@@ -8,21 +8,21 @@ import { useAuth } from "@/context/AuthContext";
 
 interface ProWidgetProps {
   children: React.ReactNode;
-  isPro?: boolean; // Override manual (optional)
+  forceAccess?: boolean; // Override manual (optional)
   title?: string;
   className?: string;
 }
 
 /**
  * Wrapper component that locks content for non-Pro users.
- * Shows a blurred overlay with upgrade CTA when user is not logged in.
- * If user is logged in (admin), content is automatically unlocked.
+ * Shows a blurred overlay with upgrade CTA when user doesn't have Pro subscription.
+ * Pro and Admin users see the content unlocked.
  */
-export function ProWidget({ children, isPro, title, className }: ProWidgetProps) {
-  const { user, loading } = useAuth();
+export function ProWidget({ children, forceAccess, title, className }: ProWidgetProps) {
+  const { isPro, loading } = useAuth();
 
-  // If isPro is explicitly set, use it. Otherwise, check if user is logged in.
-  const hasAccess = isPro !== undefined ? isPro : !!user;
+  // If forceAccess is explicitly set, use it. Otherwise, check subscription.
+  const hasAccess = forceAccess !== undefined ? forceAccess : isPro;
 
   // Show content if user has access
   if (hasAccess) {

@@ -54,7 +54,28 @@ export function Navbar() {
   const pathname = usePathname()
   const [isScrolled, setIsScrolled] = useState(false)
   const [hoveredLink, setHoveredLink] = useState<string | null>(null)
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin, isPro } = useAuth();
+  const [portalLoading, setPortalLoading] = useState(false);
+
+  const handlePortal = async () => {
+    if (!user) return;
+    setPortalLoading(true);
+    try {
+      const response = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.uid }),
+      });
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Portal error:", error);
+    } finally {
+      setPortalLoading(false);
+    }
+  };
   const router = useRouter();
   const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null)
 
@@ -205,6 +226,28 @@ export function Navbar() {
                 Connexion
               </Button>
             )}
+            {!loading && user && isAdmin && (
+              <Button variant="ghost" size="sm" className="h-9 rounded-xl text-purple-500 hover:bg-purple-500/10 transition-all duration-300" onClick={() => router.push("/admin")}>
+                <Icons.shield className="h-4 w-4 mr-1.5" />
+                Admin
+              </Button>
+            )}
+            {!loading && user && isPro && !isAdmin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={portalLoading}
+                className="h-9 rounded-xl text-primary hover:bg-primary/10 transition-all duration-300"
+                onClick={handlePortal}
+              >
+                {portalLoading ? (
+                  <Icons.loader className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Icons.creditCard className="h-4 w-4 mr-1.5" />
+                )}
+                Abonnement
+              </Button>
+            )}
             {!loading && user && (
               <Button size="sm" className="h-9 px-5 font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/90" onClick={async () => { await signOut(auth); router.push("/"); }}>
                 Déconnexion
@@ -237,7 +280,30 @@ export function Navbar() {
                   {!loading && !user ? (
                     <Button className="w-full h-12 font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/90" onClick={() => router.push("/login")}>Connexion</Button>
                   ) : (
-                    <Button variant="outline" className="w-full h-12 rounded-xl" onClick={async () => { await signOut(auth); router.push("/"); }}>Déconnexion</Button>
+                    <>
+                      {isAdmin && (
+                        <Button variant="outline" className="w-full h-12 rounded-xl text-purple-500 border-purple-500/30 hover:bg-purple-500/10" onClick={() => router.push("/admin")}>
+                          <Icons.shield className="h-4 w-4 mr-2" />
+                          Administration
+                        </Button>
+                      )}
+                      {isPro && !isAdmin && (
+                        <Button
+                          variant="outline"
+                          disabled={portalLoading}
+                          className="w-full h-12 rounded-xl text-primary border-primary/30 hover:bg-primary/10"
+                          onClick={handlePortal}
+                        >
+                          {portalLoading ? (
+                            <Icons.loader className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Icons.creditCard className="h-4 w-4 mr-2" />
+                          )}
+                          Gérer mon abonnement
+                        </Button>
+                      )}
+                      <Button variant="outline" className="w-full h-12 rounded-xl" onClick={async () => { await signOut(auth); router.push("/"); }}>Déconnexion</Button>
+                    </>
                   )}
                 </div>
               </div>

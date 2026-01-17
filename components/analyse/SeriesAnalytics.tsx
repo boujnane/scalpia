@@ -77,8 +77,7 @@ interface SeriesAnalyticsProps {
 }
 
 export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
-  const { user } = useAuth();
-  const isPro = !!user; // Connected = Pro for now
+  const { isPro } = useAuth();
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [selectedBloc, setSelectedBloc] = useState<string>("all");
