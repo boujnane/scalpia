@@ -4,6 +4,9 @@ import { SetFinancePanel, pickGradedSpotlight } from "@/components/cardmarket/Se
 import { mapSeriesNameToFR } from "@/lib/cardmarket/seriesNameMapper";
 import { mapSetNameToFR } from "@/lib/cardmarket/setNameMapper";
 import { useEffect, useMemo, useState } from "react";
+import { useTokens } from "@/context/TokenContext";
+import { useAuth } from "@/context/AuthContext";
+import { TokenBadge, NoTokensModal } from "@/components/ui/TokenBadge";
 
 /* =======================
    Icons & UI Assets
@@ -414,6 +417,11 @@ export default function CardmarketSetViewer() {
   // Finance drawer
   const [financeOpen, setFinanceOpen] = useState(false);
 
+  // Token system
+  const { consumeToken, isExhausted } = useTokens();
+  const { user } = useAuth();
+  const [showNoTokensModal, setShowNoTokensModal] = useState(false);
+
  useEffect(() => {
  setLoadingSets(true);
  fetch("/api/cardmarket/sets/available")
@@ -593,7 +601,23 @@ const fetchAllCards = async (setId: string) => {
 
 // ... (garde le reste de ton composant identique)
 
-  const handleSelectSet = (set: CMSet) => {
+  const handleSelectSet = async (set: CMSet) => {
+    // Vérifier si l'utilisateur est connecté
+    if (!user) {
+      // Optionnel : autoriser les non-connectés avec les jetons par défaut
+      // ou rediriger vers login
+    }
+
+    // Consommer un jeton avant de charger
+    const canProceed = await consumeToken();
+
+    if (!canProceed) {
+      // Plus de jetons - afficher le modal
+      setShowNoTokensModal(true);
+      return;
+    }
+
+    // Jeton consommé avec succès - charger le set
     setSelectedSet(set);
     setSelectedRarities(new Set());
     setSearchQuery("");
@@ -693,11 +717,15 @@ const fetchAllCards = async (setId: string) => {
         `}
       >
         <div className="flex-shrink-0 p-4 border-b border-sidebar-border bg-sidebar/80">
-          <div className="flex flex-col">
-            <h1 className="text-xl font-extrabold text-primary leading-none">Explorer</h1>
-            <p className="text-xs text-muted-foreground mt-1 leading-none">
-              Explorateur de sets & prix
-            </p>
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <h1 className="text-xl font-extrabold text-primary leading-none">Explorer</h1>
+              <p className="text-xs text-muted-foreground mt-1 leading-none">
+                Explorateur de sets & prix
+              </p>
+            </div>
+            {/* Token Badge */}
+            <TokenBadge compact />
           </div>
         </div>
 
@@ -1014,6 +1042,12 @@ const fetchAllCards = async (setId: string) => {
             cards={allCards}
           />
         )}
+
+        {/* Modal "Plus de jetons" */}
+        <NoTokensModal
+          open={showNoTokensModal}
+          onClose={() => setShowNoTokensModal(false)}
+        />
       </main>
     </div>
   );
