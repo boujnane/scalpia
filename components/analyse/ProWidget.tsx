@@ -7,70 +7,79 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 
 interface ProWidgetProps {
+  /** ✅ Contenu réel (uniquement Pro) */
   children: React.ReactNode;
-  forceAccess?: boolean; // Override manual (optional)
+
+  /** ✅ Aperçu (safe) visible derrière le blur pour non-Pro */
+  preview: React.ReactNode;
+
+  forceAccess?: boolean;
   title?: string;
   className?: string;
+  blurClassName?: string;
 }
 
-/**
- * Wrapper component that locks content for non-Pro users.
- * Shows a blurred overlay with upgrade CTA when user doesn't have Pro subscription.
- * Pro and Admin users see the content unlocked.
- */
-export function ProWidget({ children, forceAccess, title, className }: ProWidgetProps) {
+export function ProWidget({
+  children,
+  preview,
+  forceAccess,
+  title,
+  className,
+  blurClassName = "blur-[6px]",
+}: ProWidgetProps) {
   const { isPro, loading } = useAuth();
-
-  // If forceAccess is explicitly set, use it. Otherwise, check subscription.
   const hasAccess = forceAccess !== undefined ? forceAccess : isPro;
 
-  // Show content if user has access
-  if (hasAccess) {
-    return <>{children}</>;
-  }
-
-  // Show skeleton while loading auth state
   if (loading) {
     return (
-      <div className={cn("relative overflow-hidden rounded-xl animate-pulse bg-muted/50 min-h-[200px]", className)} />
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-xl animate-pulse bg-muted/50 min-h-[220px]",
+          className
+        )}
+      />
     );
+  }
+
+  if (hasAccess) {
+    return <div className={cn("rounded-xl", className)}>{children}</div>;
   }
 
   return (
     <div className={cn("relative overflow-hidden rounded-xl", className)}>
-      {/* Blurred content */}
-      <div className="blur-[6px] pointer-events-none select-none" aria-hidden="true">
-        {children}
+      {/* ✅ Preview flouté (safe) */}
+      <div className={cn("pointer-events-none select-none", blurClassName)} aria-hidden="true">
+        {preview}
       </div>
 
-      {/* Lock overlay */}
-      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-4">
+      {/* Overlay CTA */}
+      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm flex flex-col items-center justify-center gap-3 p-4 text-center">
         <div className="p-3 rounded-full bg-primary/10 border border-primary/20">
           <Lock className="w-5 h-5 text-primary" />
         </div>
-        <div className="text-center">
-          {title && (
-            <p className="font-semibold text-foreground text-sm mb-1">{title}</p>
-          )}
-          <p className="text-xs text-muted-foreground mb-3">
-            Disponible avec le plan Pro
-          </p>
-          <Link
-            href="/pricing"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Passer en Pro
-          </Link>
-        </div>
+
+        {title && <p className="font-semibold text-foreground text-sm">{title}</p>}
+
+        <p className="text-xs text-muted-foreground max-w-[34ch]">
+          Débloquez les indicateurs avancés (sentiment, volatilité, risque) + alertes.
+        </p>
+
+        <Link
+          href="/pricing"
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+        >
+          <Sparkles className="w-3.5 h-3.5" />
+          Passer en Pro
+        </Link>
+
+        <p className="text-[10px] text-muted-foreground/70">
+          Les données Pro ne sont pas visibles sans abonnement.
+        </p>
       </div>
     </div>
   );
 }
 
-/**
- * Badge to indicate Pro-only features
- */
 export function ProBadge({ className }: { className?: string }) {
   return (
     <span

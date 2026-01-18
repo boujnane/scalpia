@@ -25,6 +25,7 @@ import {
   SignalsWidget,
   RiskReturnScatter
 } from "@/components/analyse/widgets";
+import { MarketSentimentWidgetPreview, RiskReturnScatterPreview, SignalsWidgetPreview, VolatilityGaugeWidgetPreview } from "@/components/analyse/widgets/ProPreviews";
 
 export default function AnalysePage() {
   const { items, loading, fromCache, refresh } = useAnalyseItems();
@@ -215,28 +216,41 @@ export default function AnalysePage() {
 
               {/* Widget Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Market Sentiment */}
-                <ProWidget title="Sentiment du Marché">
+                {/* Sentiment */}
+                <ProWidget
+                  title="Sentiment du Marché"
+                  preview={<MarketSentimentWidgetPreview />}
+                >
                   <MarketSentimentWidget series={series} />
                 </ProWidget>
 
                 {/* Volatility Gauge */}
-                <ProWidget title="Volatilité du Marché">
+                <ProWidget
+                  title="Volatilité du Marché"
+                  preview={<VolatilityGaugeWidgetPreview />}
+                >
                   <VolatilityGaugeWidget series={series} />
                 </ProWidget>
 
                 {/* Signals Widget - Spans 2 columns on large screens */}
                 <div className="lg:col-span-2">
-                  <ProWidget title="Signaux Actifs">
+                  <ProWidget
+                    title="Signaux Actifs"
+                    preview={<SignalsWidgetPreview />}
+                  >
                     <SignalsWidget series={series} />
                   </ProWidget>
                 </div>
-              </div>
+                </div>
 
-              {/* Risk/Return Scatter - Full width */}
-              <ProWidget title="Graphique Risque/Rendement">
-                <RiskReturnScatter series={series} />
-              </ProWidget>
+                {/* Risk/Return Scatter - Full width */}
+                <ProWidget
+                  title="Graphique Risque / Rendement"
+                  preview={<RiskReturnScatterPreview />}
+                >
+                  <RiskReturnScatter series={series} />
+                </ProWidget>
+
             </section>
 
             {/* Analyse des séries - Composant unifié */}

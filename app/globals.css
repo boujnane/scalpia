@@ -289,3 +289,55 @@
 @import "swiper/css";
 @import "swiper/css/free-mode";
 @import "swiper/css/pagination";
+@import "swiper/css/navigation";
+
+/* --- TRENDING CAROUSEL STYLES --- */
+.trending-carousel .swiper-button-prev,
+.trending-carousel .swiper-button-next {
+  color: hsl(var(--primary));
+  background: hsl(var(--background) / 0.9);
+  border: 1px solid hsl(var(--border));
+  border-radius: 9999px;
+  width: 40px;
+  height: 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.trending-carousel .swiper-button-prev:hover,
+.trending-carousel .swiper-button-next:hover {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary));
+}
+
+.trending-carousel .swiper-button-prev::after,
+.trending-carousel .swiper-button-next::after {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.trending-carousel .swiper-button-prev {
+  left: 0;
+}
+
+.trending-carousel .swiper-button-next {
+  right: 0;
+}
+
+.trending-carousel .swiper-pagination-bullet {
+  background: hsl(var(--muted-foreground));
+  opacity: 0.5;
+}
+
+.trending-carousel .swiper-pagination-bullet-active {
+  background: hsl(var(--primary));
+  opacity: 1;
+}
+
+@media (max-width: 1023px) {
+  .trending-carousel .swiper-button-prev,
+  .trending-carousel .swiper-button-next {
+    display: none;
+  }
+}

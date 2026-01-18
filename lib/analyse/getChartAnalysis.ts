@@ -9,48 +9,66 @@ export type ChartAnalysis = {
 
 /**
  * Calcule l'analyse complète du prix, basé sur les données agrégées.
+ * La tendance 7j n'est calculée que si on a un point de référence
+ * dans une plage valide (entre J-14 et J-5), pour éviter de comparer
+ * avec un prix retail d'il y a plusieurs années.
  */
 export function getChartAnalysis(item: Item): ChartAnalysis {
-    
+
     const aggregatedData = buildChartData(item);
 
     const lastPoint = aggregatedData.length > 0 ? aggregatedData[aggregatedData.length - 1] : null;
-    const lastPrice = lastPoint ? lastPoint.price : null; // ✅ lastPrice est géré ici
+    const lastPrice = lastPoint ? lastPoint.price : null;
 
-    // VÉRIFICATION CRITIQUE : Si pas de prix ou pas assez de données (ex: juste le prix retail)
+    // VÉRIFICATION CRITIQUE : Si pas de prix ou pas assez de données
     if (lastPoint === null || aggregatedData.length < 2) {
         return { data: aggregatedData, lastPrice: lastPrice, trend7d: null };
     }
-    
 
-    // ✅ lastDate est maintenant basé sur lastPoint (garanti non-null)
-    const lastDate = new Date(lastPoint.date); 
-    
+    const lastDate = new Date(lastPoint.date);
+
     // Date de référence : il y a 7 jours à partir de la dernière date connue
     const sevenDaysAgo = new Date(lastDate);
     sevenDaysAgo.setDate(lastDate.getDate() - 7);
     const sevenDaysAgoTimestamp = sevenDaysAgo.getTime();
 
+    // Plage de tolérance : on accepte un point entre J-14 et J-5
+    // pour s'assurer qu'on a des données récentes et pas juste le prix retail
+    const minValidDate = new Date(lastDate);
+    minValidDate.setDate(lastDate.getDate() - 14);
+    const minValidTimestamp = minValidDate.getTime();
+
+    const maxValidDate = new Date(lastDate);
+    maxValidDate.setDate(lastDate.getDate() - 5);
+    const maxValidTimestamp = maxValidDate.getTime();
+
     let price7DaysAgo: number | null = null;
-    
-    // 2. Trouver le prix de référence (le point le plus proche avant ou à J-7)
-    for (let i = aggregatedData.length - 1; i >= 0; i--) {
+    let bestDistance = Infinity;
+
+    // Trouver le point le plus proche de J-7 dans la plage valide [J-14, J-5]
+    for (let i = aggregatedData.length - 2; i >= 0; i--) {
         const point = aggregatedData[i];
-        
-        if (point.date <= sevenDaysAgoTimestamp) {
-            price7DaysAgo = point.price;
-            break;
+
+        // Le point doit être dans la plage valide
+        if (point.date >= minValidTimestamp && point.date <= maxValidTimestamp) {
+            const distance = Math.abs(point.date - sevenDaysAgoTimestamp);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                price7DaysAgo = point.price;
+            }
         }
+
+        // Si on est trop loin dans le passé, on arrête
+        if (point.date < minValidTimestamp) break;
     }
 
-    // 3. Calcul de la tendance
+    // Calcul de la tendance (null si pas de point valide trouvé)
     let trend7d: number | null = null;
-    
+
     if (price7DaysAgo !== null && price7DaysAgo !== 0) {
-        trend7d = ((lastPrice! - price7DaysAgo) / price7DaysAgo) * 100; 
-        // ⚠️ Utilisation de '!' car nous savons que lastPrice n'est pas null ici
+        trend7d = ((lastPrice! - price7DaysAgo) / price7DaysAgo) * 100;
     }
-    
+
     return {
         data: aggregatedData,
         lastPrice: lastPrice,
