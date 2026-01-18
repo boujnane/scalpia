@@ -21,6 +21,7 @@ import { Sparkline } from "@/components/ui/sparkline";
 import { MarketSentimentWidget, VolatilityGaugeWidget } from "@/components/analyse/widgets";
 import { MarketSentimentWidgetPreview, VolatilityGaugeWidgetPreview } from "@/components/analyse/widgets/ProPreviews";
 import { cn } from "@/lib/utils";
+import { computeISPFromItems } from "@/lib/analyse/finance/ispIndex";
 
 export default function HomePage() {
   const prefersReducedMotion = useReducedMotion();
@@ -74,66 +75,13 @@ export default function HomePage() {
     return { total, up, down, stable, avgReturn7d, signal, top, worst };
   }, [series]);
 
-  // ✅ Sparkline values (vraies métriques snapshot)
-  // On transforme des %/ratios en valeurs pour une courbe jolie et cohérente.
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
+  const ispSummary = useMemo(() => computeISPFromItems(items ?? []), [items]);
 
-// ✅ Sparkline values : sinusoïde (pas d’aileron), basée sur snapshot
-const sparkValues = useMemo(() => {
-  const n = 40; // plus de points = plus smooth
-  const t = Math.max(1, snapshot.total);
-
-  const upPct = (snapshot.up / t) * 100;
-  const downPct = (snapshot.down / t) * 100;
-  const stablePct = (snapshot.stable / t) * 100;
-
-  // Bias -1..+1 (si up > down => positif)
-  const bias = clamp((upPct - downPct) / 100, -1, 1);
-
-  // Perf moyenne 7j (ratio ex 0.03)
-  const perf = snapshot.avgReturn7d ?? 0;
-
-  // Baseline autour de 50, légèrement poussée par le bias
-  const baseline = clamp(50 + bias * 10, 35, 65);
-
-  // Amplitude : dépend de la "violence" du marché (perf 7j)
-  // Ajuste les bornes selon ton rendu
-  const amplitude = clamp(Math.abs(perf) * 240, 6, 22);
-
-  // Marché très stable => courbe plus propre (moins de bruit)
-  const noiseAmp = clamp(2.0 - (stablePct / 100) * 1.6, 0.4, 2.0);
-
-  // fréquence : 1.25 à 1.75 périodes selon la stabilité (plus stable = plus lent)
-  const cycles = clamp(1.75 - (stablePct / 100) * 0.5, 1.25, 1.75);
-
-  // phase déterministe (ne bouge pas à chaque refresh)
-  const seed = (snapshot.total * 9301 + snapshot.up * 49297 + snapshot.down * 233280) % 1000;
-  const phase = (seed / 1000) * Math.PI * 2;
-
-  // jitter déterministe
-  const jitter = (i: number) => {
-    const x = Math.sin((i + 1) * 12.9898 + seed) * 43758.5453;
-    return (x - Math.floor(x)) * 2 - 1; // -1..+1
-  };
-
-  const values = Array.from({ length: n }, (_, i) => {
-    const u = i / (n - 1); // 0..1
-
-    // sinusoïde principale (symétrique)
-    const wave = Math.sin(2 * Math.PI * cycles * u + phase);
-
-    // petite harmonique pour un look plus "marché" mais toujours symétrique
-    const wave2 = 0.35 * Math.sin(2 * Math.PI * (cycles * 2) * u + phase * 0.7);
-
-    const v = baseline + amplitude * (wave + wave2) + noiseAmp * jitter(i);
-
-    return clamp(v, 0, 100);
-  });
-
-  return values;
-}, [snapshot]);
+  const sparkValues = useMemo(() => {
+    const history = ispSummary.history ?? [];
+    if (history.length === 0) return [0, 0];
+    return history.slice(-40).map((point) => point.value);
+  }, [ispSummary.history]);
 
 
   return (
@@ -442,249 +390,259 @@ const sparkValues = useMemo(() => {
             </div>
           </div>
           
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-6 items-stretch">
             {/* Snapshot gratuit + Sparkline */}
-      <div className="lg:col-span-1 rounded-2xl border border-border/50 bg-background/60 backdrop-blur p-5 relative overflow-hidden">
+      <div className="lg:col-span-1 rounded-2xl border border-border/50 bg-background/60 backdrop-blur p-5 relative overflow-hidden h-full flex flex-col">
         {/* accents décoratifs */}
         <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl" aria-hidden="true" />
         <div className="absolute -bottom-12 -left-10 w-40 h-40 rounded-full bg-purple-500/10 blur-2xl" aria-hidden="true" />
 
-        {/* Header */}
-        <div className="relative flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold">Snapshot</p>
+        <div className="relative flex flex-col h-full">
+          {/* Header */}
+          <div className="relative flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold">Snapshot</p>
 
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">
-                Gratuit
-              </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/20">
+                  Gratuit
+                </span>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                Vue rapide du marché : breadth 7j + performance moyenne.
+              </p>
             </div>
 
-            <p className="text-xs text-muted-foreground">
-              Vue rapide du marché : breadth 7j + performance moyenne.
-            </p>
+            <span className="shrink-0 text-[10px] px-2 py-1 rounded-full bg-muted/60 border border-border/50 text-muted-foreground">
+              Maj quotidienne
+            </span>
           </div>
 
-          <span className="shrink-0 text-[10px] px-2 py-1 rounded-full bg-muted/60 border border-border/50 text-muted-foreground">
-            Maj quotidienne
-          </span>
-        </div>
-
-        {itemsLoading ? (
-          <div className="mt-4 space-y-3 relative">
-            <div className="grid grid-cols-2 gap-3">
-              <Skeleton className="h-[72px] rounded-xl" />
-              <Skeleton className="h-[72px] rounded-xl" />
+          {itemsLoading ? (
+            <div className="mt-4 space-y-3 relative">
+              <div className="grid grid-cols-2 gap-3">
+                <Skeleton className="h-[72px] rounded-xl" />
+                <Skeleton className="h-[72px] rounded-xl" />
+              </div>
+              <Skeleton className="h-[68px] rounded-xl" />
+              <Skeleton className="h-[92px] rounded-xl" />
             </div>
-            <Skeleton className="h-[68px] rounded-xl" />
-            <Skeleton className="h-[92px] rounded-xl" />
-          </div>
-        ) : itemsError ? (
-          <div className="mt-4 text-xs text-destructive relative">
-            Impossible de charger les données.
-          </div>
-        ) : (
-          <>
-            {/* KPIs (2) */}
-            <div className="mt-4 grid grid-cols-2 gap-3 relative">
-              <div className="rounded-xl bg-muted/35 p-3 border border-border/30">
-                <p className="text-[11px] text-muted-foreground">Séries analysées</p>
-                <div className="mt-1 flex items-end justify-between gap-2">
-                  <p className="text-xl font-bold tabular-nums">{snapshot.total}</p>
-                  <span className="text-[10px] text-muted-foreground">sur 30j</span>
+          ) : itemsError ? (
+            <div className="mt-4 text-xs text-destructive relative">
+              Impossible de charger les données.
+            </div>
+          ) : (
+            <>
+              {/* KPIs (2) */}
+              <div className="mt-4 grid grid-cols-2 gap-3 relative">
+                <div className="rounded-xl bg-muted/35 p-3 border border-border/30">
+                  <p className="text-[11px] text-muted-foreground">Séries analysées</p>
+                  <div className="mt-1 flex items-end justify-between gap-2">
+                    <p className="text-xl font-bold tabular-nums">{snapshot.total}</p>
+                    <span className="text-[10px] text-muted-foreground">sur 30j</span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-muted/35 p-3 border border-border/30">
+                  <p className="text-[11px] text-muted-foreground">Signal du jour</p>
+                  <div className="mt-1 flex items-end justify-between gap-2">
+                    <p className="text-xl font-bold">{snapshot.signal}</p>
+                    <span className="text-[10px] text-muted-foreground">tendance</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-xl bg-muted/35 p-3 border border-border/30">
-                <p className="text-[11px] text-muted-foreground">Signal du jour</p>
-                <div className="mt-1 flex items-end justify-between gap-2">
-                  <p className="text-xl font-bold">{snapshot.signal}</p>
-                  <span className="text-[10px] text-muted-foreground">tendance</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Breadth (up/stable/down) : version plus UX */}
-            <div className="mt-3 rounded-xl border border-border/30 bg-muted/20 p-3 relative">
-              <div className="flex items-center justify-between">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                  Breadth 7 jours
-                </p>
-                <p className="text-[11px] text-muted-foreground tabular-nums">
-                  {snapshot.total > 0
-                    ? `${Math.round((snapshot.up / snapshot.total) * 100)}% ↑ · ${Math.round((snapshot.down / snapshot.total) * 100)}% ↓`
-                    : "N/A"}
-                </p>
-              </div>
-
-              {/* Barre empilée */}
-              <div className="mt-2 h-2.5 w-full rounded-full overflow-hidden bg-muted">
-                <div className="h-full flex">
-                  <div
-                    className="h-full bg-success/70"
-                    style={{ width: `${(snapshot.up / Math.max(1, snapshot.total)) * 100}%` }}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="h-full bg-foreground/15"
-                    style={{ width: `${(snapshot.stable / Math.max(1, snapshot.total)) * 100}%` }}
-                    aria-hidden="true"
-                  />
-                  <div
-                    className="h-full bg-destructive/70"
-                    style={{ width: `${(snapshot.down / Math.max(1, snapshot.total)) * 100}%` }}
-                    aria-hidden="true"
-                  />
-                </div>
-              </div>
-
-              {/* Chips chiffres (plus clean que 3 grosses cards) */}
-              <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
-                <span className="inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-success/70" aria-hidden="true" />
-                  ↑ <span className="font-semibold text-foreground tabular-nums">{snapshot.up}</span>
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-foreground/20" aria-hidden="true" />
-                  = <span className="font-semibold text-foreground tabular-nums">{snapshot.stable}</span>
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-destructive/70" aria-hidden="true" />
-                  ↓ <span className="font-semibold text-foreground tabular-nums">{snapshot.down}</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Sparkline card */}
-            <div className="mt-4 rounded-xl border border-border/30 bg-gradient-to-br from-primary/10 to-purple-500/10 p-3 relative overflow-hidden">
-              {!prefersReducedMotion && (
-                <motion.div
-                  className="absolute inset-y-0 -left-1/3 w-1/3 bg-primary/10"
-                  animate={{ x: ["0%", "420%"] }}
-                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-                  aria-hidden="true"
-                />
-              )}
-
-              <div className="relative">
-                <div className="flex items-center justify-between mb-1">
+              {/* Breadth (up/stable/down) : version plus UX */}
+              <div className="mt-3 rounded-xl border border-border/30 bg-muted/20 p-3 relative">
+                <div className="flex items-center justify-between">
                   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                    Sparkline marché
+                    Breadth 7 jours
                   </p>
+                  <p className="text-[11px] text-muted-foreground tabular-nums">
+                    {snapshot.total > 0
+                      ? `${Math.round((snapshot.up / snapshot.total) * 100)}% ↑ · ${Math.round((snapshot.down / snapshot.total) * 100)}% ↓`
+                      : "N/A"}
+                  </p>
+                </div>
 
-                  {/* perf 7j mise en valeur */}
-                  <span
-                    className={cn(
-                      "text-[11px] tabular-nums px-2 py-0.5 rounded-full border",
-                      snapshot.avgReturn7d == null
-                        ? "text-muted-foreground bg-muted/40 border-border/40"
-                        : snapshot.avgReturn7d >= 0
-                          ? "text-success bg-success/10 border-success/20"
-                          : "text-destructive bg-destructive/10 border-destructive/20"
-                    )}
-                  >
-                    {snapshot.avgReturn7d == null
-                      ? "Perf 7j: N/A"
-                      : `Perf 7j: ${snapshot.avgReturn7d >= 0 ? "+" : ""}${(snapshot.avgReturn7d * 100).toFixed(1)}%`}
+                {/* Barre empilée */}
+                <div className="mt-2 h-2.5 w-full rounded-full overflow-hidden bg-muted">
+                  <div className="h-full flex">
+                    <div
+                      className="h-full bg-success/70"
+                      style={{ width: `${(snapshot.up / Math.max(1, snapshot.total)) * 100}%` }}
+                      aria-hidden="true"
+                    />
+                    <div
+                      className="h-full bg-foreground/15"
+                      style={{ width: `${(snapshot.stable / Math.max(1, snapshot.total)) * 100}%` }}
+                      aria-hidden="true"
+                    />
+                    <div
+                      className="h-full bg-destructive/70"
+                      style={{ width: `${(snapshot.down / Math.max(1, snapshot.total)) * 100}%` }}
+                      aria-hidden="true"
+                    />
+                  </div>
+                </div>
+
+                {/* Chips chiffres (plus clean que 3 grosses cards) */}
+                <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-success/70" aria-hidden="true" />
+                    ↑ <span className="font-semibold text-foreground tabular-nums">{snapshot.up}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-foreground/20" aria-hidden="true" />
+                    = <span className="font-semibold text-foreground tabular-nums">{snapshot.stable}</span>
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-destructive/70" aria-hidden="true" />
+                    ↓ <span className="font-semibold text-foreground tabular-nums">{snapshot.down}</span>
                   </span>
                 </div>
+              </div>
 
-                <Sparkline
-                  values={sparkValues}
-                  strokeClassName="text-primary"
-                  withFill
-                  height={160}          // ✅ remplit mieux
-                  animated
-                  drawDurationMs={1200}
-                  loopDelayMs={1800}
-                  showEndDot
-                />
+              {/* Sparkline card */}
+              <div className="mt-4 rounded-xl border border-border/30 bg-gradient-to-br from-primary/10 to-purple-500/10 p-3 relative overflow-hidden">
+                {!prefersReducedMotion && (
+                  <motion.div
+                    className="absolute inset-y-0 -left-1/3 w-1/3 bg-primary/10"
+                    animate={{ x: ["0%", "420%"] }}
+                    transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+                    aria-hidden="true"
+                  />
+                )}
+
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      Sparkline marché
+                    </p>
+
+                    {/* perf 7j mise en valeur */}
+                    <span
+                      className={cn(
+                        "text-[11px] tabular-nums px-2 py-0.5 rounded-full border",
+                        snapshot.avgReturn7d == null
+                          ? "text-muted-foreground bg-muted/40 border-border/40"
+                          : snapshot.avgReturn7d >= 0
+                            ? "text-success bg-success/10 border-success/20"
+                            : "text-destructive bg-destructive/10 border-destructive/20"
+                      )}
+                    >
+                      {snapshot.avgReturn7d == null
+                        ? "Perf 7j: N/A"
+                        : `Perf 7j: ${snapshot.avgReturn7d >= 0 ? "+" : ""}${(snapshot.avgReturn7d * 100).toFixed(1)}%`}
+                    </span>
+                  </div>
+
+                  <Sparkline
+                    values={sparkValues}
+                    strokeClassName="text-primary"
+                    withFill
+                    height={160}          // ✅ remplit mieux
+                    animated
+                    drawDurationMs={1200}
+                    loopDelayMs={1800}
+                    showEndDot={false}
+                  />
 
 
-                <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>Mix breadth + perf</span>
-                  <span>signal visuel</span>
+                  <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>Mix breadth + perf</span>
+                    <span>signal visuel</span>
+                  </div>
                 </div>
               </div>
-            </div>
-
-      {/* CTA soft (optionnel) */}
-      <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-background/40 p-3">
-        <p className="text-[11px] text-muted-foreground">
-          Pour aller plus loin :{" "}
-          <span className="font-semibold text-foreground">sentiment</span>,{" "}
-          <span className="font-semibold text-foreground">volatilité</span>,{" "}
-          <span className="font-semibold text-foreground">risque</span>.
-        </p>
-        <Link href="/analyse" className="text-[11px] font-semibold text-primary hover:underline shrink-0">
-          Analyse →
-        </Link>
+              {/* CTA soft (optionnel) */}
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-border/30 bg-background/40 p-3">
+                <p className="text-[11px] text-muted-foreground">
+                  Pour aller plus loin :{" "}
+                  <span className="font-semibold text-foreground">sentiment</span>,{" "}
+                  <span className="font-semibold text-foreground">volatilité</span>,{" "}
+                  <span className="font-semibold text-foreground">risque</span>.
+                </p>
+                <Link href="/analyse" className="text-[11px] font-semibold text-primary hover:underline shrink-0">
+                  Analyse →
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </>
-  )}
-</div>
 
 
             {/* Pro : Sentiment */}
             <div className="lg:col-span-1 space-y-3">
-              {/* Ribbon + value props */}
-              <div className="rounded-2xl border border-border/50 bg-background/40 backdrop-blur p-4">
-                <p className="text-xs font-semibold flex items-center justify-between">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
-                      PRO
-                    </span>
-                    Sentiment du marché
-                  </span>
-                  <Link href="/pricing" className="text-[11px] font-semibold text-primary hover:underline">
-                    Débloquer
-                  </Link>
-                </p>
+              <div className="rounded-2xl border border-border/50 bg-background/60 backdrop-blur p-5 relative overflow-hidden h-full flex flex-col">
+                <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl" aria-hidden="true" />
+                <div className="absolute -bottom-12 -left-10 w-40 h-40 rounded-full bg-purple-500/10 blur-2xl" aria-hidden="true" />
+                <div className="relative flex-1 flex flex-col">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                          PRO
+                        </span>
+                        <p className="text-sm font-semibold">Sentiment du marché</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Détecte rapidement si le marché est en{" "}
+                        <span className="font-semibold text-foreground">peur</span> ou{" "}
+                        <span className="font-semibold text-foreground">euphorie</span>.
+                      </p>
+                    </div>
+                    <Link href="/pricing" className="shrink-0 text-[11px] font-semibold text-primary hover:underline">
+                      Débloquer
+                    </Link>
+                  </div>
 
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Détecte rapidement si le marché est en{" "}
-                  <span className="font-semibold text-foreground">peur</span> ou{" "}
-                  <span className="font-semibold text-foreground">euphorie</span>.
-                </p>
+                  <ProWidget
+                    title="Sentiment du marché (Pro)"
+                    className="rounded-lg flex-1 h-full mt-4"
+                    preview={<MarketSentimentWidgetPreview className="border-0 bg-transparent shadow-none" />}
+                  >
+                    <MarketSentimentWidget series={series} className="border-0 bg-transparent shadow-none" />
+                  </ProWidget>
+                </div>
               </div>
-
-              <ProWidget
-                title="Sentiment du marché (Pro)"
-                className="rounded-2xl"
-                preview={<MarketSentimentWidgetPreview />}
-              >
-                <MarketSentimentWidget series={series} />
-              </ProWidget>
             </div>
 
             {/* Pro : Volatilité */}
             <div className="lg:col-span-1 space-y-3">
-              <div className="rounded-2xl border border-border/50 bg-background/40 backdrop-blur p-4">
-                <p className="text-xs font-semibold flex items-center justify-between">
-                  <span className="inline-flex items-center gap-2">
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
-                      PRO
-                    </span>
-                    Volatilité & Risque
-                  </span>
-                  <Link href="/pricing" className="text-[11px] font-semibold text-primary hover:underline">
-                    Débloquer
-                  </Link>
-                </p>
+              <div className="rounded-2xl border border-border/50 bg-background/60 backdrop-blur p-5 relative overflow-hidden h-full flex flex-col">
+                <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-primary/10 blur-2xl" aria-hidden="true" />
+                <div className="absolute -bottom-12 -left-10 w-40 h-40 rounded-full bg-purple-500/10 blur-2xl" aria-hidden="true" />
+                <div className="relative flex-1 flex flex-col">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary">
+                          PRO
+                        </span>
+                        <p className="text-sm font-semibold">Volatilité & Risque</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Repère les séries{" "}
+                        <span className="font-semibold text-foreground">instables</span> avant les corrections.
+                      </p>
+                    </div>
+                    <Link href="/pricing" className="shrink-0 text-[11px] font-semibold text-primary hover:underline">
+                      Débloquer
+                    </Link>
+                  </div>
 
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Repère les séries{" "}
-                  <span className="font-semibold text-foreground">instables</span> avant les corrections.
-                </p>
+                  <ProWidget
+                    title="Volatilité & Risque (Pro)"
+                    className="rounded-lg flex-1 h-full mt-4"
+                    preview={<VolatilityGaugeWidgetPreview className="border-0 bg-transparent shadow-none" />}
+                  >
+                    <VolatilityGaugeWidget series={series} className="border-0 bg-transparent shadow-none" />
+                  </ProWidget>
+                </div>
               </div>
-
-              <ProWidget
-                title="Volatilité & Risque (Pro)"
-                className="rounded-2xl"
-                preview={<VolatilityGaugeWidgetPreview />}
-              >
-                <VolatilityGaugeWidget series={series} />
-              </ProWidget>
             </div>
           </div>
 

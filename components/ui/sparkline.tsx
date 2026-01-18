@@ -82,13 +82,51 @@ function buildSmoothPath(values: number[], w: number, h: number, padding: number
     return { x, y: clamp(y, top, bottom) };
   });
 
-  // Quadratic smoothing (simple, joli)
+  // Monotone cubic spline for a more natural curve (no overshoot)
+  const n = points.length;
+  const dx = step;
+  const slopes: number[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    slopes.push((points[i + 1].y - points[i].y) / dx);
+  }
+
+  const tangents: number[] = new Array(n).fill(0);
+  tangents[0] = slopes[0];
+  tangents[n - 1] = slopes[n - 2];
+  for (let i = 1; i < n - 1; i++) {
+    if (slopes[i - 1] * slopes[i] <= 0) {
+      tangents[i] = 0;
+    } else {
+      tangents[i] = (slopes[i - 1] + slopes[i]) / 2;
+    }
+  }
+
+  for (let i = 0; i < n - 1; i++) {
+    const d = slopes[i];
+    if (d === 0) {
+      tangents[i] = 0;
+      tangents[i + 1] = 0;
+      continue;
+    }
+    const a = tangents[i] / d;
+    const b = tangents[i + 1] / d;
+    const sum = a * a + b * b;
+    if (sum > 9) {
+      const t = 3 / Math.sqrt(sum);
+      tangents[i] = t * a * d;
+      tangents[i + 1] = t * b * d;
+    }
+  }
+
   let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
-  for (let i = 1; i < points.length; i++) {
-    const prev = points[i - 1];
-    const cur = points[i];
-    const cx = ((prev.x + cur.x) / 2).toFixed(2);
-    d += ` Q ${cx} ${prev.y.toFixed(2)} ${cur.x.toFixed(2)} ${cur.y.toFixed(2)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = points[i];
+    const p1 = points[i + 1];
+    const c1x = p0.x + dx / 3;
+    const c1y = p0.y + (tangents[i] * dx) / 3;
+    const c2x = p1.x - dx / 3;
+    const c2y = p1.y - (tangents[i + 1] * dx) / 3;
+    d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(2)} ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
   }
 
   const area = `${d} L ${points[points.length - 1].x.toFixed(2)} ${bottom.toFixed(2)} L ${points[0].x.toFixed(2)} ${bottom.toFixed(2)} Z`;
@@ -129,19 +167,8 @@ export function Sparkline({
 
   // ids stables
   const gradientId = useMemo(() => `spark-grad-${Math.random().toString(16).slice(2)}`, []);
+  const strokeGradientId = useMemo(() => `spark-stroke-${Math.random().toString(16).slice(2)}`, []);
   const glowId = useMemo(() => `spark-glow-${Math.random().toString(16).slice(2)}`, []);
-
-  // loop control: remount path animation by key
-  const [loopKey, setLoopKey] = useState(0);
-
-  useEffect(() => {
-    if (!animated) return;
-
-    const total = drawDurationMs + loopDelayMs;
-    const id = window.setInterval(() => setLoopKey((k) => k + 1), total);
-
-    return () => window.clearInterval(id);
-  }, [animated, drawDurationMs, loopDelayMs]);
 
   const pathRef = useRef<SVGPathElement | null>(null);
   const [pathLen, setPathLen] = useState(0);
@@ -156,7 +183,7 @@ export function Sparkline({
     } catch {
       setPathLen(0);
     }
-  }, [animated, line, loopKey]);
+  }, [animated, line]);
 
   const end = points.at(-1);
 
@@ -171,6 +198,12 @@ export function Sparkline({
         aria-hidden="true"
       >
         <defs>
+          <linearGradient id={strokeGradientId} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.35" />
+            <stop offset="45%" stopColor="currentColor" stopOpacity="0.9" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.55" />
+          </linearGradient>
+
           {withFill && (
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="currentColor" stopOpacity="0.22" />
@@ -181,7 +214,7 @@ export function Sparkline({
 
           {/* glow léger */}
           <filter id={glowId} x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="1.6" result="blur" />
+            <feGaussianBlur stdDeviation="1.1" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
               <feMergeNode in="SourceGraphic" />
@@ -199,26 +232,51 @@ export function Sparkline({
         />
 
         {/* fill */}
-        {withFill && area && <path d={area} fill={`url(#${gradientId})`} />}
+        {withFill && area && (
+          <path
+            d={area}
+            fill={`url(#${gradientId})`}
+            style={
+              animated && pathLen > 0
+                ? {
+                    opacity: 0,
+                    animation: `spark-fill-${gradientId} ${drawDurationMs + loopDelayMs}ms ease-out infinite`,
+                  }
+                : undefined
+            }
+          />
+        )}
+
+        {/* glow fin */}
+        {line && (
+          <path
+            d={line}
+            fill="none"
+            stroke={`url(#${strokeGradientId})`}
+            strokeWidth={strokeWidth + 1.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.35}
+            filter={`url(#${glowId})`}
+          />
+        )}
 
         {/* courbe animée */}
         {line && (
           <path
-            key={loopKey}
             ref={pathRef}
             d={line}
             fill="none"
-            stroke="currentColor"
+            stroke={`url(#${strokeGradientId})`}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
-            filter={`url(#${glowId})`}
             style={
               animated && pathLen > 0
                 ? {
                     strokeDasharray: pathLen,
                     strokeDashoffset: pathLen,
-                    animation: `spark-draw-${gradientId} ${drawDurationMs}ms ease-in-out forwards`,
+                    animation: `spark-loop-${gradientId} ${drawDurationMs + loopDelayMs}ms cubic-bezier(0.33, 1, 0.68, 1) infinite`,
                   }
                 : undefined
             }
@@ -247,8 +305,16 @@ export function Sparkline({
 
       {/* keyframes scoped via ids uniques */}
       <style>{`
-        @keyframes spark-draw-${gradientId} {
-          to { stroke-dashoffset: 0; }
+        @keyframes spark-loop-${gradientId} {
+          0% { stroke-dashoffset: ${pathLen}; opacity: 0.9; }
+          55% { stroke-dashoffset: 0; opacity: 1; }
+          100% { stroke-dashoffset: 0; opacity: 0.6; }
+        }
+        @keyframes spark-fill-${gradientId} {
+          0% { opacity: 0; }
+          35% { opacity: 0.9; }
+          80% { opacity: 0.9; }
+          100% { opacity: 0; }
         }
         @keyframes spark-pulse-${gradientId} {
           0%, 100% { transform: scale(0.9); opacity: 0.10; }

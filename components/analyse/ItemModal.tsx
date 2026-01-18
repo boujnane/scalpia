@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo } from "react";
+import Image from "next/image";
 import { Dialog, DialogContent, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import {
   LineChart,
@@ -24,11 +25,13 @@ export default function ItemModal({
   chartData,
   open,
   onOpenChange,
+  showImage = false,
 }: {
   item: Item;
   chartData: Point[];
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  showImage?: boolean;
 }) {
   const initialTimeFrame = chartData.length > 0 ? {
     start: new Date(chartData[0].date),
@@ -140,6 +143,24 @@ export default function ItemModal({
         <DialogTitle className="mb-2 text-lg font-semibold text-foreground border-b border-border/50 pb-2">
           {item.name}
         </DialogTitle>
+
+        {showImage && item.image && (
+          <div className="flex items-center gap-4 border border-border/60 rounded-lg p-3 bg-muted/30">
+            <div className="relative h-20 w-20 rounded-md bg-muted/60 border border-border/60 overflow-hidden">
+              <Image
+                src={item.image}
+                alt={item.name}
+                fill
+                sizes="80px"
+                className="object-contain"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <div className="font-semibold text-foreground">{item.type} {item.name}</div>
+              <div>{item.bloc} · {item.releaseDate}</div>
+            </div>
+          </div>
+        )}
 
         {/* Boutons de timeframe */}
         <div className="flex gap-2 mb-2 overflow-x-auto">

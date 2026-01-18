@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTokens } from "@/context/TokenContext";
 import { useAuth } from "@/context/AuthContext";
 import { Icons } from "@/components/icons";
@@ -107,19 +109,25 @@ export function NoTokensModal({
   onClose: () => void;
 }) {
   const { user, isPro } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (!open) return null;
+  if (!mounted) return null;
 
   // Cas 1: Utilisateur non connecté
   if (!user) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    return createPortal(
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-auto">
         <div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={onClose}
         />
 
-        <div className="relative bg-card text-card-foreground w-full max-w-md rounded-2xl shadow-2xl border border-border p-6 animate-in fade-in zoom-in-95">
+        <div className="relative bg-card text-card-foreground w-full max-w-md rounded-2xl shadow-2xl border border-border p-6 animate-in fade-in zoom-in-95 pointer-events-auto">
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition"
@@ -161,18 +169,18 @@ export function NoTokensModal({
           </div>
         </div>
       </div>
-    );
+    , document.body);
   }
 
   // Cas 2: Utilisateur connecté mais plus de jetons
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 pointer-events-auto">
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
 
-      <div className="relative bg-card text-card-foreground w-full max-w-md rounded-2xl shadow-2xl border border-border p-6 animate-in fade-in zoom-in-95">
+      <div className="relative bg-card text-card-foreground w-full max-w-md rounded-2xl shadow-2xl border border-border p-6 animate-in fade-in zoom-in-95 pointer-events-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition"
@@ -231,5 +239,5 @@ export function NoTokensModal({
         </div>
       </div>
     </div>
-  );
+  , document.body);
 }

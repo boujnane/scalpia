@@ -20,6 +20,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { TokenBadge } from "@/components/ui/TokenBadge";
+import ItemSearchDialog from "@/components/ItemSearchDialog";
 
 // --- TYPES & CONSTANTS ---
 type IndexStatus = "UP_TO_DATE" | "IN_PROGRESS" | "OUTDATED"
@@ -254,9 +255,7 @@ const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
         <div className="flex items-center gap-2 md:gap-3">
           <IndexBadge />
           <TokenBadge compact />
-          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all duration-300 hover:scale-105 hidden sm:flex">
-            <Icons.search className="h-4 w-4" />
-          </Button>
+          <ItemSearchDialog buttonClassName="hidden sm:flex" />
           <ThemeToggle />
 
           <div className="hidden lg:flex items-center gap-2 ml-2">
