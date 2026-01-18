@@ -7,7 +7,6 @@ import TopMovers from "@/components/analyse/TopMovers";
 import SeriesAnalytics from "@/components/analyse/SeriesAnalytics";
 import { useSeriesFinance } from "@/hooks/useSeriesFinance";
 import { useAnalyseItems } from "@/hooks/useAnalyseItems";
-import { useSearchParams } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
@@ -30,16 +29,16 @@ import { MarketSentimentWidgetPreview, RiskReturnScatterPreview, SignalsWidgetPr
 
 export default function AnalysePage() {
   const { items, loading, fromCache, refresh } = useAnalyseItems();
-  const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<"overview" | "products">("overview");
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    const tab = searchParams?.get("tab");
-    if (tab === "products") {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("tab") === "products") {
       setActiveSection("products");
     }
-  }, [searchParams]);
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);

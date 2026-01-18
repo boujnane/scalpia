@@ -22,8 +22,52 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pokéindex",
-  description: "L'observatoire des prix du marché Pokémon scellé francophone",
+  metadataBase: new URL("https://www.pokeindex.fr"),
+  title: {
+    default: "Pokéindex",
+    template: "%s | Pokéindex",
+  },
+  description: "L'observatoire des prix du marché Pokemon scellé francophone.",
+  applicationName: "Pokéindex",
+  alternates: {
+    canonical: "/",
+  },
+  keywords: [
+    "index pokemon scelle",
+    "prix pokemon scelle",
+    "analyse marche pokemon",
+    "analyse marche scelle pokemon",
+    "index items scelles pokemon",
+    "pokemon price index",
+    "pokemon sealed market",
+    "cardmarket pokemon",
+    "vinted pokemon",
+    "ebay pokemon",
+  ],
+  openGraph: {
+    type: "website",
+    url: "https://www.pokeindex.fr",
+    siteName: "Pokéindex",
+    title: "Pokéindex",
+    description: "L'observatoire des prix du marché Pokemon scellé francophone.",
+    locale: "fr_FR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pokéindex",
+    description: "L'observatoire des prix du marché Pokemon scellé francophone.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({

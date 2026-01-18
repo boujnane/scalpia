@@ -1,0 +1,12 @@
+Title: Pokeindex
+URL: https://www.pokeindex.fr/
+
+Description: Index and market analysis for French Pokemon sealed products (items scelles Pokemon).
+Primary topics: Pokemon sealed market index, price tracking, market analysis, sealed product catalog.
+Language: fr-FR
+
+Key pages:
+- https://www.pokeindex.fr/
+- https://www.pokeindex.fr/analyse
+- https://www.pokeindex.fr/cartes
+- https://www.pokeindex.fr/rechercher
