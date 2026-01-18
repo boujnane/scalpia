@@ -118,7 +118,7 @@ export default function TrendingCarousel() {
 
         return (
           <SwiperSlide key={`${item.type}-${item.name}-${index}`}>
-            <Link href="/analyse" className="block h-full">
+            <Link href="/analyse?tab=products" className="block h-full">
               <div
                 className="
                   group h-full border border-border rounded-xl

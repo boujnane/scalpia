@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { signOut } from "firebase/auth";
-import { ALLOWED_EMAIL } from "@/lib/authConfig";
+import { isAllowedAdminEmail } from "@/lib/authConfig";
 
 export default function ConfirmLoginPage() {
   const router = useRouter();
@@ -37,7 +37,7 @@ export default function ConfirmLoginPage() {
           window.location.href
         );
       
-        if (result.user.email !== ALLOWED_EMAIL) {
+        if (!isAllowedAdminEmail(result.user.email)) {
           await signOut(auth);
           setError("Cet email n’est pas autorisé");
           return;

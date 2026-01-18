@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AnalyseTabs from "@/components/analyse/AnalyseTabs";
 import ISPIndexCard from "@/components/analyse/ISPIndexCard";
 import TopMovers from "@/components/analyse/TopMovers";
 import SeriesAnalytics from "@/components/analyse/SeriesAnalytics";
 import { useSeriesFinance } from "@/hooks/useSeriesFinance";
 import { useAnalyseItems } from "@/hooks/useAnalyseItems";
+import { useSearchParams } from "next/navigation";
 import {
   TrendingUp,
   TrendingDown,
@@ -29,8 +30,16 @@ import { MarketSentimentWidgetPreview, RiskReturnScatterPreview, SignalsWidgetPr
 
 export default function AnalysePage() {
   const { items, loading, fromCache, refresh } = useAnalyseItems();
+  const searchParams = useSearchParams();
   const [activeSection, setActiveSection] = useState<"overview" | "products">("overview");
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab === "products") {
+      setActiveSection("products");
+    }
+  }, [searchParams]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
