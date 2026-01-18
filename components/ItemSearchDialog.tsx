@@ -122,7 +122,12 @@ export default function ItemSearchDialog({ buttonClassName }: ItemSearchDialogPr
     [selectedItem]
   );
 
-  const handleSelect = (item: Item) => {
+  const handleSelect = async (item: Item) => {
+    const canProceed = await consumeToken();
+    if (!canProceed) {
+      setShowNoTokensModal(true);
+      return;
+    }
     setSelectedItem(item);
     setItemOpen(true);
     setOpen(false);

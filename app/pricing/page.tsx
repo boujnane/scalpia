@@ -140,10 +140,10 @@ export default function PricingPage() {
         priceMonthly: 0,
         priceYearly: 0,
         highlights: [
-          "15 recherches / jour",
-          "Accès à l'index & historique des prix",
+          "15 jetons / jour",
+          "Index + historique des prix (limité par jetons)",
           "Toutes les séries accessibles",
-          "Prix planchers & tendances basiques",
+          "Analyse séries : données 7 jours",
           "Support communautaire",
         ],
         cta: { label: "Commencer gratuitement", href: "/analyse", variant: "outline", icon: "zap" },
@@ -158,12 +158,11 @@ export default function PricingPage() {
         priceMonthly: 9,
         priceYearly: 87,
         highlights: [
-          "300 recherches / jour",
+          "300 jetons / jour",
           "Tout le plan Gratuit",
-          "Indicateurs financiers (volatilité, momentum)",
-          "Analyse de risque & scoring",
-          "Alertes de prix personnalisées",
-          "Exports CSV & comparatifs",
+          "Widgets avancés (sentiment, volatilité, signaux, risque/rendement)",
+          "Analyse séries avancée (performance, risque, momentum)",
+          "Données 7 jours + 30 jours",
           "Support prioritaire",
         ],
         cta: { label: "Passer en Pro", href: "/analyse", variant: "default", icon: "sparkles" },
@@ -192,14 +191,17 @@ export default function PricingPage() {
 
   const comparisonFeatures: FeatureRow[] = useMemo(
     () => [
-      { name: "Recherches / jour", free: "15", pro: "300", enterprise: "Illimité" },
-      { name: "Historique des prix", free: true, pro: true, enterprise: true },
+      { name: "Jetons / jour", free: "15", pro: "300", enterprise: "Illimité" },
+      { name: "Historique des prix d'un item", free: "Limité par jetons", pro: "Limité par jetons", enterprise: true },
       { name: "Toutes les séries", free: true, pro: true, enterprise: true },
-      { name: "Indicateurs financiers", free: false, pro: true, enterprise: true },
-      { name: "Volatilité & Momentum", free: false, pro: true, enterprise: true },
-      { name: "Analyse de risque", free: false, pro: true, enterprise: true },
-      { name: "Alertes de prix", free: false, pro: true, enterprise: true },
-      { name: "Exports CSV", free: false, pro: true, enterprise: true },
+      { name: "Sentiment du marché", free: false, pro: true, enterprise: true },
+      { name: "Volatilité du marché", free: false, pro: true, enterprise: true },
+      { name: "Signaux actifs", free: false, pro: true, enterprise: true },
+      { name: "Risque / rendement (graphique)", free: false, pro: true, enterprise: true },
+      { name: "Analyse séries avancée", free: false, pro: true, enterprise: true },
+      { name: "Fenêtre d'analyse", free: "7 jours", pro: "7 + 30 jours", enterprise: "7 + 30 jours" },
+      { name: "Alertes de prix", free: false, pro: false, enterprise: true },
+      { name: "Exports CSV", free: false, pro: false, enterprise: true },
       { name: "Accès API", free: false, pro: false, enterprise: true },
       { name: "Support", free: "Communautaire", pro: "Prioritaire", enterprise: "Dédié + SLA" },
     ],
@@ -210,7 +212,7 @@ export default function PricingPage() {
     () => [
       {
         q: "Comment fonctionnent les quotas de recherche ?",
-        a: "Chaque recherche (carte ou série) consomme 1 crédit. Le compteur se réinitialise chaque jour à minuit. Gratuit = 15/jour, Pro = 300/jour, Entreprise = illimité.",
+        a: "Chaque recherche ou ouverture d'historique consomme 1 jeton. Le compteur se réinitialise chaque jour à minuit. Gratuit = 15/jour, Pro = 300/jour, Entreprise = illimité.",
       },
       {
         q: "Les prix sont-ils garantis ?",
@@ -226,7 +228,7 @@ export default function PricingPage() {
       },
       {
         q: "Pro inclut quoi concrètement en plus ?",
-        a: "20× plus de recherches (300/jour), indicateurs financiers avancés (volatilité, momentum, scoring de risque), alertes de prix, exports CSV et support prioritaire.",
+        a: "20× plus de jetons (300/jour), widgets avancés (sentiment, volatilité, signaux, risque/rendement), analyse séries avancée (performance, risque, momentum) et données 30 jours.",
       },
     ],
     []

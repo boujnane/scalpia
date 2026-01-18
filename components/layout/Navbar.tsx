@@ -255,7 +255,7 @@ const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
         <div className="flex items-center gap-2 md:gap-3">
           <IndexBadge />
           <TokenBadge compact />
-          <ItemSearchDialog buttonClassName="hidden sm:flex" />
+          <ItemSearchDialog buttonClassName="flex" />
           <ThemeToggle />
 
           <div className="hidden lg:flex items-center gap-2 ml-2">

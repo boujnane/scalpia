@@ -8,9 +8,13 @@ import { getChartAnalysis } from "@/lib/analyse/getChartAnalysis";
 import ItemModal from "./ItemModal";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Icons } from "@/components/icons";
+import { useTokens } from "@/context/TokenContext";
+import { NoTokensModal } from "@/components/ui/TokenBadge";
 
 export default function ItemCard({ item }: { item: Item }) {
   const [open, setOpen] = useState(false);
+  const [showNoTokensModal, setShowNoTokensModal] = useState(false);
+  const { consumeToken } = useTokens();
 
   const analysis = useMemo(
     () => getChartAnalysis(item),
@@ -30,10 +34,19 @@ export default function ItemCard({ item }: { item: Item }) {
   const TrendIcon = trend7d === null || Math.abs(trend7d) <= 0.5 ? Icons.minus : trend7d > 0.5 ? Icons.trendingUp : Icons.trendingDown;
 
 
+  const handleOpen = async () => {
+    const canProceed = await consumeToken();
+    if (!canProceed) {
+      setShowNoTokensModal(true);
+      return;
+    }
+    setOpen(true);
+  };
+
   return (
     <>
       <div
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         role="button"
         aria-label={`Ouvrir les détails de ${item.name}`}
         className="
@@ -111,6 +124,7 @@ export default function ItemCard({ item }: { item: Item }) {
       </div>
 
       <ItemModal item={item} chartData={chartData} open={open} onOpenChange={setOpen} />
+      <NoTokensModal open={showNoTokensModal} onClose={() => setShowNoTokensModal(false)} />
     </>
   );
 }
