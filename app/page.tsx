@@ -312,7 +312,7 @@ export default function HomePage() {
                 </span>
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-                Les items avec les plus grandes variations de prix cette semaine
+                Les items avec les plus grandes variations de prix cette semaine (Prix le plus bas observé sur une des marketplaces aujourd’hui)
               </p>
             </motion.div>
 
