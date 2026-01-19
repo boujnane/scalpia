@@ -6,43 +6,53 @@
             http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
 
   <url>
-    <loc>https://www.pokeindex.fr/</loc>
-    <lastmod>2026-01-18T16:53:57Z</lastmod>
+    <loc>https://pokeindex.fr/</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
     <priority>1.00</priority>
   </url>
   <url>
-    <loc>https://www.pokeindex.fr/analyse</loc>
-    <lastmod>2026-01-18T16:53:57Z</lastmod>
+    <loc>https://pokeindex.fr/analyse</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://www.pokeindex.fr/cartes</loc>
-    <lastmod>2026-01-18T16:53:57Z</lastmod>
+    <loc>https://pokeindex.fr/cartes</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://www.pokeindex.fr/rechercher</loc>
-    <lastmod>2026-01-18T16:53:57Z</lastmod>
+    <loc>https://pokeindex.fr/rechercher</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
     <priority>0.85</priority>
   </url>
   <url>
-    <loc>https://www.pokeindex.fr/pricing</loc>
-    <lastmod>2026-01-18T16:53:57Z</lastmod>
+    <loc>https://pokeindex.fr/pricing</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
     <priority>0.70</priority>
   </url>
   <url>
-    <loc>https://www.pokeindex.fr/contact</loc>
-    <lastmod>2026-01-18T16:53:57Z</lastmod>
+    <loc>https://pokeindex.fr/methodologie</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
+    <priority>0.70</priority>
+  </url>
+  <url>
+    <loc>https://pokeindex.fr/llm</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
     <priority>0.60</priority>
   </url>
   <url>
-    <loc>https://www.pokeindex.fr/cgu</loc>
-    <lastmod>2026-01-18T16:53:57Z</lastmod>
+    <loc>https://pokeindex.fr/contact</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
+    <priority>0.60</priority>
+  </url>
+  <url>
+    <loc>https://pokeindex.fr/cgu</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
     <priority>0.50</priority>
   </url>
   <url>
-    <loc>https://www.pokeindex.fr/mentions-legales</loc>
-    <lastmod>2026-01-18T16:53:57Z</lastmod>
+    <loc>https://pokeindex.fr/mentions-legales</loc>
+    <lastmod>2026-01-19T13:19:39Z</lastmod>
     <priority>0.50</priority>
   </url>
 

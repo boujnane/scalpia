@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     default: "Pokéindex",
     template: "%s | Pokéindex",
   },
-  description: "L'observatoire des prix du marché Pokemon scellé francophone.",
+  description: "L'observatoire des prix du marché Pokemon scellé francophone. Pokéindex est un index indépendant des prix Pokémon scellés. Analyse des tendances, historique des prix et données consolidées depuis Cardmarket, eBay, Vinted et LeBonCoin.",
   applicationName: "Pokéindex",
   alternates: {
     canonical: "/",
