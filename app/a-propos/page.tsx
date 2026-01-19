@@ -165,10 +165,11 @@ export default function AProposPage() {
                 Un projet personnel, guidé par un hibou
               </h2>
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed text-justify">
-                Je continuerai tant que je n’y serai pas arrivé. Pokéindex est le
-                projet dans lequel je crois le plus, parce qu’il rassemble tout
-                : mon histoire, mes échecs, ma passion et ma volonté d’aller
-                jusqu’au bout.
+                Pokéindex n’est pas né d’une bonne idée, mais d’une obsession. Celle de
+                construire quelque chose qui me ressemble, même quand c’est long, même
+                quand c’est difficile. Ce projet concentre mes essais, mes erreurs, mes
+                remises en question — et surtout cette envie tenace d’aller au bout.
+                Tant que le hibou n’aura pas trouvé sa place, moi non plus.
               </p>
             </div>
 
