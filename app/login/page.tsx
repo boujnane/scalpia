@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import Image from "next/image";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -107,7 +108,7 @@ export default function AuthPage() {
             <UserPlus className="w-8 h-8 text-primary" />
           </div>
           <CardTitle className="text-3xl">Connexion / Inscription</CardTitle>
-          <CardDescription>Choisissez une méthode pour vous connecter ou créer un compte</CardDescription>
+          <CardDescription>Accès aux prix en 1 clic</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -116,6 +117,15 @@ export default function AuthPage() {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground space-y-2">
+            <p className="font-semibold text-foreground">Ce que vous débloquez :</p>
+            <ul className="space-y-1">
+              <li>• Quota quotidien de recherches</li>
+              <li>• Historique des prix par série</li>
+              <li>• Alertes et widgets avancés (Pro)</li>
+            </ul>
+          </div>
 
           {/* EMAIL */}
           <div className="space-y-2">
@@ -137,7 +147,14 @@ export default function AuthPage() {
           {/* Google */}
           <div className="pt-4 border-t border-muted-foreground/20">
             <Button onClick={signInWithGoogle} disabled={loadingGoogle} className="w-full mt-2">
-              {loadingGoogle ? "Connexion en cours..." : "Se connecter avec Google"}
+              {loadingGoogle ? (
+                "Connexion en cours..."
+              ) : (
+                <>
+                  <Image src="/logo/logo_google.png" alt="" width={18} height={18} />
+                  Se connecter avec Google
+                </>
+              )}
             </Button>
           </div>
         </CardContent>

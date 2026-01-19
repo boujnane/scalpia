@@ -3,8 +3,11 @@
 import Link from "next/link"
 import Image from "next/image"
 import { Icons } from "@/components/icons"
+import { useCookieConsent } from "@/context/CookieConsentContext"
 
 export default function Footer() {
+  const { resetConsent } = useCookieConsent()
+
   return (
     <footer className="border-t border-border/40 bg-background/70 backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10">
@@ -76,6 +79,14 @@ export default function Footer() {
               >
                 Mentions légales
               </Link>
+
+              <button
+                onClick={resetConsent}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                type="button"
+              >
+                Gérer les cookies
+              </button>
             </nav>
           </div>
 
