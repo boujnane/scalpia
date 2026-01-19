@@ -47,6 +47,7 @@
     "playwright": "^1.57.0",
     "playwright-extra": "^4.3.6",
     "playwright-extra-plugin-stealth": "^0.0.1",
+    "posthog-js": "^1.328.0",
     "puppeteer": "^24.31.0",
     "puppeteer-core": "^24.31.0",
     "puppeteer-extra": "^3.3.6",

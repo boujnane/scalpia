@@ -8,6 +8,7 @@ import { TokenProvider } from "@/context/TokenContext";
 import Footer from "@/components/layout/Footer";
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
+import { PostHogProvider } from "./providers";
 
 
 
@@ -80,24 +81,26 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground flex flex-col`}
       >
-        <AuthProvider>
-          <TokenProvider>
-            <ThemeProvider
-                attribute="class"
-                defaultTheme="system"
-                enableSystem
-                disableTransitionOnChange
-                >
-                <Navbar />
-                <main className="flex-1 w-full">
-                  {children}
-                  <SpeedInsights />
-                  <Analytics />
-                </main>
-                <Footer />
-            </ThemeProvider>
-          </TokenProvider>
-        </AuthProvider>
+        <PostHogProvider>
+          <AuthProvider>
+            <TokenProvider>
+              <ThemeProvider
+                  attribute="class"
+                  defaultTheme="system"
+                  enableSystem
+                  disableTransitionOnChange
+                  >
+                  <Navbar />
+                  <main className="flex-1 w-full">
+                    {children}
+                    <SpeedInsights />
+                    <Analytics />
+                  </main>
+                  <Footer />
+              </ThemeProvider>
+            </TokenProvider>
+          </AuthProvider>
+        </PostHogProvider>
       </body>
     </html>
   );

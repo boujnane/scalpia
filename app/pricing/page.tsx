@@ -2,12 +2,13 @@
 'use client'
 
 import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/icons"
 import { useAuth } from "@/context/AuthContext"
+import { captureEvent } from "@/lib/posthog"
 
 type Billing = "monthly" | "yearly"
 
@@ -41,10 +42,22 @@ export default function PricingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false)
   const { user, isPro } = useAuth()
   const router = useRouter()
+  const pricingTracked = useRef(false)
 
   useEffect(() => setMounted(true), [])
+
+  useEffect(() => {
+    if (pricingTracked.current) return
+    pricingTracked.current = true
+    captureEvent("pricing_viewed")
+  }, [])
     
   const handleCheckout = async () => {
+  captureEvent("checkout_clicked", { from: "pricing", plan: "pro", interval: billing })
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem("ph_checkout_interval", billing)
+  }
+
   if (!user) {
     router.push("/login?redirect=/pricing")
     return
@@ -71,18 +84,25 @@ export default function PricingPage() {
       }),
     })
 
-    const data = await response.json().catch(() => ({}))
+    const rawText = await response.text()
+    const data = rawText ? (() => {
+      try {
+        return JSON.parse(rawText)
+      } catch {
+        return { raw: rawText }
+      }
+    })() : {}
 
     if (!response.ok) {
       console.error("Checkout API error:", response.status, data)
-      throw new Error(data?.error || `API error ${response.status}`)
+      throw new Error((data as any)?.error || (data as any)?.raw || `API error ${response.status}`)
     }
 
-    if (!data?.url) {
+    if (!(data as any)?.url) {
       throw new Error("No checkout URL returned")
     }
 
-    window.location.assign(data.url)
+    window.location.assign((data as any).url)
   } catch (error) {
     console.error("Checkout error:", error)
     alert(`Une erreur est survenue : ${(error as Error).message}`)

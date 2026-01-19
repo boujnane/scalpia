@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Icons } from "@/components/icons"
 import { useAuth } from "@/context/AuthContext"
+import { captureEvent } from "@/lib/posthog"
+import posthog from "posthog-js"
 
 export default function SuccessClient() {
   const router = useRouter()
@@ -15,6 +17,8 @@ export default function SuccessClient() {
 
   const { isPro } = useAuth()
   const [countdown, setCountdown] = useState(8)
+  const tracked = useRef(false)
+  const [interval, setInterval] = useState<string | null>(null)
 
   // 1) Countdown timer
   useEffect(() => {
@@ -30,6 +34,40 @@ export default function SuccessClient() {
     if (countdown !== 0) return
     router.replace("/analyse")
   }, [countdown, router])
+
+  useEffect(() => {
+    if (tracked.current) return
+    tracked.current = true
+    const storedInterval = typeof window !== "undefined"
+      ? window.localStorage.getItem("ph_checkout_interval")
+      : null
+    setInterval(storedInterval)
+
+    const payload = {
+      plan: "pro",
+      interval: storedInterval ?? undefined,
+      sessionId: sessionId ?? undefined,
+    }
+
+    const tryCapture = (attemptsLeft: number) => {
+      const loaded = (posthog as unknown as { __loaded?: boolean }).__loaded
+      if (loaded && typeof posthog.capture === "function") {
+        posthog.capture("checkout_success", payload)
+        return
+      }
+      if (attemptsLeft <= 0) {
+        captureEvent("checkout_success", payload)
+        return
+      }
+      window.setTimeout(() => tryCapture(attemptsLeft - 1), 300)
+    }
+
+    if (typeof window !== "undefined") {
+      tryCapture(5)
+    } else {
+      captureEvent("checkout_success", payload)
+    }
+  }, [sessionId])
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -12,7 +12,9 @@ import { getChartAnalysis } from "@/lib/analyse/getChartAnalysis";
 import type { Item } from "@/lib/analyse/types";
 import { cn } from "@/lib/utils";
 import { useTokens } from "@/context/TokenContext";
+import { useAuth } from "@/context/AuthContext";
 import { NoTokensModal } from "@/components/ui/TokenBadge";
+import { captureEvent } from "@/lib/posthog";
 
 type ItemSearchDialogProps = {
   buttonClassName?: string;
@@ -48,6 +50,8 @@ export default function ItemSearchDialog({ buttonClassName }: ItemSearchDialogPr
   const [itemOpen, setItemOpen] = useState(false);
   const [showNoTokensModal, setShowNoTokensModal] = useState(false);
   const { consumeToken } = useTokens();
+  const { tier } = useAuth();
+  const lastTrackedQuery = useRef<string | null>(null);
 
   useEffect(() => {
     if (!open || loaded) return;
@@ -117,6 +121,19 @@ export default function ItemSearchDialog({ buttonClassName }: ItemSearchDialogPr
       .slice(0, 25);
   }, [items, normalizedQuery, queryTokens]);
 
+  useEffect(() => {
+    if (!submittedQuery) return;
+    if (lastTrackedQuery.current === submittedQuery) return;
+    if (!loaded || loading) return;
+
+    lastTrackedQuery.current = submittedQuery;
+    captureEvent("search_performed", {
+      query: submittedQuery,
+      source: "analyse",
+      resultsCount: results.length,
+    });
+  }, [submittedQuery, results.length, loaded, loading]);
+
   const selectedAnalysis = useMemo(
     () => (selectedItem ? getChartAnalysis(selectedItem) : null),
     [selectedItem]
@@ -125,6 +142,11 @@ export default function ItemSearchDialog({ buttonClassName }: ItemSearchDialogPr
   const handleSelect = async (item: Item) => {
     const canProceed = await consumeToken();
     if (!canProceed) {
+      captureEvent("search_blocked_quota", {
+        source: "result_click",
+        tier,
+        remaining: 0,
+      });
       setShowNoTokensModal(true);
       return;
     }
@@ -137,6 +159,11 @@ export default function ItemSearchDialog({ buttonClassName }: ItemSearchDialogPr
     if (!query.trim()) return;
     const canProceed = await consumeToken();
     if (!canProceed) {
+      captureEvent("search_blocked_quota", {
+        source: "search_submit",
+        tier,
+        remaining: 0,
+      });
       setShowNoTokensModal(true);
       setOpen(false);
       return;

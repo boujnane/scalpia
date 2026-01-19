@@ -6,6 +6,7 @@ import { mapSetNameToFR } from "@/lib/cardmarket/setNameMapper";
 import { useEffect, useMemo, useState } from "react";
 import { useTokens } from "@/context/TokenContext";
 import { useAuth } from "@/context/AuthContext";
+import { captureEvent } from "@/lib/posthog";
 import { TokenBadge, NoTokensModal } from "@/components/ui/TokenBadge";
 
 /* =======================
@@ -435,6 +436,10 @@ export default function CardmarketSetViewer() {
       }));
 
       setSets(mapped);
+      captureEvent("sets_loaded", {
+        count: mapped.length,
+        source: "cartes",
+      });
 
       if (mapped.length > 0) {
         const firstSeriesRaw = mapped[0]?.series?.name || "Autres";
@@ -616,6 +621,19 @@ const fetchAllCards = async (setId: string) => {
       setShowNoTokensModal(true);
       return;
     }
+
+    const seriesRaw = set.series?.name ?? "Autres";
+    let series = mapSeriesNameToFR(seriesRaw);
+    if (SPECIAL_SERIES.includes(series) || SPECIAL_SERIES.includes(seriesRaw)) {
+      series = "Promos & Autres";
+    }
+
+    captureEvent("set_viewed", {
+      setId: String(set.id),
+      setName: set.name,
+      series,
+      source: "cartes",
+    });
 
     // Jeton consommé avec succès - charger le set
     setSelectedSet(set);

@@ -12,6 +12,7 @@ import {
   hasProAccess,
   setUserSubscription,
 } from "@/lib/subscription";
+import { captureEvent, identifyUser, resetUser, setPersonProperties } from "@/lib/posthog";
 
 type AuthContextType = {
   user: User | null;
@@ -68,6 +69,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const tier = getEffectiveTier(subscription);
   const isPro = hasProAccess(subscription);
   const isAdmin = tier === "admin";
+
+  useEffect(() => {
+    if (!user) {
+      resetUser();
+      return;
+    }
+
+    identifyUser(user.uid, {
+      email: user.email ?? undefined,
+      plan: tier,
+    });
+
+    setPersonProperties({ plan: tier });
+
+    const createdAt = user.metadata?.creationTime ? new Date(user.metadata.creationTime) : null;
+    if (!createdAt) return;
+
+    const hoursSinceSignup = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceSignup < 24 || hoursSinceSignup > 48) return;
+
+    const key = `ph_day1_return_${user.uid}`;
+    if (typeof window !== "undefined" && window.localStorage.getItem(key)) return;
+
+    captureEvent("day_1_return", {
+      hoursSinceSignup: Math.round(hoursSinceSignup * 10) / 10,
+    });
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(key, "1");
+    }
+  }, [user, tier]);
 
   return (
     <AuthContext.Provider value={{ user, loading, subscription, tier, isPro, isAdmin }}>

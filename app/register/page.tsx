@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, signInWithPopup, getAdditionalUserInfo } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { captureEvent } from "@/lib/posthog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -19,8 +20,13 @@ export default function RegisterPage() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
+      const info = getAdditionalUserInfo(result);
 
       console.log("Utilisateur Google:", user);
+
+      if (info?.isNewUser) {
+        captureEvent("signup", { method: "google" });
+      }
 
       // Optionnel: vérifier que l'email est autorisé
       // if (user.email !== "ady.boujnane@gmail.com") {

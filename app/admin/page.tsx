@@ -14,6 +14,7 @@ import {
   RefreshCw,
   Search,
   UserCircle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +71,21 @@ export default function AdminPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTier, setFilterTier] = useState<"all" | SubscriptionTier>("all");
+  const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "";
+  const hasPosthog = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && posthogHost);
+  const posthogDashboardUrl = posthogHost.includes("eu.i.")
+    ? "https://eu.posthog.com"
+    : "https://app.posthog.com";
+
+  const behaviorEvents = [
+    { event: "signup", stage: "Acquisition" },
+    { event: "search_performed", stage: "Valeur principale" },
+    { event: "search_blocked_quota", stage: "Moment de frustration" },
+    { event: "pricing_viewed", stage: "Intention" },
+    { event: "checkout_clicked", stage: "Intention forte" },
+    { event: "checkout_success", stage: "Conversion" },
+    { event: "day_1_return", stage: "Intérêt réel" },
+  ];
 
   // Redirect if not admin
   useEffect(() => {
@@ -285,6 +301,48 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Search & Filter */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center justify-between">
+            <span>Comportements utilisateurs (PostHog)</span>
+            <Badge variant={hasPosthog ? "default" : "secondary"}>
+              {hasPosthog ? "Tracking actif" : "Tracking inactif"}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              Les événements sont envoyés vers PostHog pour le suivi du parcours (acquisition → conversion).
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <a href={posthogDashboardUrl} target="_blank" rel="noreferrer">
+                Ouvrir PostHog
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {behaviorEvents.map((evt) => (
+              <div
+                key={evt.event}
+                className="rounded-xl border border-border/50 bg-background/60 px-4 py-3 flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">Événement</p>
+                  <p className="text-sm font-semibold truncate">{evt.event}</p>
+                </div>
+                <Badge variant="outline" className="text-[10px] shrink-0">
+                  {evt.stage}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search & Filter */}
       <Card className="mb-6">
