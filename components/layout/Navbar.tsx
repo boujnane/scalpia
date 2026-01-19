@@ -306,11 +306,11 @@ const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
             <SheetContent side="left" className="w-[320px] sm:w-[380px] p-0 border-r border-border/50">
               <div className="bg-gradient-to-br from-primary/5 to-transparent p-6 border-b border-border/50">
                 <SheetHeader>
-                  <SheetTitle className="flex items-center text-lg font-bold">
-                    <div className="relative h-12 w-12">
+                  <SheetTitle className="flex items-center gap-4 text-lg font-bold">
+                    <div className="relative h-24 w-24">
                       <Image src="/logo/logo_pki.png" alt="Logo" fill className="object-contain" />
                     </div>
-                    <span>Pokéindex</span>
+                    <span className="-ml-5">Pokéindex</span>
                   </SheetTitle>
                 </SheetHeader>
               </div>

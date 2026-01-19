@@ -99,8 +99,8 @@ export default function Footer() {
               © {new Date().getFullYear()} Pokéindex
             </div>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground/80">
-              <span className="flex h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-              Site en construction · Ady Boujnane
+              <span className="flex h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              V1.0.0 · Ady Boujnane
             </div>
             <div className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold mt-1">
               Propulsé par Bubo
