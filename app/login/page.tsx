@@ -60,9 +60,9 @@ export default function AuthPage() {
       const user = result.user;
       console.log("Utilisateur Google:", user);
       const subscription = await getUserSubscription(user.uid);
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase();
-      const userEmail = user.email?.toLowerCase();
-      const isPro = hasProAccess(subscription) || (!!adminEmail && adminEmail === userEmail);
+      const tokenResult = await user.getIdTokenResult(true);
+      const isAdmin = tokenResult?.claims?.admin === true;
+      const isPro = hasProAccess(subscription) || isAdmin;
       window.location.href = isPro ? "/analyse" : "/pricing";
     } catch (err: any) {
       console.error(err);

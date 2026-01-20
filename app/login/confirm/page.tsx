@@ -29,9 +29,9 @@ export default function ConfirmLoginPage() {
       try {
         const result = await signInWithEmailLink(auth, email, window.location.href);
         const subscription = await getUserSubscription(result.user.uid);
-        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase();
-        const userEmail = result.user.email?.toLowerCase();
-        const isPro = hasProAccess(subscription) || (!!adminEmail && adminEmail === userEmail);
+        const tokenResult = await result.user.getIdTokenResult(true);
+        const isAdmin = tokenResult?.claims?.admin === true;
+        const isPro = hasProAccess(subscription) || isAdmin;
 
         window.localStorage.removeItem("emailForSignIn");
         router.replace(isPro ? "/analyse" : "/pricing");

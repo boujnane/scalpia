@@ -29,9 +29,7 @@ export async function GET(request: NextRequest) {
 
     const decoded = await adminAuth().verifyIdToken(token);
 
-    // Vérifier si l'utilisateur est admin dans Firestore
-    const adminDoc = await adminDb().collection("subscriptions").doc(decoded.uid).get();
-    const isAdmin = adminDoc.exists && adminDoc.data()?.tier === "admin";
+    const isAdmin = decoded.admin === true;
 
     if (!isAdmin) {
       return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });
@@ -105,9 +103,7 @@ export async function PATCH(request: NextRequest) {
 
     const decoded = await adminAuth().verifyIdToken(token);
 
-    // Vérifier si l'utilisateur est admin
-    const adminDoc = await adminDb().collection("subscriptions").doc(decoded.uid).get();
-    const isAdmin = adminDoc.exists && adminDoc.data()?.tier === "admin";
+    const isAdmin = decoded.admin === true;
 
     if (!isAdmin) {
       return NextResponse.json({ error: "Forbidden - Admin only" }, { status: 403 });

@@ -9,8 +9,6 @@ import {
   DEFAULT_SUBSCRIPTION,
   getUserSubscription,
   getEffectiveTier,
-  hasProAccess,
-  setUserSubscription,
 } from "@/lib/subscription";
 import { captureEvent, identifyUser, resetUser, setPersonProperties } from "@/lib/posthog";
 
@@ -36,28 +34,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<UserSubscription>(DEFAULT_SUBSCRIPTION);
+  const [adminClaim, setAdminClaim] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
 
       if (firebaseUser) {
-        // User logged in → fetch subscription from Firestore
-        let sub = await getUserSubscription(firebaseUser.uid);
-
-        // Auto-create admin for the first/main admin account
-        // TODO: Replace with your admin email
-        const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-        if (sub.tier === "free" && firebaseUser.email === ADMIN_EMAIL) {
-          console.log("[Auth] Auto-creating admin subscription for:", firebaseUser.email);
-          await setUserSubscription(firebaseUser.uid, "admin", null);
-          sub = await getUserSubscription(firebaseUser.uid);
-        }
+        // User logged in → fetch subscription + admin claim
+        const [sub, tokenResult] = await Promise.all([
+          getUserSubscription(firebaseUser.uid),
+          firebaseUser.getIdTokenResult(true),
+        ]);
 
         setSubscription(sub);
+        const isAdmin = Boolean(tokenResult?.claims?.admin);
+        setAdminClaim(isAdmin);
+        if (process.env.NODE_ENV !== "production") {
+          console.log("[Auth] claims", {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            admin: isAdmin,
+            claims: tokenResult?.claims,
+          });
+        }
       } else {
         // Not logged in → Free tier
         setSubscription(DEFAULT_SUBSCRIPTION);
+        setAdminClaim(false);
       }
 
       setLoading(false);
@@ -66,9 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const tier = getEffectiveTier(subscription);
-  const isPro = hasProAccess(subscription);
-  const isAdmin = tier === "admin";
+  const rawTier = getEffectiveTier(subscription);
+  const tier = adminClaim ? "admin" : rawTier === "admin" ? "free" : rawTier;
+  const isPro = tier === "pro" || tier === "admin";
+  const isAdmin = adminClaim;
 
   useEffect(() => {
     if (!user) {

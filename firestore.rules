@@ -16,15 +16,14 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isAuthenticated() &&
-        exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/subscriptions/$(request.auth.uid)).data.tier == "admin";
+      return isAuthenticated() && request.auth.token.admin == true;
     }
 
     function isPro() {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/subscriptions/$(request.auth.uid)).data.tier in ["pro", "admin"];
+        (request.auth.token.admin == true ||
+          (exists(/databases/$(database)/documents/subscriptions/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/subscriptions/$(request.auth.uid)).data.tier in ["pro", "admin"]));
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -37,9 +36,6 @@ service cloud.firestore {
 
       // Only admins can write subscriptions
       allow write: if isAdmin();
-
-      // Allow first admin to bootstrap (REMOVE AFTER SETUP)
-      allow create: if isOwner(userId) && request.resource.data.tier == "admin";
     }
 
     // ═══════════════════════════════════════════════════════════

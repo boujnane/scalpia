@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 export type CookieConsent = {
   analytics: boolean;
+  decidedAt?: string;
 };
 
 type CookieConsentContextType = {
@@ -34,8 +35,11 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw) as CookieConsent;
+      const hasDecisionStamp = typeof parsed.decidedAt === "string" && parsed.decidedAt.length > 0;
+      if (!hasDecisionStamp) return;
       setConsentState({
         analytics: Boolean(parsed.analytics),
+        decidedAt: parsed.decidedAt,
       });
       setHasDecision(true);
     } catch {
@@ -44,10 +48,11 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
   }, []);
 
   const setConsent = (next: CookieConsent) => {
-    setConsentState(next);
+    const withStamp = { ...next, decidedAt: new Date().toISOString() };
+    setConsentState(withStamp);
     setHasDecision(true);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(withStamp));
     }
   };
 
