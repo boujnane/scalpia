@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, ArrowRight, CheckCircle, AlertCircle, UserPlus } from "lucide-react";
+import { getUserSubscription, hasProAccess } from "@/lib/subscription";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -58,7 +59,11 @@ export default function AuthPage() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       console.log("Utilisateur Google:", user);
-      window.location.href = "/pricing";
+      const subscription = await getUserSubscription(user.uid);
+      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase();
+      const userEmail = user.email?.toLowerCase();
+      const isPro = hasProAccess(subscription) || (!!adminEmail && adminEmail === userEmail);
+      window.location.href = isPro ? "/analyse" : "/pricing";
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Erreur lors de la connexion avec Google");

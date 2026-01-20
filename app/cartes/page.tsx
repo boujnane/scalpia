@@ -3,7 +3,7 @@
 import { SetFinancePanel, pickGradedSpotlight } from "@/components/cardmarket/SetFinancePanel";
 import { mapSeriesNameToFR } from "@/lib/cardmarket/seriesNameMapper";
 import { mapSetNameToFR } from "@/lib/cardmarket/setNameMapper";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTokens } from "@/context/TokenContext";
 import { useAuth } from "@/context/AuthContext";
 import { captureEvent } from "@/lib/posthog";
@@ -211,15 +211,6 @@ const CardDetailModal = ({ card: initialCard, onClose }: { card: CMCard; onClose
     
     const data = await res.json().catch(() => null);
     
-    console.log("[ui-modal] fetchFullDetails", {
-      cmId,
-      ok: res.ok,
-      status: res.status,
-      hasCardmarketUrl: !!data?.cardmarket_url,
-      cardmarket_url: data?.cardmarket_url ?? null,
-      tcggo_url: data?.tcggo_url ?? null,
-    });
-
     if (res.ok && data?.cardmarket_url) {
       const raw = String(data.cardmarket_url);
       const urlWithLang = raw.includes("?") ? `${raw}&language=2` : `${raw}?language=2`;
@@ -231,8 +222,7 @@ const CardDetailModal = ({ card: initialCard, onClose }: { card: CMCard; onClose
         tcggo_url: prev.tcggo_url ?? (data?.tcggo_url ?? null),
       }));
     }
-  } catch (err) {
-    console.error("[ui-modal] Erreur scraping:", err);
+  } catch {
   } finally {
     setIsScraping(false);
   }
@@ -422,6 +412,8 @@ export default function CardmarketSetViewer() {
   const { consumeToken, isExhausted } = useTokens();
   const { user } = useAuth();
   const [showNoTokensModal, setShowNoTokensModal] = useState(false);
+  const [restoredSet, setRestoredSet] = useState(false);
+  const RESTORE_TTL_MS = 60 * 60 * 1000;
 
  useEffect(() => {
  setLoadingSets(true);
@@ -447,7 +439,7 @@ export default function CardmarketSetViewer() {
         setExpandedSeries(new Set([firstSeries]));
       }
     })
-    .catch((e) => console.error(e))
+    .catch(() => {})
     .finally(() => setLoadingSets(false));
 }, []);
 
@@ -576,10 +568,7 @@ const fetchAllCards = async (setId: string) => {
           fetch(`/api/cardmarket/sets/${setId}/cards/mapped?page=${page}`)
             .then((res) => res.json())
             .then((json) => json.data || [])
-            .catch((err) => {
-              console.error(`Error fetching page ${page}:`, err);
-              return [];
-            })
+            .catch(() => [])
         )
       );
 
@@ -596,8 +585,7 @@ const fetchAllCards = async (setId: string) => {
       setLoadingProgress({ current: loadedPages, total: totalPages });
     }
 
-  } catch (err) {
-    console.error('Error fetching cards:', err);
+  } catch {
     setLoadingMessage("Erreur lors du chargement");
   } finally {
     setLoading(false);
@@ -606,20 +594,24 @@ const fetchAllCards = async (setId: string) => {
 
 // ... (garde le reste de ton composant identique)
 
-  const handleSelectSet = async (set: CMSet) => {
+  const selectSet = useCallback(
+    async (set: CMSet, options?: { consumeToken?: boolean; restore?: boolean }) => {
     // Vérifier si l'utilisateur est connecté
     if (!user) {
       // Optionnel : autoriser les non-connectés avec les jetons par défaut
       // ou rediriger vers login
     }
 
-    // Consommer un jeton avant de charger
-    const canProceed = await consumeToken();
+    const shouldConsume = options?.consumeToken !== false;
+    if (shouldConsume) {
+      // Consommer un jeton avant de charger
+      const canProceed = await consumeToken();
 
-    if (!canProceed) {
-      // Plus de jetons - afficher le modal
-      setShowNoTokensModal(true);
-      return;
+      if (!canProceed) {
+        // Plus de jetons - afficher le modal
+        setShowNoTokensModal(true);
+        return;
+      }
     }
 
     const seriesRaw = set.series?.name ?? "Autres";
@@ -642,8 +634,54 @@ const fetchAllCards = async (setId: string) => {
     setShowFiltersMobile(false);
     setFinanceOpen(false);
     fetchAllCards(String(set.id));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+    if (!options?.restore) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem("cartes:lastSetId", String(set.id));
+        sessionStorage.setItem("cartes:lastSetAt", String(Date.now()));
+      } catch {}
+    }
+  },
+  [
+    captureEvent,
+    consumeToken,
+    fetchAllCards,
+    setFinanceOpen,
+    setSearchQuery,
+    setSelectedRarities,
+    setSelectedSet,
+    setShowFiltersMobile,
+    setShowNoTokensModal,
+    user,
+  ]
+  );
+
+  const handleSelectSet = (set: CMSet) => selectSet(set, { consumeToken: true });
+
+  useEffect(() => {
+    if (restoredSet || loadingSets || sets.length === 0) return;
+    if (typeof window === "undefined") return;
+
+    const lastId = sessionStorage.getItem("cartes:lastSetId");
+    const lastAt = Number(sessionStorage.getItem("cartes:lastSetAt") || 0);
+    if (!lastId) {
+      setRestoredSet(true);
+      return;
+    }
+    if (Date.now() - lastAt > RESTORE_TTL_MS) {
+      setRestoredSet(true);
+      return;
+    }
+
+    const found = sets.find((s) => String(s.id) === lastId);
+    if (found) {
+      selectSet(found, { consumeToken: false, restore: true });
+    }
+    setRestoredSet(true);
+  }, [loadingSets, restoredSet, selectSet, sets]);
 
   const availableRarities = useMemo(() => {
     const s = new Set<string>();
@@ -856,7 +894,7 @@ const fetchAllCards = async (setId: string) => {
                   onClick={() => setFinanceOpen(true)}
                   className="lg:hidden px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted transition text-sm font-semibold"
                 >
-                  Finance
+                  Observatoire
                 </button>
 
                 {/* Desktop finance entrypoint (optional, also useful) */}
@@ -864,7 +902,7 @@ const fetchAllCards = async (setId: string) => {
                   onClick={() => setFinanceOpen(true)}
                   className="hidden lg:inline-flex px-3 py-2 rounded-lg border border-border bg-background hover:bg-muted transition text-sm font-semibold"
                 >
-                  Ouvrir Finance
+                  Ouvrir l’observatoire
                 </button>
               </div>
 
@@ -941,23 +979,47 @@ const fetchAllCards = async (setId: string) => {
                   )}
                 </div>
                 <button
-                onClick={() => setSortByFRPrice((p) => (p === "desc" ? "asc" : "desc"))}
-                className={`
-                  inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-semibold whitespace-nowrap
-                  transition
-                  ${
-                    sortByFRPrice
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background text-muted-foreground border-border hover:bg-muted"
-                  }
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                `}
-                aria-label="Trier par prix Cardmarket FR"
-              >
-                <FilterIcon />
-                Prix FR
-                <span className="font-mono">{sortByFRPrice === "desc" ? "↓" : "↑"}</span>
-              </button>
+                  onClick={() => setSortByFRPrice((p) => (p === "desc" ? "asc" : "desc"))}
+                  className={`
+                    inline-flex items-center gap-2 px-2.5 py-1.5 rounded-full border text-xs font-semibold whitespace-nowrap
+                    transition shadow-sm
+                    ${
+                      sortByFRPrice
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background text-foreground border-border hover:bg-muted"
+                    }
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                  `}
+                  aria-label="Trier par prix Cardmarket FR"
+                >
+                  <span
+                    className={`
+                      inline-flex items-center justify-center h-5 w-5 rounded-full border text-[10px]
+                      ${
+                        sortByFRPrice
+                          ? "bg-primary-foreground/15 border-primary-foreground/30 text-primary-foreground"
+                          : "bg-muted border-border text-muted-foreground"
+                      }
+                    `}
+                    aria-hidden="true"
+                  >
+                    €
+                  </span>
+                  <span>Prix FR</span>
+                  <span
+                    className={`
+                      font-mono text-[10px] px-1 py-0.5 rounded-full border
+                      ${
+                        sortByFRPrice
+                          ? "border-primary-foreground/30 text-primary-foreground"
+                          : "border-border text-muted-foreground"
+                      }
+                    `}
+                    aria-hidden="true"
+                  >
+                    {sortByFRPrice === "desc" ? "↓" : "↑"}
+                  </span>
+                </button>
 
               </div>
               
@@ -997,54 +1059,6 @@ const fetchAllCards = async (setId: string) => {
               )}
             </div>
 
-            {/* Bottom-sheet filters (mobile) */}
-            {showFiltersMobile && (
-              <div className="fixed inset-0 z-50 md:hidden">
-                <div className="absolute inset-0 bg-black/50" onClick={() => setShowFiltersMobile(false)} />
-                <div className="absolute bottom-0 left-0 right-0 bg-card text-card-foreground border border-border rounded-t-2xl p-4 animate-in slide-in-from-bottom-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="font-semibold">Filtres</p>
-                    <button
-                      className="text-muted-foreground hover:text-foreground transition
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
-                      onClick={() => setShowFiltersMobile(false)}
-                      aria-label="Fermer"
-                    >
-                      <XIcon />
-                    </button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {availableRarities.map((r) => (
-                      <button
-                        key={r}
-                        onClick={() => toggleRarity(r)}
-                        className={`px-3 py-1.5 rounded-full text-xs border transition
-                          ${
-                            selectedRarities.has(r)
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80"
-                          }
-                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
-                        `}
-                      >
-                        {r}
-                      </button>
-                    ))}
-                  </div>
-
-                  {selectedRarities.size > 0 && (
-                    <button
-                      onClick={() => setSelectedRarities(new Set())}
-                      className="mt-4 w-full py-2 rounded-xl border border-border bg-muted text-muted-foreground hover:bg-muted/70 transition
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    >
-                      Réinitialiser
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
           </>
         )}
 
@@ -1058,6 +1072,7 @@ const fetchAllCards = async (setId: string) => {
             setName={selectedSet.name}
             setLogo={selectedSet.logo}
             cards={allCards}
+            onSelectCard={setSelectedCard}
           />
         )}
 
@@ -1067,6 +1082,87 @@ const fetchAllCards = async (setId: string) => {
           onClose={() => setShowNoTokensModal(false)}
         />
       </main>
+
+      {/* Bottom-sheet filters (mobile) */}
+      {showFiltersMobile && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowFiltersMobile(false)}
+          />
+          <div className="absolute inset-x-0 bottom-0 flex justify-center">
+            <div className="w-full max-w-lg rounded-t-2xl border border-border bg-card text-card-foreground shadow-2xl animate-in slide-in-from-bottom-4">
+              <div className="px-4 pt-3 pb-2">
+                <div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Filtres</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedRarities.size > 0
+                        ? `${selectedRarities.size} filtre${selectedRarities.size > 1 ? "s" : ""} actif${selectedRarities.size > 1 ? "s" : ""}`
+                        : "Aucun filtre actif"}
+                    </p>
+                  </div>
+                  <button
+                    className="text-muted-foreground hover:text-foreground transition
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-md"
+                    onClick={() => setShowFiltersMobile(false)}
+                    aria-label="Fermer"
+                  >
+                    <XIcon />
+                  </button>
+                </div>
+              </div>
+
+              <div className="px-4 pb-4 max-h-[50vh] overflow-y-auto">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Raretés
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {availableRarities.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => toggleRarity(r)}
+                      className={`px-3 py-1.5 rounded-full text-xs border transition
+                        ${
+                          selectedRarities.has(r)
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80"
+                        }
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                      `}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="px-4 py-3 border-t border-border bg-card/95 backdrop-blur">
+                <div className="flex items-center gap-2">
+                  {selectedRarities.size > 0 && (
+                    <button
+                      onClick={() => setSelectedRarities(new Set())}
+                      className="flex-1 py-2 rounded-xl border border-border bg-muted text-muted-foreground hover:bg-muted/70 transition
+                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                    >
+                      Réinitialiser
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowFiltersMobile(false)}
+                    className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground font-semibold hover:opacity-95 transition
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                  >
+                    Terminer
+                  </button>
+                </div>
+                <div className="h-[env(safe-area-inset-bottom)]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -10,13 +10,13 @@ export default function Footer() {
 
   return (
     <footer className="border-t border-border/40 bg-background/70 backdrop-blur-sm">
-      <div className="container mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10">
+      <div className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           
           {/* Brand & Description */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3 group">
-              <div className="relative h-32 w-32 transition-transform duration-300 group-hover:scale-115">
+              <div className="relative h-20 w-20 transition-transform duration-300 group-hover:scale-110">
                 <Image
                   src="/logo/logo_pki.png"
                   alt="PokéIndex Logo"
@@ -100,7 +100,7 @@ export default function Footer() {
             </div>
             <div className="flex items-center gap-2 text-[11px] text-muted-foreground/80">
               <span className="flex h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-              V1.0.0 · Ady Boujnane
+              V1.0.1 · Ady Boujnane
             </div>
             <div className="text-[10px] text-muted-foreground/60 uppercase tracking-widest font-semibold mt-1">
               Propulsé par Bubo

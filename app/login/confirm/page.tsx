@@ -2,16 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  isSignInWithEmailLink,
-  signInWithEmailLink,
-} from "firebase/auth";
+import { isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
-import { signOut } from "firebase/auth";
-import { isAllowedAdminEmail } from "@/lib/authConfig";
+import { getUserSubscription, hasProAccess } from "@/lib/subscription";
 
 export default function ConfirmLoginPage() {
   const router = useRouter();
@@ -31,20 +27,14 @@ export default function ConfirmLoginPage() {
       }
 
       try {
-        const result = await signInWithEmailLink(
-          auth,
-          email,
-          window.location.href
-        );
-      
-        if (!isAllowedAdminEmail(result.user.email)) {
-          await signOut(auth);
-          setError("Cet email n’est pas autorisé");
-          return;
-        }
-      
+        const result = await signInWithEmailLink(auth, email, window.location.href);
+        const subscription = await getUserSubscription(result.user.uid);
+        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL?.toLowerCase();
+        const userEmail = result.user.email?.toLowerCase();
+        const isPro = hasProAccess(subscription) || (!!adminEmail && adminEmail === userEmail);
+
         window.localStorage.removeItem("emailForSignIn");
-        router.replace("/insert-db");
+        router.replace(isPro ? "/analyse" : "/pricing");
       } catch (err) {
         console.error(err);
         setError("Lien expiré ou déjà utilisé");

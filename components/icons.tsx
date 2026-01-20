@@ -54,6 +54,34 @@ import {
   Scale,
 } from "lucide-react"
 
+type PokeballIconProps = {
+  size?: number | string;
+  color?: string;
+  opacity?: number;
+  className?: string;
+};
+
+const PokeballIcon = ({
+  size = 24,
+  color = "currentColor",
+  opacity = 1,
+  className,
+}: PokeballIconProps) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 8 8"
+      width={size}
+      height={size}
+      fill={color}
+      className={className}
+      style={{ opacity }}
+    >
+      <path d="M0 4c0-5.25 8-5.25 8 0S0 9.25 0 4m1 0c0 4 6 4 6 0H6Q4 1 2 4m1 0l1-1l1 1l-1 1" />
+    </svg>
+  );
+};
+
 export const Icons = {
   // Trading / Data / Market Intelligence
   trendingUp: TrendingUp,
@@ -111,4 +139,5 @@ export const Icons = {
   bug: Bug,
   fileText: FileText,
   scale: Scale,
+  pokeball: PokeballIcon,
 }

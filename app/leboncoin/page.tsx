@@ -5,6 +5,7 @@
 import LBCItemCard from "@/components/leboncoin/LBCItemCard";
 import { useState } from "react";
 import { useLeboncoinSearch } from "@/hooks/useLeboncoinSearch"; // Assurez-vous d'ajuster le chemin d'import
+import ProtectedPage from "@/components/ProtectedPage";
 
 export default function LeboncoinPage() {
   const [url, setUrl] = useState("");
@@ -17,10 +18,11 @@ export default function LeboncoinPage() {
   };
   
   return (
-    <div style={{ padding: "2rem", maxWidth: 800, margin: "0 auto" }}>
-      <h1 style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
-        Test Scraping Le Bon Coin (Playwright)
-      </h1>
+    <ProtectedPage>
+      <div style={{ padding: "2rem", maxWidth: 800, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 28, fontWeight: "bold", marginBottom: 20 }}>
+          Test Scraping Le Bon Coin (Playwright)
+        </h1>
 
       <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
         <input
@@ -90,6 +92,7 @@ export default function LeboncoinPage() {
           ⚠️ Aucune annonce trouvée pour cette recherche.
         </div>
       )}
-    </div>
+      </div>
+    </ProtectedPage>
   );
 }

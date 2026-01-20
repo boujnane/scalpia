@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import type { SubscriptionTier } from "@/lib/subscription";
 import {
@@ -32,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import ProtectedPage from "@/components/ProtectedPage";
 
 type UserWithSubscription = {
   uid: string;
@@ -62,7 +62,6 @@ function formatDateShort(dateStr: string | null): string {
 }
 
 export default function AdminPage() {
-  const router = useRouter();
   const { user, isAdmin, loading: authLoading } = useAuth();
   const myUid = user?.uid ?? null;
 
@@ -86,11 +85,6 @@ export default function AdminPage() {
     { event: "checkout_success", stage: "Conversion" },
     { event: "day_1_return", stage: "Intérêt réel" },
   ];
-
-  // Redirect if not admin
-  useEffect(() => {
-    if (!authLoading && !isAdmin) router.push("/");
-  }, [authLoading, isAdmin, router]);
 
   const fetchUsers = useCallback(async () => {
     if (!isAdmin || !user) return;
@@ -211,39 +205,35 @@ export default function AdminPage() {
     }
   };
 
-  if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) return null;
-
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 mb-8">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
-            <Shield className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold">Administration</h1>
-            <p className="text-sm text-muted-foreground">
-              Gestion des utilisateurs et abonnements
-            </p>
-          </div>
+    <ProtectedPage>
+      {authLoading || loading ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
+      ) : (
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-3 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">Administration</h1>
+                <p className="text-sm text-muted-foreground">
+                  Gestion des utilisateurs et abonnements
+                </p>
+              </div>
+            </div>
 
-        <Button variant="outline" onClick={fetchUsers} disabled={loading}>
-          <RefreshCw
-            className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
-          />
-          Rafraîchir
-        </Button>
-      </div>
+            <Button variant="outline" onClick={fetchUsers} disabled={loading}>
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+              />
+              Rafraîchir
+            </Button>
+          </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -513,6 +503,8 @@ export default function AdminPage() {
           Connecté en tant que : <span className="font-mono">{myUid}</span>
         </p>
       </div>
-    </div>
+        </div>
+      )}
+    </ProtectedPage>
   );
 }

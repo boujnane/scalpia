@@ -43,11 +43,11 @@ export function TokenBadge({ compact = false, onClick }: TokenBadgeProps) {
         `}
         title={isUnlimited ? "Jetons illimités (Admin)" : `${tokens}/${maxTokens} jetons restants`}
       >
-        <Icons.zap className="h-3.5 w-3.5" />
+        <Icons.pokeball className="h-3.5 w-3.5" color="currentColor" />
         {loading ? (
           <span className="w-6 h-3 bg-current/20 rounded animate-pulse" />
         ) : isUnlimited ? (
-          <span>∞</span>
+          <span className="relative -top-[1px] text-xl leading-none">∞</span>
         ) : (
           <span>{tokens}</span>
         )}
@@ -68,7 +68,7 @@ export function TokenBadge({ compact = false, onClick }: TokenBadgeProps) {
       `}
     >
       <div className="flex items-center gap-2">
-        <Icons.zap className="h-4 w-4" />
+        <Icons.pokeball className="h-4 w-4" color="currentColor" />
         <div className="flex flex-col items-start">
           <span className="text-[10px] uppercase tracking-wider opacity-70">
             {isPro ? "Pro" : "Free"}
