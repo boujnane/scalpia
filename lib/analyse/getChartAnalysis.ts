@@ -5,6 +5,7 @@ export type ChartAnalysis = {
     data: Point[];
     lastPrice: number | null;
     trend7d: number | null;
+    lastPriceUnavailable: boolean;
 };
 
 /**
@@ -17,12 +18,20 @@ export function getChartAnalysis(item: Item): ChartAnalysis {
 
     const aggregatedData = buildChartData(item);
 
+    // Vérifier si le dernier prix enregistré (brut) est null
+    const sortedRawPrices = [...(item.prices ?? [])].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+    const lastRawPrice = sortedRawPrices[0];
+    const lastPriceUnavailable = lastRawPrice?.price === null;
+
     const lastPoint = aggregatedData.length > 0 ? aggregatedData[aggregatedData.length - 1] : null;
+    // lastPrice reste le dernier prix valide (pour les graphiques et analyses)
     const lastPrice = lastPoint ? lastPoint.price : null;
 
     // VÉRIFICATION CRITIQUE : Si pas de prix ou pas assez de données
     if (lastPoint === null || aggregatedData.length < 2) {
-        return { data: aggregatedData, lastPrice: lastPrice, trend7d: null };
+        return { data: aggregatedData, lastPrice: lastPrice, trend7d: null, lastPriceUnavailable };
     }
 
     const lastDate = new Date(lastPoint.date);
@@ -73,5 +82,6 @@ export function getChartAnalysis(item: Item): ChartAnalysis {
         data: aggregatedData,
         lastPrice: lastPrice,
         trend7d: trend7d,
+        lastPriceUnavailable,
     };
 }

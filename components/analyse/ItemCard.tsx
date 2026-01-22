@@ -24,6 +24,7 @@ export default function ItemCard({ item }: { item: Item }) {
   const chartData = analysis.data;
   const lastPrice = analysis.lastPrice;
   const trend7d = analysis.trend7d;
+  const lastPriceUnavailable = analysis.lastPriceUnavailable;
   
   // Application des couleurs thématiques
   const trendColor = 
@@ -80,21 +81,23 @@ export default function ItemCard({ item }: { item: Item }) {
         </Badge>
 
         {/* Bloc Dernier Prix */}
-        {lastPrice !== null && (
-          <div className="w-full flex flex-col items-center mt-auto p-4 sm:p-5 bg-muted/50 border border-border rounded-xl shadow-inner transition-shadow">
-            {/* Titre avec icône */}
-            <div className="flex items-center gap-2 sm:gap-3 mb-3">
-              {/* Icône de prix : utilise primary */}
-              <div className="p-2 sm:p-3 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-                <Icons.linechart size={20} />
-              </div>
-              <span className="text-muted-foreground font-semibold text-sm sm:text-base uppercase tracking-wide">
-                Dernière Évaluation
-              </span>
+        <div className="w-full flex flex-col items-center mt-auto p-4 sm:p-5 bg-muted/50 border border-border rounded-xl shadow-inner transition-shadow">
+          {/* Titre avec icône */}
+          <div className="flex items-center gap-2 sm:gap-3 mb-3">
+            {/* Icône de prix : utilise primary ou warning si non disponible */}
+            <div className={`p-2 sm:p-3 rounded-full flex items-center justify-center ${
+              !lastPriceUnavailable ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning"
+            }`}>
+              <Icons.linechart size={20} />
             </div>
+            <span className="text-muted-foreground font-semibold text-sm sm:text-base uppercase tracking-wide">
+              Dernière Évaluation
+            </span>
+          </div>
 
-            {/* Prix avec tooltip */}
-            <div className="flex flex-col items-center">
+          {/* Prix avec tooltip ou message non disponible */}
+          <div className="flex flex-col items-center">
+            {!lastPriceUnavailable && lastPrice !== null ? (
               <Tooltip delayDuration={150}>
                 <TooltipTrigger asChild>
                   {/* Prix : utilise primary */}
@@ -108,9 +111,15 @@ export default function ItemCard({ item }: { item: Item }) {
                     </p>
                 </TooltipContent>
               </Tooltip>
-            </div>
-            
-            {/* Indicateur de Tendance */}
+            ) : (
+              <span className="text-warning font-semibold text-base sm:text-lg text-center">
+                Article non disponible aujourd'hui
+              </span>
+            )}
+          </div>
+
+          {/* Indicateur de Tendance */}
+          {!lastPriceUnavailable && lastPrice !== null && (
             <div className={`mt-3 flex items-center gap-1.5 font-bold ${trendColor}`}>
               <TrendIcon size={18} className="w-4 h-4" />
               {trend7d === null ? (
@@ -119,8 +128,8 @@ export default function ItemCard({ item }: { item: Item }) {
                 <span className="text-sm">{trend7d > 0 ? "+" : ""}{trend7d.toFixed(2)}% (7j)</span>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <ItemModal item={item} chartData={chartData} open={open} onOpenChange={setOpen} />

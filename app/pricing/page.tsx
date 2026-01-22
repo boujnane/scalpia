@@ -174,7 +174,7 @@ export default function PricingPage() {
         badge: "Plus populaire",
         popular: true,
         description:
-          "Pour une veille sérieuse : indicateurs avancés, alertes, exports et analyses pro.",
+          "Pour une veille sérieuse : indicateurs avancés, alertes et analyses pro.",
         priceMonthly: 9,
         priceYearly: 87,
         highlights: [

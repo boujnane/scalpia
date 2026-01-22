@@ -62,6 +62,7 @@ export default function InsertDbPage() {
   const [saving, setSaving] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
   const [cardmarketUrl, setCardmarketUrl] = useState<string | null>(null);
+  const [priceUnavailable, setPriceUnavailable] = useState(false);
 
   const [openVinted, setOpenVinted] = useState(true);
   const [openCardmarket, setOpenCardmarket] = useState(true);
@@ -551,7 +552,9 @@ export default function InsertDbPage() {
   
 
   const handleInsertPrice = async () => {
-    if (!currentItem || currentMinPrice === null) return;
+    if (!currentItem) return;
+    // On peut enregistrer si on a un prix OU si le prix est marqué non disponible
+    if (currentMinPrice === null && !priceUnavailable) return;
 
     // Bloquer si déjà traité aujourd'hui
     if (itemsWithPriceToday.has(currentItem.id)) {
@@ -559,9 +562,11 @@ export default function InsertDbPage() {
     }
 
     const today = new Date().toISOString().slice(0, 10);
+    const priceToSave = priceUnavailable ? null : currentMinPrice;
+
     setSaving(true);
     try {
-      await insertPriceInDB(currentItem.id, { date: today, price: currentMinPrice });
+      await insertPriceInDB(currentItem.id, { date: today, price: priceToSave });
       setItemsWithPriceToday((prev) => new Set(prev).add(currentItem.id));
     } catch {
       alert("Erreur lors de l'ajout");
@@ -572,16 +577,23 @@ export default function InsertDbPage() {
 
   // Action combinée : Enregistrer + Suivant
   const handleInsertAndNext = async () => {
-    if (!currentItem || currentMinPrice === null) return;
+    if (!currentItem) return;
+    // On peut enregistrer si on a un prix OU si le prix est marqué non disponible
+    if (currentMinPrice === null && !priceUnavailable) {
+      handleNext();
+      return;
+    }
     if (itemsWithPriceToday.has(currentItem.id)) {
       handleNext();
       return;
     }
 
     const today = new Date().toISOString().slice(0, 10);
+    const priceToSave = priceUnavailable ? null : currentMinPrice;
+
     setSaving(true);
     try {
-      await insertPriceInDB(currentItem.id, { date: today, price: currentMinPrice });
+      await insertPriceInDB(currentItem.id, { date: today, price: priceToSave });
       setItemsWithPriceToday((prev) => new Set(prev).add(currentItem.id));
       handleNext();
     } catch {
@@ -619,6 +631,7 @@ export default function InsertDbPage() {
     setCurrentError(null);
     setEditingPrice(false);
     setCardmarketUrl(null);
+    setPriceUnavailable(false);
     window.scrollTo(0, 0);
   };
 
@@ -1030,7 +1043,7 @@ export default function InsertDbPage() {
                   </CollapsibleContent>
                 </Collapsible>
 
-                {(currentMinPrice === null || !!currentError) && (
+                {(currentMinPrice === null || !!currentError) && !priceUnavailable && (
                   <div className="flex flex-wrap gap-3 p-3 bg-muted/40 border border-border rounded-lg">
                     <Button
                       variant="outline"
@@ -1052,10 +1065,18 @@ export default function InsertDbPage() {
                     >
                       🔍 Relancer Le Bon Coin
                     </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => setPriceUnavailable(true)}
+                      className="border-warning text-warning hover:bg-warning/10"
+                    >
+                      ⚠️ Prix non disponible ce jour
+                    </Button>
                   </div>
                 )}
 
-                {currentMinPrice !== null && !currentError && (
+                {currentMinPrice !== null && !currentError && !priceUnavailable && (
                   <div className="flex items-center gap-3 text-base font-semibold bg-success-light border-l-4 border-success p-3 rounded-md shadow-md">
                     <span className="text-success">Prix minimal trouvé :</span>
                     {editingPrice ? (
@@ -1073,6 +1094,20 @@ export default function InsertDbPage() {
                   </div>
                 )}
 
+                {priceUnavailable && (
+                  <div className="flex items-center justify-between gap-3 text-base font-semibold bg-warning/10 border-l-4 border-warning p-3 rounded-md shadow-md">
+                    <span className="text-warning">Prix non disponible ce jour</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPriceUnavailable(false)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      Annuler
+                    </Button>
+                  </div>
+                )}
+
                 {/* Message si déjà traité */}
                 {currentItem && itemsWithPriceToday.has(currentItem.id) && (
                   <div className="p-3 bg-success/10 border border-success/30 rounded-lg">
@@ -1085,25 +1120,32 @@ export default function InsertDbPage() {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3 pt-4">
-                  {currentMinPrice !== null && !itemsWithPriceToday.has(currentItem?.id || '') && (
+                  {/* Boutons d'enregistrement: affichés si on a un prix OU si prix marqué non disponible, ET pas déjà traité */}
+                  {(currentMinPrice !== null || priceUnavailable) && currentItem && !itemsWithPriceToday.has(currentItem.id) && (
                     <>
-                      <Button
-                        variant="outline"
-                        onClick={() => setEditingPrice((v) => !v)}
-                      >
-                        {editingPrice ? "Valider le prix" : "Modifier le prix"}
-                      </Button>
+                      {!priceUnavailable && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setEditingPrice((v) => !v)}
+                        >
+                          {editingPrice ? "Valider le prix" : "Modifier le prix"}
+                        </Button>
+                      )}
 
                       <Button
                         onClick={handleInsertPrice}
                         disabled={saving}
-                        className="bg-success text-success-foreground hover:bg-success/90"
+                        className={priceUnavailable
+                          ? "bg-warning text-warning-foreground hover:bg-warning/90"
+                          : "bg-success text-success-foreground hover:bg-success/90"}
                       >
                         {saving ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                             Enregistrement…
                           </>
+                        ) : priceUnavailable ? (
+                          "Enregistrer (non disponible)"
                         ) : (
                           "Enregistrer le prix"
                         )}
