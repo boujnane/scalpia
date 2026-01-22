@@ -83,12 +83,12 @@ const SETS_FR: Record<string, string> = {
   "XY": "XY",
   "Flashfire": "Étincelles",
   "Furious Fists": "Poings Furieux",
-  "Phantom Forces": "Forces Fantômes",
+  "Phantom Forces": "Vigueur Spectrale",
   "Primal Clash": "Primo-Choc",
   "Roaring Skies": "Ciel Rugissant",
   "Ancient Origins": "Origines Antiques",
   "BREAKthrough": "Impact des Destins",
-  "BREAKpoint": "Turbo Assaut",
+  "BREAKpoint": "Rupture Turbo",
   "Fates Collide": "Impulsion Turbo",
   "Steam Siege": "Offensive Vapeur",
   "Evolutions": "Évolutions",
@@ -102,7 +102,7 @@ const SETS_FR: Record<string, string> = {
   // =======================
   "Black & White": "Noir et Blanc",
   "Emerging Powers": "Pouvoirs Émergents",
-  "Noble Victories": "Victoire Suprême",
+  "Noble Victories": "Nobles Victoires",
   "Next Destinies": "Destinées Futures",
   "Dark Explorers": "Explorateurs Obscurs",
   "Dragons Exalted": "Dragons Exaltés",
@@ -118,7 +118,7 @@ const SETS_FR: Record<string, string> = {
   "HeartGold & SoulSilver": "HeartGold et SoulSilver",
   "Unleashed": "Déchaînement",
   "Undaunted": "Indomptable",
-  "Triumphant": "Triomphant",
+  "Triumphant": "Triomphe",
   "Call of Legends": "L’Appel des Légendes",
 
   // =======================
@@ -137,8 +137,8 @@ const SETS_FR: Record<string, string> = {
   "Secret Wonders": "Merveilles Secrètes",
   "Great Encounters": "Duels au Sommet",
   "Majestic Dawn": "Aube Majestueuse",
-  "Legends Awakened": "Légendes Éveillées",
-  "Stormfront": "Frontière de Tempête",
+  "Legends Awakened": "L'Éveil des Légendes",
+  "Stormfront": "Tempête",
 
   // =======================
   // EX – RUBY & SAPPHIRE
@@ -147,9 +147,9 @@ const SETS_FR: Record<string, string> = {
   "Sandstorm": "EX Tempête de Sable",
   "Dragon": "EX Dragon",
   "Team Magma vs Team Aqua": "EX Team Magma contre Team Aqua",
-  "Hidden Legends": "EX Légendes Cachées",
+  "Hidden Legends": "EX Légendes Oubliées",
   "FireRed & LeafGreen": "EX Rouge Feu & Vert Feuille",
-  "Team Rocket Returns": "EX Team Rocket Returns",
+  "Team Rocket Returns": "EX Team Rocket Le Retour",
   "Deoxys": "EX Deoxys",
   "Emerald": "EX Émeraude",
   "Unseen Forces": "EX Forces Cachées",
