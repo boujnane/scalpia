@@ -28,10 +28,16 @@ import CardmarketButton from "@/components/CardmarketButton";
 import { Button } from "@/components/ui/button";
 
 import LBCItemCard from "@/components/leboncoin/LBCItemCard";
-import { fetchLeboncoinSearch, postLeboncoinFilter } from "@/lib/api";
+import {
+  fetchLeboncoinSearch,
+  postLeboncoinFilter,
+  fetchEbaySold,
+  postEbayFilter,
+} from "@/lib/api";
 import Fuse from "fuse.js";
 import { LBCOffer } from "@/types";
 import { normalizeLBCOffers, parseLBCPrice } from "@/lib/utils";
+import { cleanSoldEbayHtml } from "@/lib/cleanSoldEbayHtml";
 import ProtectedPage from "@/components/ProtectedPage";
 
 type ItemEntry = {
@@ -45,6 +51,7 @@ type ItemEntry = {
 type PrefetchData = {
   vinted?: any;
   lbc?: LBCOffer[];
+  ebay?: any;
   minPrice?: number;
   error?: string;
   timestamp?: number;
@@ -58,6 +65,7 @@ export default function InsertDbPage() {
   const [currentError, setCurrentError] = useState<string | null>(null);
   const [vintedResults, setVintedResults] = useState<any | null>(null);
   const [lbcResults, setLbcResults] = useState<LBCOffer[]>([]);
+  const [ebayResults, setEbayResults] = useState<any | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
@@ -257,13 +265,43 @@ export default function InsertDbPage() {
         }
       })();
 
-      // Attendre les deux recherches
-      const [vintedData, lbcData] = await Promise.all([vintedPromise, lbcPromise]);
+      const ebayPromise = (async () => {
+        try {
+          const ebayHtml = await fetchEbaySold(queryStr, controller.signal);
+          const rawEbay = ebayHtml ? cleanSoldEbayHtml(ebayHtml) : [];
 
-      // Calculer le prix minimum entre Vinted et LBC
+          if (rawEbay.length === 0) {
+            console.log(`ℹ️ Pas d'offres eBay pour: ${item.name}`);
+            return { valid: [], minPrice: null, rejected: [] };
+          }
+
+          const filtered = await postEbayFilter(queryStr, rawEbay, controller.signal);
+          const validItems = filtered?.valid || [];
+          const prices = validItems
+            .map((offer: any) => parseEbayPrice(offer.price))
+            .filter((p: number) => !Number.isNaN(p));
+          const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+
+          return { ...filtered, minPrice };
+        } catch (err: any) {
+          if (err.name === "AbortError") throw err;
+          console.error(`❌ Erreur eBay pour ${item.name}:`, err);
+          return { valid: [], minPrice: null, rejected: [] };
+        }
+      })();
+
+      // Attendre les recherches
+      const [vintedData, lbcData, ebayData] = await Promise.all([
+        vintedPromise,
+        lbcPromise,
+        ebayPromise,
+      ]);
+
+      // Calculer le prix minimum entre Vinted, LBC et eBay
       const prices = [
         vintedData?.minPrice,
-        lbcData.minPrice
+        lbcData.minPrice,
+        ebayData.minPrice,
       ].filter((p): p is number => p !== null && p !== undefined && !isNaN(p));
 
       const finalMinPrice = prices.length > 0 ? Math.min(...prices) : null;
@@ -272,6 +310,7 @@ export default function InsertDbPage() {
       prefetchCache.current.set(item.id, {
         vinted: vintedData,
         lbc: lbcData.offers,
+        ebay: ebayData,
         minPrice: finalMinPrice ?? undefined,
         timestamp: Date.now(),
       });
@@ -371,10 +410,12 @@ export default function InsertDbPage() {
         setCurrentError(cached.error);
         setVintedResults(null);
         setLbcResults([]);
+        setEbayResults(null);
         setCurrentMinPrice(null);
       } else {
         setVintedResults(cached.vinted || null);
         setLbcResults(cached.lbc || []);
+        setEbayResults(cached.ebay || null);
         setCurrentMinPrice(cached.minPrice ?? null);
         setCurrentError(null);
       }
@@ -383,6 +424,7 @@ export default function InsertDbPage() {
       console.log(`🔍 Pas de cache pour: ${currentItem.name}`);
       setVintedResults(null);
       setLbcResults([]);
+      setEbayResults(null);
       setCurrentMinPrice(null);
       setCurrentError(null);
     }
@@ -549,6 +591,71 @@ export default function InsertDbPage() {
         .replace(/[^\d]/g, "")
     );
   };
+
+  const parseEbayPrice = (value: any): number => {
+    if (typeof value === "number") return value;
+    if (!value) return NaN;
+
+    const raw = String(value).replace(/[^\d,.\s\u00A0\u202F]/g, "");
+    const compact = raw.replace(/[\s\u00A0\u202F]/g, "");
+    const hasComma = compact.includes(",");
+    const hasDot = compact.includes(".");
+    let normalized = compact;
+
+    if (hasComma && hasDot) {
+      if (compact.lastIndexOf(",") > compact.lastIndexOf(".")) {
+        normalized = compact.replace(/\./g, "").replace(",", ".");
+      } else {
+        normalized = compact.replace(/,/g, "");
+      }
+    } else if (hasComma) {
+      normalized = compact.replace(",", ".");
+    }
+
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  };
+
+  const handleSearchEbay = async () => {
+    if (!currentItem) return;
+    const queryStr = `${currentItem.type} ${currentItem.name}`.trim();
+    if (!queryStr) return setCurrentError("Type ou nom manquant");
+
+    setCurrentError(null);
+    setCurrentMinPrice(null);
+    setEbayResults(null);
+
+    try {
+      const ebayHtml = await fetchEbaySold(queryStr);
+      const rawEbay = ebayHtml ? cleanSoldEbayHtml(ebayHtml) : [];
+      if (rawEbay.length === 0) {
+        setCurrentError("Aucune annonce eBay");
+        return;
+      }
+
+      const filtered = await postEbayFilter(queryStr, rawEbay);
+      const validItems = filtered?.valid || [];
+      const prices = validItems
+        .map((offer: any) => parseEbayPrice(offer.price))
+        .filter((p: number) => !Number.isNaN(p));
+      const minPrice = prices.length > 0 ? Math.min(...prices) : null;
+
+      const result = { ...filtered, minPrice };
+      setEbayResults(result);
+      if (minPrice !== null) setCurrentMinPrice(minPrice);
+
+      const currentCache = prefetchCache.current.get(currentItem.id) || {};
+      prefetchCache.current.set(currentItem.id, {
+        ...currentCache,
+        ebay: result,
+        minPrice: minPrice ?? currentCache.minPrice,
+        timestamp: Date.now(),
+      });
+    } catch (err: any) {
+      console.error(err);
+      setCurrentError(err.message || "Erreur eBay");
+    }
+  };
   
 
   const handleInsertPrice = async () => {
@@ -696,6 +803,7 @@ export default function InsertDbPage() {
     setCurrentMinPrice(null);
     setVintedResults(null);
     setLbcResults([]);
+    setEbayResults(null);
   
     await prefetchItem(currentItem);
   };
@@ -945,7 +1053,7 @@ export default function InsertDbPage() {
                 <Separator className="bg-border" />
 
                 {/* Bouton de lancement de recherche si pas de résultats */}
-                {!vintedResults && lbcResults.length === 0 && !currentError && (
+                {!vintedResults && lbcResults.length === 0 && !ebayResults && !currentError && (
                   prefetchStatus?.itemId === currentItem.id && prefetchStatus.status === 'loading' ? (
                     <div className="p-4 bg-primary/10 border border-primary/30 rounded-lg text-center">
                       <div className="flex items-center justify-center gap-2 text-primary">
@@ -960,7 +1068,7 @@ export default function InsertDbPage() {
                         onClick={handleManualRefresh}
                         className="bg-primary text-primary-foreground"
                       >
-                        Lancer la recherche Vinted + LeBonCoin
+                        Lancer la recherche Vinted + LeBonCoin + eBay
                       </Button>
                     </div>
                   )
@@ -970,7 +1078,7 @@ export default function InsertDbPage() {
                 <Collapsible open={openVinted} onOpenChange={setOpenVinted}>
                   <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer font-medium text-foreground hover:text-primary transition-colors">
                     {openVinted ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    Recherche Vinted/LeBonCoin
+                    Recherche Vinted/LeBonCoin/eBay
                   </CollapsibleTrigger>
 
                   <CollapsibleContent className="mt-3 space-y-4">
@@ -1021,6 +1129,66 @@ export default function InsertDbPage() {
                       </section>
                     )}
 
+                    {/* eBay results */}
+                    {ebayResults?.valid?.length > 0 && (
+                      <section>
+                        <h3 className="font-medium mb-2 text-foreground">Annonces eBay vendues</h3>
+                        <div className="flex flex-row gap-4 overflow-x-auto pb-2">
+                          {ebayResults.valid
+                            .slice()
+                            .sort(
+                              (a: any, b: any) =>
+                                parseEbayPrice(a.price) - parseEbayPrice(b.price)
+                            )
+                            .map((item: any, i: number) => {
+                              const thumbnail = item.thumbnail || item.img;
+                              const parsedPrice = parseEbayPrice(item.price);
+
+                              return (
+                                <Card
+                                  key={i}
+                                  className="bg-card border border-border hover:shadow-lg cursor-pointer transition flex-shrink-0 w-80 flex flex-row p-4 items-center gap-4"
+                                  onClick={() => {
+                                    if (item.url) window.open(item.url, "_blank");
+                                    if (!Number.isNaN(parsedPrice)) {
+                                      setCurrentMinPrice(parsedPrice);
+                                    }
+                                  }}
+                                >
+                                  {thumbnail && (
+                                    <div className="w-28 h-28 relative flex-shrink-0 bg-secondary/20 rounded-xl overflow-hidden border border-border/50">
+                                      <img
+                                        src={thumbnail}
+                                        alt={item.title}
+                                        className="w-full h-full object-contain"
+                                      />
+                                    </div>
+                                  )}
+
+                                  <div className="flex flex-col justify-between flex-1 h-full">
+                                    <CardHeader>
+                                      <CardTitle className="text-sm line-clamp-2 text-foreground">{item.title}</CardTitle>
+                                    </CardHeader>
+
+                                    <CardContent className="flex flex-col gap-1">
+                                      <span className="font-bold text-lg text-primary">
+                                        {Number.isNaN(parsedPrice) ? item.price : `${parsedPrice} €`}
+                                      </span>
+                                      {item.soldDate && (
+                                        <span className="text-xs text-muted-foreground">{item.soldDate}</span>
+                                      )}
+                                      {item.condition && (
+                                        <span className="text-xs text-muted-foreground">{item.condition}</span>
+                                      )}
+                                    </CardContent>
+                                  </div>
+                                </Card>
+                              );
+                            })}
+                        </div>
+                      </section>
+                    )}
+
                     {/* Le Bon Coin results */}
                     {lbcResults.length > 0 && (
                       <section>
@@ -1049,7 +1217,7 @@ export default function InsertDbPage() {
                       variant="outline"
                       onClick={handleManualRefresh}
                     >
-                      🔄 Relancer la recherche (Vinted + LBC)
+                      🔄 Relancer la recherche (Vinted + LBC + eBay)
                     </Button>
 
                     <Button
@@ -1067,11 +1235,10 @@ export default function InsertDbPage() {
                     </Button>
 
                     <Button
-                      variant="outline"
-                      onClick={() => setPriceUnavailable(true)}
-                      className="border-warning text-warning hover:bg-warning/10"
+                      variant="secondary"
+                      onClick={handleSearchEbay}
                     >
-                      ⚠️ Prix non disponible ce jour
+                      🔍 Relancer eBay
                     </Button>
                   </div>
                 )}
@@ -1120,6 +1287,16 @@ export default function InsertDbPage() {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-3 pt-4">
+                  {!priceUnavailable && currentItem && !itemsWithPriceToday.has(currentItem.id) && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setPriceUnavailable(true)}
+                      className="border-warning text-warning hover:bg-warning/10"
+                    >
+                      ⚠️ Prix non disponible ce jour
+                    </Button>
+                  )}
+
                   {/* Boutons d'enregistrement: affichés si on a un prix OU si prix marqué non disponible, ET pas déjà traité */}
                   {(currentMinPrice !== null || priceUnavailable) && currentItem && !itemsWithPriceToday.has(currentItem.id) && (
                     <>

@@ -8,9 +8,8 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q');
   if (!q) return new NextResponse('Missing query', { status: 400 });
 
-  // URL Vinted pour la recherche
-  const url = `https://www.vinted.fr/catalog?search_text=${encodeURIComponent(q)}`;
-  console.log('URL utilisée :', url);
+  const pagesToFetch = 3;
+  console.log('Vinted search:', { query: q, pages: pagesToFetch });
 
   let browser;
   try {
@@ -34,12 +33,25 @@ export async function GET(req: NextRequest) {
       window.chrome = { runtime: {} };
     });
 
-    // Visite de la page Vinted
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
-    await sleep(2000); // petite pause pour que le contenu se charge
+    const bodies: string[] = [];
 
-    const html = await page.content();
-    return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=UTF-8' } });
+    for (let pageIndex = 1; pageIndex <= pagesToFetch; pageIndex += 1) {
+      const url = new URL('https://www.vinted.fr/catalog');
+      url.searchParams.set('search_text', q);
+      url.searchParams.set('page', String(pageIndex));
+
+      await page.goto(url.toString(), { waitUntil: 'domcontentloaded' });
+      await page.waitForSelector('a.new-item-box__overlay', { timeout: 5000 }).catch(() => null);
+      await sleep(1000); // petite pause pour que le contenu se charge
+
+      const bodyHtml = await page.evaluate(() => document.body.innerHTML);
+      bodies.push(bodyHtml);
+    }
+
+    const html = `<!doctype html><html><body>${bodies.join("\n")}</body></html>`;
+    return new NextResponse(html, {
+      headers: { 'Content-Type': 'text/html; charset=UTF-8' },
+    });
   } catch (err: any) {
     console.error(err);
     return new NextResponse(`Erreur: ${err?.message ?? err}`, { status: 500 });
