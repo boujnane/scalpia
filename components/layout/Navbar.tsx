@@ -50,6 +50,12 @@ const navLinks = [
     icon: Icons.badgeDollarSign,
     description: "Offres Free et Premium",
   },
+    {
+    name: "Méthodologie",
+    href: "/methodologie",
+    icon: Icons.badgeQuestionMark,
+    description: "Comprendre le fonctionnement",
+  },
 ]
 
 export function Navbar() {
@@ -254,6 +260,24 @@ const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
 
         <div className="flex items-center gap-2 md:gap-3">
           <IndexBadge />
+
+          {/* Plan Badge - Free ou Pro */}
+          {!loading && user && (
+            <div className="hidden md:flex items-center">
+              {isPro ? (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30">
+                  <Icons.sparkles className="h-3 w-3 text-primary" />
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Pro</span>
+                </div>
+              ) : (
+                <Link href="/pricing" className="group flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">Free</span>
+                  <Icons.arrowRight className="h-3 w-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                </Link>
+              )}
+            </div>
+          )}
+
           <TokenBadge compact />
           <ItemSearchDialog buttonClassName="flex" />
           <ThemeToggle />
@@ -286,8 +310,19 @@ const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
                 Abonnement
               </Button>
             )}
+            {/* CTA Upgrade pour les utilisateurs Free connectés */}
+            {!loading && user && !isPro && !isAdmin && (
+              <Button
+                size="sm"
+                className="h-9 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-md hover:shadow-lg transition-all duration-300"
+                onClick={() => router.push("/pricing")}
+              >
+                <Icons.zap className="h-4 w-4 mr-1.5" />
+                Passer Pro
+              </Button>
+            )}
             {!loading && user && (
-              <Button size="sm" className="h-9 px-5 font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/90" onClick={async () => { await signOut(auth); router.push("/"); }}>
+              <Button size="sm" variant="outline" className="h-9 px-4 rounded-xl border-border/50 hover:bg-muted/50" onClick={async () => { await signOut(auth); router.push("/"); }}>
                 Déconnexion
               </Button>
             )}
@@ -319,6 +354,22 @@ const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
                         <MobileNavigation onClose={() => setSheetOpen(false)} />
                 </div>
                 <div className="p-6 border-t border-border/50 bg-muted/20 space-y-3">
+                  {/* Badge Free/Pro mobile */}
+                  {!loading && user && (
+                    <div className="flex items-center justify-center mb-2">
+                      {isPro ? (
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30">
+                          <Icons.sparkles className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-bold text-primary">Plan Pro actif</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50">
+                          <span className="text-sm font-medium text-muted-foreground">Plan Gratuit</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {!loading && !user ? (
                     <Button className="w-full h-12 font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/90" onClick={() => router.push("/login")}>Connexion</Button>
                   ) : (
@@ -342,6 +393,16 @@ const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
                             <Icons.creditCard className="h-4 w-4 mr-2" />
                           )}
                           Gérer mon abonnement
+                        </Button>
+                      )}
+                      {/* CTA Upgrade mobile pour Free */}
+                      {!isPro && !isAdmin && (
+                        <Button
+                          className="w-full h-12 font-semibold rounded-xl bg-gradient-to-r from-primary to-purple-600 shadow-md"
+                          onClick={() => { setSheetOpen(false); router.push("/pricing"); }}
+                        >
+                          <Icons.zap className="h-4 w-4 mr-2" />
+                          Passer Pro — 9€/mois
                         </Button>
                       )}
                       <Button variant="outline" className="w-full h-12 rounded-xl" onClick={async () => { await signOut(auth); router.push("/"); }}>Déconnexion</Button>

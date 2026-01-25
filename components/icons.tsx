@@ -42,6 +42,7 @@ import {
   Trophy,
   Building2,
   Play,
+  BadgeQuestionMark,
 
   // ✅ AJOUTS pour la page Contact
   LifeBuoy,
@@ -129,6 +130,7 @@ export const Icons = {
   trophy: Trophy,
   building2: Building2,
   play: Play,
+  badgeQuestionMark: BadgeQuestionMark,
 
   // ✅ Contact page
   lifeBuoy: LifeBuoy,

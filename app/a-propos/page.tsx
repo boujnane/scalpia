@@ -238,7 +238,7 @@ export default function AProposPage() {
                 <div>
                   <p className="text-sm font-semibold">Soutenez-nous</p>
                   <p className="text-xs text-muted-foreground">
-                    Si notre projet vous a touché et que vous voulez faire un don, c est par ici.
+                    Si notre projet vous a touché et que vous voulez faire un don, c'est par ici.
                   </p>
                 </div>
               </div>

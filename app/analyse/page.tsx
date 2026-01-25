@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import AnalyseTabs from "@/components/analyse/AnalyseTabs";
 import ISPIndexCard from "@/components/analyse/ISPIndexCard";
 import TopMovers from "@/components/analyse/TopMovers";
 import SeriesAnalytics from "@/components/analyse/SeriesAnalytics";
 import { useSeriesFinance } from "@/hooks/useSeriesFinance";
 import { useAnalyseItems } from "@/hooks/useAnalyseItems";
+import { useAuth } from "@/context/AuthContext";
 import {
   TrendingUp,
   TrendingDown,
@@ -16,7 +18,9 @@ import {
   PieChart,
   ArrowRight,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Zap,
+  X
 } from "lucide-react";
 import { ProWidget, ProBadge } from "@/components/analyse/ProWidget";
 import {
@@ -29,8 +33,10 @@ import { MarketSentimentWidgetPreview, RiskReturnScatterPreview, SignalsWidgetPr
 
 export default function AnalysePage() {
   const { items, loading, fromCache, refresh } = useAnalyseItems();
+  const { user, isPro, loading: authLoading } = useAuth();
   const [activeSection, setActiveSection] = useState<"overview" | "products">("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const [proBannerDismissed, setProBannerDismissed] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -147,6 +153,44 @@ export default function AnalysePage() {
           </div>
         </div>
       </header>
+
+      {/* ═══════════════════════════════════════════════════════════
+          BANNER PRO - Upsell pour les utilisateurs Free
+      ═══════════════════════════════════════════════════════════ */}
+      {!authLoading && user && !isPro && !proBannerDismissed && (
+        <div className="relative bg-gradient-to-r from-primary/10 via-purple-500/10 to-primary/10 border-b border-primary/20">
+          <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="shrink-0 p-1.5 rounded-lg bg-primary/20">
+                  <Zap className="w-4 h-4 text-primary" />
+                </div>
+                <p className="text-sm text-foreground truncate">
+                  <span className="font-medium">Plan Gratuit</span>
+                  <span className="hidden sm:inline text-muted-foreground"> · Historique 7 jours · 4 widgets masqués</span>
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href="/pricing"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Débloquer Pro</span>
+                  <span className="sm:hidden">Pro</span>
+                </Link>
+                <button
+                  onClick={() => setProBannerDismissed(true)}
+                  className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors"
+                  aria-label="Fermer"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════
           NAVIGATION - Sticky, simple, 2 options max (Hick's Law)

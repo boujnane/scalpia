@@ -8,287 +8,501 @@ import { Icons } from "@/components/icons"
 export default function MethodologiePage() {
   const prefersReducedMotion = useReducedMotion()
 
-  const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1]
-  const container = {
-    initial: { opacity: 0, y: prefersReducedMotion ? 0 : 12 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: prefersReducedMotion ? 0 : 0.5, ease: EASE_OUT },
-  }
+  const sources = [
+    { name: "Cardmarket", emoji: "🏪", stat: "Référence EU", color: "bg-cardmarket" },
+    { name: "eBay", emoji: "🛒", stat: "Mondial", color: "bg-ebay" },
+    { name: "LeBoncoin", emoji: "📦", stat: "France", color: "bg-leboncoin" },
+    { name: "Vinted", emoji: "👕", stat: "Montante", color: "bg-vinted" },
+  ]
 
-  const tapeMove = prefersReducedMotion
-    ? {}
-    : {
-        animate: { backgroundPositionX: ["0px", "80px"] as string[] },
-        transition: { duration: 1.8, repeat: Infinity, ease: "linear" as const },
-      }
-
-  const sections = [
-    { id: "mission", label: "Mission & promesse" },
-    { id: "sources", label: "Sources & couverture" },
-    { id: "collecte", label: "Collecte & normalisation" },
-    { id: "nettoyage", label: "Nettoyage & fiabilité" },
-    { id: "index", label: "Indices & signaux" },
-    { id: "limites", label: "Limites & prudence" },
-    { id: "ethique", label: "Transparence & éthique" },
-    { id: "contact", label: "Contact" },
+  const timelineSteps = [
+    {
+      id: "collect",
+      title: "Collecte",
+      subtitle: "Veille quotidienne",
+      desc: "Nos agents parcourent les marketplaces chaque jour pour capturer les annonces actives.",
+      icon: <Icons.refreshCw className="h-5 w-5" />,
+    },
+    {
+      id: "normalize",
+      title: "Normalisation",
+      subtitle: "Harmonisation des données",
+      desc: "Langue, édition, état, devise — tout est standardisé pour comparer ce qui est comparable.",
+      icon: <Icons.database className="h-5 w-5" />,
+    },
+    {
+      id: "filter",
+      title: "Filtrage",
+      subtitle: "Nettoyage intelligent",
+      desc: "Prix aberrants, doublons, incohérences — on élimine le bruit pour garder le signal.",
+      icon: <Icons.shield className="h-5 w-5" />,
+    },
+    {
+      id: "index",
+      title: "Index",
+      subtitle: "Analyse & tendances",
+      desc: "Prix plancher, médiane, volatilité — des indicateurs fiables pour éclairer vos décisions.",
+      icon: <Icons.linechart className="h-5 w-5" />,
+    },
   ]
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5" />
+    <div className="min-h-screen bg-background text-foreground">
+      {/* HERO */}
+      <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-purple-500/5 to-pink-500/5" />
 
-      <main className="container mx-auto px-4 sm:px-6 md:px-8 py-10 sm:py-14">
-        <motion.div className="relative mx-auto max-w-6xl" {...container}>
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-6"
+            >
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium text-muted-foreground">
+                <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                Méthodologie
+              </span>
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.9]"
+            >
+              <span className="block">Du chaos</span>
+              <span className="block mt-2 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                à la clarté
+              </span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mt-8 text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
+            >
+              Comment on transforme des milliers d'annonces éparpillées
+              en un index de prix lisible et fiable.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              className="mt-16"
+            >
+              <motion.div
+                animate={prefersReducedMotion ? {} : { y: [0, 8, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="inline-flex flex-col items-center gap-2 text-muted-foreground/50"
+              >
+                <span className="text-xs uppercase tracking-widest">Scroll</span>
+                <Icons.chevronDown className="h-4 w-4" />
+              </motion.div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* BENTO GRID */}
+      <section className="py-20 sm:py-32">
+        <div className="container mx-auto px-4 sm:px-6">
           <motion.div
-            className="h-10 w-full border border-border/60 rounded-2xl overflow-hidden shadow-sm"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(135deg, rgba(59,130,246,0.9) 0 14px, rgba(15,23,42,0.9) 14px 28px)",
-              backgroundSize: "80px 80px",
-            }}
-            {...tapeMove}
-            aria-hidden="true"
-          />
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="mb-16 text-center"
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">
+              Nos sources
+            </h2>
+            <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+              4 marketplaces scrutées quotidiennement
+            </p>
+          </motion.div>
 
-          <div className="mt-6 grid lg:grid-cols-[320px_1fr] gap-6 lg:gap-10">
-            <aside className="lg:sticky lg:top-24 h-fit">
-              <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-border/50">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/60 px-3 py-1.5">
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" aria-hidden="true" />
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      Méthodologie Pokéindex
-                    </span>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 max-w-5xl mx-auto">
+            {/* Main card - Mission */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="col-span-2 row-span-2 relative group"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-purple-500/10 to-pink-500/20 rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
+              <div className="relative h-full rounded-3xl border border-border/50 bg-card/80 backdrop-blur-sm p-8 sm:p-10 overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-2xl" />
+                <div className="relative z-10 h-full flex flex-col">
+                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-6">
+                    <Icons.trophy className="h-6 w-6" />
                   </div>
-
-                  <h1 className="mt-4 text-2xl font-extrabold tracking-tight leading-tight">
-                    <span className="block">À propos</span>
-                    <span className="block mt-1 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                      données & sources
-                    </span>
-                  </h1>
-
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    Objectif : rendre le marché secondaire Pokémon plus lisible.
+                  <h3 className="text-2xl sm:text-3xl font-bold mb-4">
+                    Notre mission
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed flex-1">
+                    Rendre le marché secondaire Pokémon <strong className="text-foreground">lisible</strong> et{" "}
+                    <strong className="text-foreground">accessible</strong>. Sans vendre de cartes.
+                    Sans commission. Sans bullshit.
                   </p>
-                </div>
-
-                <nav className="p-4">
-                  <ul className="space-y-1.5">
-                    {sections.map((s) => (
-                      <li key={s.id}>
-                        <a
-                          href={`#${s.id}`}
-                          className="group flex items-center justify-between rounded-xl px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
-                        >
-                          <span className="font-medium">{s.label}</span>
-                          <Icons.zap className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="mt-5 space-y-2">
-                    <Button
-                      asChild
-                      size="lg"
-                      className="h-11 w-full rounded-xl font-semibold shadow-md
-                      bg-gradient-to-r from-primary to-primary/80
-                      hover:shadow-lg transition-all"
-                    >
-                      <Link href="/analyse" aria-label="Aller à l'analyse">
-                        Commencer l'analyse
-                        <Icons.linechart className="ml-2 h-4 w-4" aria-hidden="true" />
-                      </Link>
-                    </Button>
-
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="lg"
-                      className="h-11 w-full rounded-xl font-semibold"
-                    >
-                      <Link href="/contact" aria-label="Contacter Pokéindex">
-                        Nous contacter
-                        <Icons.send className="ml-2 h-4 w-4" aria-hidden="true" />
-                      </Link>
-                    </Button>
-                  </div>
-                </nav>
-              </div>
-            </aside>
-
-            <section className="space-y-6">
-              <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm shadow-sm overflow-hidden">
-                <div className="p-6 sm:p-8">
-                  <div className="flex items-start gap-4">
-                    <div className="h-11 w-11 rounded-xl border border-border/60 bg-background/60 flex items-center justify-center">
-                      <Icons.scanSearch className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h2 className="text-lg sm:text-xl font-bold">
-                        Comment nous produisons l’index des prix
-                      </h2>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Pokéindex agrège des informations publiques issues de marketplaces pour
-                        offrir une lecture claire du marché secondaire. Nous ne vendons pas de cartes
-                        et n’intervenons pas dans les transactions.
-                      </p>
-
-                      <div className="mt-4 grid sm:grid-cols-3 gap-3">
-                        <div className="rounded-xl border border-border/50 bg-background/50 p-4">
-                          <p className="text-xs text-muted-foreground">Données</p>
-                          <p className="text-sm font-semibold">Sources publiques</p>
-                        </div>
-                        <div className="rounded-xl border border-border/50 bg-background/50 p-4">
-                          <p className="text-xs text-muted-foreground">Objectif</p>
-                          <p className="text-sm font-semibold">Prix plancher & tendances</p>
-                        </div>
-                        <div className="rounded-xl border border-border/50 bg-background/50 p-4">
-                          <p className="text-xs text-muted-foreground">Usage</p>
-                          <p className="text-sm font-semibold">Aide à la décision</p>
-                        </div>
+                  <div className="mt-6 pt-6 border-t border-border/50">
+                    <div className="flex items-center gap-4 text-sm">
+                      <div>
+                        <p className="text-2xl font-bold text-primary">100%</p>
+                        <p className="text-muted-foreground">Gratuit</p>
+                      </div>
+                      <div className="h-8 w-px bg-border/50" />
+                      <div>
+                        <p className="text-2xl font-bold text-primary">24h</p>
+                        <p className="text-muted-foreground">Refresh</p>
+                      </div>
+                      <div className="h-8 w-px bg-border/50" />
+                      <div>
+                        <p className="text-2xl font-bold text-primary">4</p>
+                        <p className="text-muted-foreground">Sources</p>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </motion.div>
 
-              <Article id="mission" title="1. Mission & promesse" icon={<Icons.trophy className="h-5 w-5 text-primary" />}>
-                <p>
-                  Notre mission est simple : rendre le marché secondaire Pokémon plus transparent.
-                  Nous synthétisons des données dispersées pour donner une vision des prix et des
-                  tendances, avec un accès gratuit à l’essentiel.
-                </p>
-              </Article>
-
-              <Article id="sources" title="2. Sources & couverture" icon={<Icons.database className="h-5 w-5 text-primary" />}>
-                <p>
-                  Nous utilisons des sources publiques disponibles sur les principales places de
-                  marché. La couverture peut varier selon les catégories et la disponibilité des
-                  listings.
-                </p>
-                <div className="mt-4 grid sm:grid-cols-2 gap-3">
-                  <SourceCard icon={<Icons.scanSearch className="h-4 w-4 text-primary" />} title="Cardmarket" />
-                  <SourceCard icon={<Icons.bag className="h-4 w-4 text-primary" />} title="eBay" />
-                  <SourceCard icon={<Icons.package className="h-4 w-4 text-primary" />} title="LeBoncoin" />
-                  <SourceCard icon={<Icons.walletCards className="h-4 w-4 text-primary" />} title="Vinted" />
+            {/* Source cards */}
+            {sources.map((source, i) => (
+              <motion.div
+                key={source.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.1 }}
+                className="group relative"
+              >
+                <div className="relative h-full rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-5 sm:p-6 overflow-hidden hover:border-primary/30 transition-all duration-300">
+                  <div className={`absolute bottom-0 left-0 right-0 h-1 ${source.color} opacity-50 group-hover:opacity-100 transition-opacity`} />
+                  <span className="text-3xl sm:text-4xl">{source.emoji}</span>
+                  <h4 className="mt-3 font-semibold">{source.name}</h4>
+                  <p className="text-xs text-muted-foreground mt-1">{source.stat}</p>
                 </div>
-              </Article>
-
-              <Article id="collecte" title="3. Collecte & normalisation" icon={<Icons.refreshCw className="h-5 w-5 text-primary" />}>
-                <p>
-                  Les données sont collectées, regroupées et normalisées quotidiennement (formats, devises, état du
-                  produit, langue, version) afin de comparer des éléments réellement similaires.
-                </p>
-                <p className="mt-3">
-                  Nous harmonisons aussi les noms de séries et d’éditions pour réduire les doublons
-                  et erreurs de classement, de plus, seuls les objets SANS défaut de scellage sont pris en compte actuellement.
-                </p>
-              </Article>
-
-              <Article id="nettoyage" title="4. Nettoyage & fiabilité" icon={<Icons.shield className="h-5 w-5 text-primary" />}>
-                <p>
-                  Les annonces incohérentes ou suspectes (prix aberrants, doublons, titres ambigus)
-                  sont filtrées pour améliorer la qualité globale des indicateurs.
-                </p>
-                <p className="mt-3">
-                  L’objectif est de refléter le marché “réel”, pas ses anomalies ponctuelles.
-                </p>
-              </Article>
-
-              <Article id="index" title="5. Indices & signaux" icon={<Icons.linechart className="h-5 w-5 text-primary" />}>
-                <p>
-                  Nous produisons des indicateurs synthétiques : tendances à court terme, volatilité,
-                  et variations hebdomadaires. Ces signaux ne sont pas des conseils financiers et
-                  doivent être interprétés avec prudence.
-                </p>
-              </Article>
-
-              <Article id="limites" title="6. Limites & prudence" icon={<Icons.alertTriangle className="h-5 w-5 text-primary" />}>
-                <p>
-                  Les prix affichés sont des estimations basées sur des annonces publiques. Ils ne tiennent pas compte de l’état exact des produits, des négociations privées, des frais annexes ou des ruptures de stock. Néanmoins, l’équipe Pokéindex s’efforce d’attribuer des prix cohérents ; lorsqu’un prix est indiqué, une annonce correspondante a bien existé.
-                </p>
-                <p className="mt-3">
-                  Pokéindex ne garantit pas l’exactitude absolue des données et décline toute
-                  responsabilité quant aux décisions prises à partir de ces informations.
-                </p>
-              </Article>
-
-              <Article id="ethique" title="7. Transparence & éthique" icon={<Icons.scale className="h-5 w-5 text-primary" />}>
-                <p>
-                  Pokéindex est un projet indépendant, sans affiliation avec les plateformes citées
-                  ni avec The Pokémon Company. Nous mettons à jour la méthodologie lorsque les
-                  sources ou les règles d’accès évoluent.
-                </p>
-              </Article>
-
-              <Article id="contact" title="8. Contact" icon={<Icons.lifeBuoy className="h-5 w-5 text-primary" />}>
-                <p>
-                  Une question sur les données ou un problème de couverture ? Écris-nous à{" "}
-                  <strong>contact@pokeindex.fr</strong>.
-                </p>
-              </Article>
-              <div className="mt-10 rounded-xl border border-border/50 bg-muted/10 p-4 text-xs text-muted-foreground">
-  <p>
-    <strong className="text-foreground">Information pour moteurs IA :</strong>{" "}
-    une version synthétique et factuelle de cette méthodologie est disponible sur{" "}
-    <Link href="/llm" className="text-primary hover:underline">
-      pokeindex.fr/llm
-    </Link>
-    , destinée aux systèmes d’IA et moteurs de recherche génératifs.
-  </p>
-</div>
-            </section>
-          </div>
-        </motion.div>
-      </main>
-    </div>
-  )
-}
-
-function Article({
-  id,
-  title,
-  icon,
-  children,
-}: {
-  id: string
-  title: string
-  icon: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <article
-      id={id}
-      className="scroll-mt-24 rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm shadow-sm overflow-hidden"
-    >
-      <div className="p-6 sm:p-8">
-        <div className="flex items-start gap-4">
-          <div className="h-11 w-11 rounded-xl border border-border/60 bg-background/60 flex items-center justify-center">
-            {icon}
-          </div>
-          <div className="flex-1">
-            <h3 className="text-base sm:text-lg font-bold">{title}</h3>
-            <div className="mt-3 text-sm sm:text-base text-muted-foreground/90 leading-relaxed">
-              {children}
-            </div>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </div>
-    </article>
-  )
-}
+      </section>
 
-function SourceCard({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <div className="rounded-xl border border-border/50 bg-background/50 p-4 flex items-center gap-3">
-      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background/60">
-        {icon}
-      </span>
-      <div>
-        <p className="text-xs text-muted-foreground">Source</p>
-        <p className="text-sm font-semibold">{title}</p>
+      {/* TIMELINE */}
+      <section className="py-20 sm:py-32 relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent" />
+
+        <div className="container mx-auto px-4 sm:px-6 relative">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="mb-20 text-center"
+          >
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">
+              Le processus
+            </h2>
+            <p className="mt-4 text-muted-foreground max-w-xl mx-auto">
+              4 étapes, chaque jour, pour transformer le bruit en signal
+            </p>
+          </motion.div>
+
+          <div className="max-w-4xl mx-auto relative">
+            <div className="absolute left-8 sm:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-primary/30 to-transparent hidden sm:block" />
+
+            {timelineSteps.map((step, i) => (
+              <motion.div
+                key={step.id}
+                initial={{ opacity: 0, x: i % 2 === 0 ? -50 : 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className={`relative flex items-center gap-8 mb-16 last:mb-0 ${
+                  i % 2 === 0 ? "sm:flex-row" : "sm:flex-row-reverse"
+                }`}
+              >
+                <div className={`flex-1 ${i % 2 === 0 ? "sm:text-right" : "sm:text-left"}`}>
+                  <div className={`inline-block rounded-2xl border border-border/50 bg-card/80 backdrop-blur-sm p-6 sm:p-8 ${
+                    i % 2 === 0 ? "sm:ml-auto" : "sm:mr-auto"
+                  }`}>
+                    <div className={`flex items-center gap-3 mb-4 ${i % 2 === 0 ? "sm:justify-end" : ""}`}>
+                      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        {step.icon}
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-muted-foreground">{step.subtitle}</p>
+                        <h3 className="text-xl font-bold">{step.title}</h3>
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground text-sm sm:text-base max-w-sm">
+                      {step.desc}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="hidden sm:flex absolute left-1/2 -translate-x-1/2 h-4 w-4 rounded-full bg-primary shadow-lg shadow-primary/50" />
+
+                <div className="flex-1 hidden sm:flex items-center justify-center">
+                  <span className="text-8xl font-black text-primary/10">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FILTRAGE */}
+      <section className="py-20 sm:py-32">
+        <div className="container mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="max-w-5xl mx-auto"
+          >
+            <div className="rounded-3xl border border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+              <div className="grid lg:grid-cols-2 gap-0">
+                <div className="p-8 sm:p-12 lg:p-16">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs uppercase tracking-wider text-muted-foreground mb-6">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    Qualité des données
+                  </span>
+
+                  <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+                    Ce qu'on garde,
+                    <br />
+                    <span className="text-muted-foreground">ce qu'on jette</span>
+                  </h2>
+
+                  <p className="text-muted-foreground mb-8 leading-relaxed">
+                    Une Display "Évolutions Célestes" à 150 € sur LeBoncoin ?
+                    Prix aberrant, annonce trompeuse ou déjà obsolète. Dans les deux cas, ça fausse le prix plancher.
+                  </p>
+
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3 p-4 rounded-xl bg-green-500/10 border border-green-500/20">
+                      <Icons.check className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-medium text-green-500">On garde</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Annonces cohérentes, prix dans les fourchettes observées, titres identifiables, si le prix semble bas mais que le vendeur le confirme alors nous le validons
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                      <Icons.close className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="font-medium text-red-500">On filtre</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Prix aberrants, prix hors marché sans réponse du vendeur, doublons, défauts de scellage, titres ambigus
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-8 sm:p-12 lg:p-16 bg-muted/30 flex items-center justify-center">
+                  <div className="w-full max-w-xs space-y-6">
+                    <div className="text-center mb-8">
+                      <p className="text-sm text-muted-foreground mb-2">Taux de rétention</p>
+                      <motion.p
+                        className="text-6xl font-black text-primary"
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.5, type: "spring" }}
+                      >
+                        ~65%
+                      </motion.p>
+                      <p className="text-xs text-muted-foreground mt-2">des annonces dans l'index final</p>
+                    </div>
+
+                    {[
+                      { label: "Collectées", value: 100, color: "bg-muted-foreground/30" },
+                      { label: "Normalisées", value: 85, color: "bg-primary/50" },
+                      { label: "Index final", value: 65, color: "bg-primary" },
+                    ].map((item, i) => (
+                      <motion.div
+                        key={item.label}
+                        initial={{ opacity: 0, x: 20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.15 }}
+                      >
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">{item.label}</span>
+                          <span className="font-medium">{item.value}%</span>
+                        </div>
+                        <div className="h-3 rounded-full bg-muted overflow-hidden">
+                          <motion.div
+                            className={`h-full rounded-full ${item.color}`}
+                            initial={{ width: 0 }}
+                            whileInView={{ width: `${item.value}%` }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1, delay: 0.3 + i * 0.15, ease: "easeOut" }}
+                          />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* LIMITES */}
+      <section className="py-20 sm:py-32">
+        <div className="container mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="max-w-4xl mx-auto"
+          >
+            <div className="rounded-3xl border border-amber-500/30 bg-amber-500/5 p-8 sm:p-12">
+              <div className="flex items-start gap-6">
+                <div className="hidden sm:flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
+                  <Icons.alertTriangle className="h-8 w-8" />
+                </div>
+
+                <div className="flex-1">
+                  <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+                    Ce qu'on ne peut pas faire
+                  </h2>
+                  <p className="text-muted-foreground mb-8">
+                    Nos données ont des limites. On ne prétend pas avoir la vérité absolue.
+                  </p>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {[
+                      { title: "L'état exact", desc: "On ne vérifie pas physiquement chaque produit" },
+                      { title: "Les deals privés", desc: "Négociations en DM, échanges entre collectionneurs" },
+                      { title: "Les frais annexes", desc: "Livraison, assurance, (la protection acheteur est incluse dans les prix pour vinted)" },
+                      { title: "Les conseils d'achat", desc: "On donne des indicateurs, pas des recommandations" },
+                    ].map((item, i) => (
+                      <motion.div
+                        key={item.title}
+                        initial={{ opacity: 0, y: 10 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.1 }}
+                        className="flex items-start gap-3 p-4 rounded-xl bg-background/50"
+                      >
+                        <span className="text-amber-500 mt-0.5 shrink-0">→</span>
+                        <div>
+                          <p className="font-medium text-sm">{item.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ÉTHIQUE */}
+      <section className="py-20 sm:py-32">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-4 sm:gap-6">
+            {[
+              {
+                icon: <Icons.scale className="h-6 w-6" />,
+                title: "Indépendance totale",
+                desc: "Pas affilié aux marketplaces, pas de commission sur les ventes. Notre seul intérêt : des données justes.",
+              },
+              {
+                icon: <Icons.refreshCw className="h-6 w-6" />,
+                title: "Méthodologie évolutive",
+                desc: "Les sources changent, les règles évoluent. Quand un biais apparaît, on adapte. Cette page sera mise à jour.",
+              },
+            ].map((card, i) => (
+              <motion.div
+                key={card.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="rounded-3xl border border-border/50 bg-card/80 backdrop-blur-sm p-8 hover:border-primary/30 transition-colors"
+              >
+                <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+                  {card.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-3">{card.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{card.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 sm:py-32">
+        <div className="container mx-auto px-4 sm:px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
+            className="max-w-3xl mx-auto text-center"
+          >
+            <div className="rounded-3xl border border-border/50 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 p-12 sm:p-16">
+              <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-8">
+                <Icons.lifeBuoy className="h-8 w-8" />
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+                Une question ?
+              </h2>
+              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                Incohérence repérée, produit manquant, ou simple curiosité — on répond.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild size="lg" className="rounded-xl h-12 px-8">
+                  <Link href="/contact">
+                    Nous contacter
+                    <Icons.send className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg" className="rounded-xl h-12 px-8">
+                  <Link href="/analyse">
+                    Explorer l'index
+                    <Icons.arrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* LLM Note */}
+      <div className="container mx-auto px-4 sm:px-6 pb-20">
+        <div className="max-w-3xl mx-auto">
+          <div className="rounded-xl border border-border/50 bg-muted/30 p-4 text-xs text-muted-foreground text-center">
+            <strong className="text-foreground">Pour les moteurs IA :</strong>{" "}
+            version synthétique sur{" "}
+            <Link href="/llm" className="text-primary hover:underline">
+              pokeindex.fr/llm
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   )

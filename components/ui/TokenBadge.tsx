@@ -180,62 +180,103 @@ export function NoTokensModal({
         onClick={onClose}
       />
 
-      <div className="relative bg-card text-card-foreground w-full max-w-md rounded-2xl shadow-2xl border border-border p-6 animate-in fade-in zoom-in-95 pointer-events-auto">
+      <div className="relative bg-card text-card-foreground w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden animate-in fade-in zoom-in-95 pointer-events-auto">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-muted transition"
+          className="absolute top-4 right-4 z-10 p-2 rounded-full hover:bg-muted transition"
         >
           <Icons.close className="h-5 w-5" />
         </button>
 
-        <div className="text-center">
-          <div className="mx-auto w-16 h-16 rounded-full bg-orange-500/10 border-2 border-orange-500/30 flex items-center justify-center mb-4">
-            <Icons.zap className="h-8 w-8 text-orange-500" />
+        {/* Header gradient */}
+        <div className="bg-gradient-to-br from-orange-500/10 via-red-500/5 to-transparent p-6 pb-4">
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-orange-500/20 border-2 border-orange-500/40 flex items-center justify-center mb-4">
+              <Icons.zap className="h-8 w-8 text-orange-500" />
+            </div>
+
+            <h2 className="text-2xl font-bold mb-1">Jetons épuisés</h2>
+            <p className="text-sm text-muted-foreground">
+              {isPro
+                ? "Tu as utilisé tes 300 recherches aujourd'hui"
+                : "0/15 jetons restants aujourd'hui"}
+            </p>
           </div>
+        </div>
 
-          <h2 className="text-2xl font-bold mb-2">Plus de jetons !</h2>
+        <div className="p-6 pt-4">
+          {!isPro ? (
+            <>
+              {/* Comparaison Free vs Pro */}
+              <div className="mb-6 rounded-xl border border-border overflow-hidden">
+                <div className="grid grid-cols-2 text-center text-sm">
+                  <div className="p-3 bg-muted/30 border-r border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Gratuit</p>
+                    <p className="font-bold text-muted-foreground">15 / jour</p>
+                  </div>
+                  <div className="p-3 bg-primary/5">
+                    <p className="text-xs text-primary mb-1">Pro</p>
+                    <p className="font-bold text-primary">300 / jour</p>
+                  </div>
+                </div>
+              </div>
 
-          <p className="text-muted-foreground mb-6">
-            {isPro
-              ? "Tu as utilisé tes 300 recherches quotidiennes. Reviens demain !"
-              : "Tu as utilisé tes 15 recherches gratuites du jour."}
-          </p>
+              {/* Avantages Pro */}
+              <div className="space-y-2 mb-6">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Avec Pro, tu débloques aussi :</p>
+                <div className="grid gap-2 text-sm">
+                  {[
+                    "Indicateurs avancés (sentiment, volatilité)",
+                    "Historique 30 jours (vs 7 jours)",
+                    "Support prioritaire",
+                  ].map((feature) => (
+                    <div key={feature} className="flex items-center gap-2">
+                      <Icons.check className="h-4 w-4 text-primary shrink-0" />
+                      <span className="text-muted-foreground">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-          {!isPro && (
-            <div className="space-y-3">
-              <a
-                href="/pricing"
-                className="
-                  flex items-center justify-center gap-2 w-full py-3 rounded-xl
-                  bg-gradient-to-r from-primary to-purple-600 text-primary-foreground
-                  font-bold transition hover:opacity-90
-                "
-              >
-                <Icons.sparkles className="h-5 w-5" />
-                Passer en Pro (300/jour)
-              </a>
+              {/* CTAs */}
+              <div className="space-y-3">
+                <a
+                  href="/pricing"
+                  className="
+                    flex items-center justify-center gap-2 w-full py-3.5 rounded-xl
+                    bg-gradient-to-r from-primary to-purple-600 text-primary-foreground
+                    font-bold transition hover:opacity-90 shadow-lg shadow-primary/20
+                  "
+                >
+                  <Icons.sparkles className="h-5 w-5" />
+                  Passer Pro — 9€/mois
+                </a>
 
+                <button
+                  onClick={onClose}
+                  className="w-full py-3 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition"
+                >
+                  Réessayer demain
+                </button>
+              </div>
+
+              <p className="mt-4 text-center text-xs text-muted-foreground">
+                Annulable à tout moment · Sans engagement
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-center text-muted-foreground mb-6">
+                Tes jetons se réinitialisent chaque jour à minuit. Reviens demain pour continuer à explorer !
+              </p>
               <button
                 onClick={onClose}
-                className="w-full py-3 rounded-xl border border-border hover:bg-muted transition"
+                className="w-full py-3 rounded-xl border border-border hover:bg-muted transition font-medium"
               >
-                Revenir plus tard
+                Compris
               </button>
-            </div>
+            </>
           )}
-
-          {isPro && (
-            <button
-              onClick={onClose}
-              className="w-full py-3 rounded-xl border border-border hover:bg-muted transition"
-            >
-              Compris
-            </button>
-          )}
-
-          <p className="mt-4 text-xs text-muted-foreground">
-            Les jetons se réinitialisent chaque jour à minuit.
-          </p>
         </div>
       </div>
     </div>
