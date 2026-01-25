@@ -2,13 +2,15 @@
 const handleRes = async (res: Response) => {
   if (!res.ok) {
       let errorDetail = res.statusText;
-      try {
-          // Tente de décoder le corps comme JSON (si votre API renvoie un objet d'erreur)
-          const errorJson = await res.json();
-          errorDetail = errorJson.error || JSON.stringify(errorJson);
-      } catch {
-          // Sinon, utilise le texte brut
-          errorDetail = await res.text() || res.statusText;
+      // Clone la response pour pouvoir lire le body sans le consommer
+      const text = await res.clone().text();
+      if (text) {
+          try {
+              const errorJson = JSON.parse(text);
+              errorDetail = errorJson.error || JSON.stringify(errorJson);
+          } catch {
+              errorDetail = text;
+          }
       }
       throw new Error(`Erreur ${res.status}: ${errorDetail}`);
   }

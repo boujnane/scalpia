@@ -27,7 +27,7 @@ export default function AProposPage() {
       label: "Parcours",
       title: "Créer, échouer, recommencer",
       body:
-      "Je m’appelle Ady Boujnane. J’ai fondé Bubo en 2017 avec deux amis, alors que nous étions encore étudiants. Très tôt, j’ai compris que mon parcours ne suivrait pas les lignes attendues. Dans un système académique valorisant la conformité plus que l’invention, l’originalité devient un risque. Cette inadéquation m’a coûté du temps, de la stabilité, et des opportunités — mais elle m’a aussi forcé à apprendre en dehors du cadre. Depuis près de dix ans, j’ai enchaîné les projets — de Kumbu à Fibrus, en passant par Bubo-Tennis. J’en ai oublié le nombre, jamais l’exigence. Pour moi, un projet n’est pas un test : c’est un engagement."
+      "Je m’appelle Ady Boujnane. J’ai fondé Bubo en 2017 avec deux amis, alors que nous étions encore étudiants. Très tôt, j’ai compris que mon parcours ne suivrait pas les lignes attendues. Dans un système académique valorisant la conformité plus que l’invention, l’originalité devient un risque. Cette inadéquation m’a coûté du temps, de la stabilité, et des opportunités, mais elle m’a aussi forcé à apprendre en dehors du cadre. Depuis près de dix ans, j’ai enchaîné les projets : de Kumbu à Fibrus, en passant par Bubo-Tennis. J’en ai oublié le nombre, jamais l’exigence. Pour moi, un projet n’est pas un test : c’est un engagement."
     },
     {
       label: "Vision",
@@ -90,7 +90,7 @@ export default function AProposPage() {
               }}
               className="mt-6 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight leading-[1.08]"
             >
-              Ady — et Bubo,{" "}
+              Ady et Bubo,{" "}
               <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
                 la même obstination
               </span>
@@ -105,7 +105,7 @@ export default function AProposPage() {
               }}
               className="mt-5 text-base sm:text-lg text-muted-foreground leading-relaxed text-justify"
             >
-              Bubo est né à trois, puis s’est élargi à quatre — comme beaucoup de projets qui évoluent avec le temps. Les idées se partagent, les intentions aussi. L’engagement, lui, finit toujours par se distinguer. De mon côté, j’ai choisi d’y être pleinement. Pokéindex est né de cette constance : une passion d’enfance transformée en projet, avec une ambition simple — rendre le marché Pokémon lisible et compréhensible.
+              Bubo est né à trois, puis s’est élargi à quatre, comme beaucoup de projets qui évoluent avec le temps. Les idées se partagent, les intentions aussi. L’engagement, lui, finit toujours par se distinguer. Pokéindex est né de cette constance : une passion d’enfance transformée en projet, avec une ambition simple, rendre le marché Pokémon lisible et compréhensible.
             </motion.p>
 
 
@@ -168,7 +168,7 @@ export default function AProposPage() {
                 Pokéindex n’est pas né d’une bonne idée, mais d’une obsession. Celle de
                 construire quelque chose qui me ressemble, même quand c’est long, même
                 quand c’est difficile. Ce projet concentre mes essais, mes erreurs, mes
-                remises en question — et surtout cette envie tenace d’aller au bout.
+                remises en question et surtout cette envie tenace d’aller au bout.
                 Tant que le hibou n’aura pas trouvé sa place, moi non plus.
               </p>
             </div>

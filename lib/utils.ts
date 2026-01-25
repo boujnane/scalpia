@@ -60,9 +60,10 @@ export const getCardImageUrl = (
 }
 
 
-export const parseLBCPrice = (price: string): number => {
-  if (!price) return NaN;
-  return Number(price.replace(/[^\d,]/g, "").replace(",", "."));
+export const parseLBCPrice = (price: string | number): number => {
+  if (price === null || price === undefined) return NaN;
+  const str = String(price);
+  return Number(str.replace(/[^\d,]/g, "").replace(",", "."));
 };
 
 export const normalizeLBCOffers = (offers: any[]): LBCOffer[] => {

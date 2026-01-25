@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     // Visite de la page
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-    // Pause pour contourner la protection eBay
+    // Pause pour laisser le temps au JS d'eBay de charger le contenu
     await sleep(2000);
 
     const html = await page.content();

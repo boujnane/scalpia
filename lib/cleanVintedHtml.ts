@@ -26,13 +26,19 @@ export function cleanVintedHtml(rawHtml: string): VintedCleaned {
     const id = idMatch ? parseInt(idMatch[1]) : Math.floor(Math.random() * 1000000);
 
     // Prix avec protection acheteur (le deuxième prix dans le title, sinon le premier)
-    const priceMatches = [...titleAttr.matchAll(/([\d,.]+)\s*€/g)];
+    // Le regex commence par un chiffre et inclut les espaces de séparation des milliers
+    const priceMatches = [...titleAttr.matchAll(/(\d[\d\s,.\u00A0\u202F]*)\s*€/g)];
     let price = 0;
+    const parsePrice = (raw: string) => {
+      // Supprime tous les espaces (normaux, fins, insécables) puis remplace la virgule par un point
+      const cleaned = raw.replace(/[\s\u00A0\u202F]/g, '').replace(',', '.');
+      return parseFloat(cleaned);
+    };
     if (priceMatches.length > 1) {
       // Le deuxième prix = prix avec protection (prix vert)
-      price = parseFloat(priceMatches[1][1].replace(',', '.'));
+      price = parsePrice(priceMatches[1][1]);
     } else if (priceMatches.length === 1) {
-      price = parseFloat(priceMatches[0][1].replace(',', '.'));
+      price = parsePrice(priceMatches[0][1]);
     }
 
     // Cherche un <img> dans le parent de la carte

@@ -223,30 +223,33 @@ export default function AnalysePage() {
               </p>
 
               {/* Widget Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
                 {/* Sentiment */}
                 <ProWidget
                   title="Sentiment du Marché"
-                  preview={<MarketSentimentWidgetPreview />}
+                  className="h-full"
+                  preview={<MarketSentimentWidgetPreview className="h-full" />}
                 >
-                  <MarketSentimentWidget series={series} />
+                  <MarketSentimentWidget series={series} className="h-full" />
                 </ProWidget>
 
                 {/* Volatility Gauge */}
                 <ProWidget
                   title="Volatilité du Marché"
-                  preview={<VolatilityGaugeWidgetPreview />}
+                  className="h-full"
+                  preview={<VolatilityGaugeWidgetPreview className="h-full" />}
                 >
-                  <VolatilityGaugeWidget series={series} />
+                  <VolatilityGaugeWidget series={series} className="h-full" />
                 </ProWidget>
 
                 {/* Signals Widget - Spans 2 columns on large screens */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 h-full">
                   <ProWidget
                     title="Signaux Actifs"
-                    preview={<SignalsWidgetPreview />}
+                    className="h-full"
+                    preview={<SignalsWidgetPreview className="h-full" />}
                   >
-                    <SignalsWidget series={series} />
+                    <SignalsWidget series={series} className="h-full" />
                   </ProWidget>
                 </div>
                 </div>
