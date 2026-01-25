@@ -193,7 +193,7 @@ export default function AProposPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Icons.check className="h-4 w-4 text-primary" />
-                  <span>Une analyse pensée pour les collectionneurs</span>
+                  <span>Une analyse pensée pour les collectionneurs et les investisseurs</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Icons.check className="h-4 w-4 text-primary" />
