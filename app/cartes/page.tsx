@@ -743,6 +743,35 @@ const fetchAllCards = async (setId: string) => {
   };
 
   return (
+    <>
+      {/* Breadcrumb Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Accueil", item: "https://www.pokeindex.fr" },
+              { "@type": "ListItem", position: 2, name: "Recherche par série" },
+            ],
+          }),
+        }}
+      />
+      {/* CollectionPage Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            name: "Séries et Sets Pokémon",
+            description: "Explorez toutes les séries Pokémon TCG et comparez les prix des produits scellés par set",
+            url: "https://www.pokeindex.fr/cartes",
+            isPartOf: { "@type": "WebSite", name: "Pokéindex", url: "https://www.pokeindex.fr" },
+          }),
+        }}
+      />
     <div className="flex h-screen bg-background text-foreground overflow-hidden font-sans">
       {/* Loading Overlay for initial sets loading */}
       {loadingSets && (
@@ -1164,5 +1193,6 @@ const fetchAllCards = async (setId: string) => {
         </div>
       )}
     </div>
+    </>
   );
 }

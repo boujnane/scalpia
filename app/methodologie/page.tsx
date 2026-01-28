@@ -47,6 +47,62 @@ export default function MethodologiePage() {
   ]
 
   return (
+    <>
+      {/* Breadcrumb Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Accueil", item: "https://www.pokeindex.fr" },
+              { "@type": "ListItem", position: 2, name: "Méthodologie" },
+            ],
+          }),
+        }}
+      />
+      {/* Article Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: "Méthodologie Pokéindex - Collecte et analyse des prix",
+            description: "Comment Pokéindex collecte, normalise et analyse les prix du marché Pokémon scellé depuis Cardmarket, eBay, Vinted et LeBonCoin.",
+            author: { "@type": "Organization", name: "Pokéindex", url: "https://www.pokeindex.fr" },
+            publisher: {
+              "@type": "Organization",
+              name: "Pokéindex",
+              logo: { "@type": "ImageObject", url: "https://www.pokeindex.fr/logo/logo_pki.png" },
+            },
+            datePublished: "2024-01-01",
+            dateModified: "2026-01-28",
+            mainEntityOfPage: "https://www.pokeindex.fr/methodologie",
+            articleSection: "Documentation",
+            keywords: ["méthodologie", "prix pokémon", "analyse marché", "collecte données", "cardmarket", "ebay", "vinted", "leboncoin"],
+          }),
+        }}
+      />
+      {/* HowTo Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            name: "Comment Pokéindex calcule les prix du marché Pokémon",
+            description: "Les 4 étapes de notre méthodologie pour fournir des prix fiables",
+            step: [
+              { "@type": "HowToStep", position: 1, name: "Collecte", text: "Veille quotidienne sur les marketplaces (Cardmarket, eBay, Vinted, LeBonCoin)" },
+              { "@type": "HowToStep", position: 2, name: "Normalisation", text: "Harmonisation des données (langue, édition, état, devise)" },
+              { "@type": "HowToStep", position: 3, name: "Filtrage", text: "Élimination des prix aberrants, doublons et incohérences" },
+              { "@type": "HowToStep", position: 4, name: "Index", text: "Calcul des indicateurs : prix plancher, médiane, volatilité, tendances" },
+            ],
+          }),
+        }}
+      />
     <div className="min-h-screen bg-background text-foreground">
       {/* HERO */}
       <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
@@ -505,5 +561,6 @@ export default function MethodologiePage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

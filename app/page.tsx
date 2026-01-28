@@ -62,6 +62,27 @@ export default function HomePage() {
 
   return (
     <>
+      {/* JSON-LD Schemas enrichis */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "Pokéindex",
+            url: "https://www.pokeindex.fr",
+            logo: "https://www.pokeindex.fr/logo/logo_pki.png",
+            description: "Observatoire indépendant des prix du marché Pokémon scellé francophone",
+            foundingDate: "2024",
+            contactPoint: {
+              "@type": "ContactPoint",
+              contactType: "customer service",
+              url: "https://www.pokeindex.fr/contact",
+              availableLanguage: ["French", "English"],
+            },
+          }),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -69,11 +90,45 @@ export default function HomePage() {
             "@context": "https://schema.org",
             "@type": "WebApplication",
             name: "Pokéindex",
-            description:
-              "Comparateur de prix pour le marché secondaire Pokémon. Comparez Cardmarket, eBay, LeBonCoin et Vinted.",
-            url: "https://pokeindex.fr",
+            description: "Comparateur de prix indépendant pour le marché secondaire Pokémon scellé. Agrège les données de Cardmarket, eBay, Vinted et LeBonCoin.",
+            url: "https://www.pokeindex.fr",
             applicationCategory: "FinanceApplication",
-            offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+            operatingSystem: "Web",
+            author: { "@type": "Organization", name: "Pokéindex" },
+            offers: {
+              "@type": "AggregateOffer",
+              priceCurrency: "EUR",
+              lowPrice: "0",
+              highPrice: "87",
+              offerCount: 2,
+            },
+            featureList: [
+              "Comparaison de prix multi-plateformes",
+              "Données Cardmarket, eBay, Vinted, LeBonCoin",
+              "Analyse de tendances",
+              "Alertes de prix",
+              "Historique des prix",
+            ],
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "Pokéindex",
+            url: "https://www.pokeindex.fr",
+            description: "Observatoire des prix du marché Pokémon scellé",
+            potentialAction: {
+              "@type": "SearchAction",
+              target: {
+                "@type": "EntryPoint",
+                urlTemplate: "https://www.pokeindex.fr/rechercher?q={search_term_string}",
+              },
+              "query-input": "required name=search_term_string",
+            },
           }),
         }}
       />

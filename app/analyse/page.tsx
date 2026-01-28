@@ -81,6 +81,43 @@ export default function AnalysePage() {
   const statsStable = series.filter((s) => s.trend7d === "stable").length;
 
   return (
+    <>
+      {/* JSON-LD Schemas */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Accueil", item: "https://www.pokeindex.fr" },
+              { "@type": "ListItem", position: 2, name: "Analyse du marché" },
+            ],
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: "Pokéindex Analyse",
+            applicationCategory: "FinanceApplication",
+            operatingSystem: "Web",
+            description: "Outil d'analyse du marché Pokémon scellé avec tendances, volatilité et sentiment en temps réel",
+            url: "https://www.pokeindex.fr/analyse",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+            featureList: [
+              "Tendances du marché en temps réel",
+              "Indicateur de volatilité",
+              "Analyse de sentiment",
+              "Top movers (hausses/baisses)",
+              "Graphiques interactifs",
+            ],
+          }),
+        }}
+      />
     <div className="min-h-screen bg-background">
       {/* ═══════════════════════════════════════════════════════════
           HERO SECTION - Premium, minimaliste, impact immédiat
@@ -363,5 +400,6 @@ export default function AnalysePage() {
         </div>
       )}
     </div>
+    </>
   );
 }

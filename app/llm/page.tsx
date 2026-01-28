@@ -12,6 +12,21 @@ export const metadata: Metadata = {
 export default function LLMPage() {
   return (
     <main className="container mx-auto max-w-3xl px-4 py-14">
+      {/* Breadcrumb Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Accueil", item: "https://www.pokeindex.fr" },
+              { "@type": "ListItem", position: 2, name: "Informations LLM" },
+            ],
+          }),
+        }}
+      />
+      {/* FAQ Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{

@@ -288,17 +288,50 @@ export default function PricingPage() {
 
   return (
     <>
-      {/* Structured Data (SEO) */}
+      {/* Breadcrumb Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             "@context": "https://schema.org",
-            "@type": "WebPage",
-            name: "Tarifs — Pokéindex",
-            description:
-              "Tarifs Pokéindex : gratuit, pro et entreprise. Index des prix Pokémon scellés et analyses de tendances.",
-            url: "https://votre-domaine.com/pricing",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Accueil", item: "https://www.pokeindex.fr" },
+              { "@type": "ListItem", position: 2, name: "Tarifs" },
+            ],
+          }),
+        }}
+      />
+      {/* Service Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            name: "Pokéindex Pro",
+            serviceType: "Price Comparison Service",
+            provider: { "@type": "Organization", name: "Pokéindex", url: "https://www.pokeindex.fr" },
+            description: "Service d'analyse avancée des prix du marché Pokémon scellé",
+            url: "https://www.pokeindex.fr/pricing",
+            offers: [
+              {
+                "@type": "Offer",
+                name: "Abonnement mensuel Pro",
+                price: "9",
+                priceCurrency: "EUR",
+                availability: "https://schema.org/InStock",
+              },
+              {
+                "@type": "Offer",
+                name: "Abonnement annuel Pro",
+                price: "87",
+                priceCurrency: "EUR",
+                availability: "https://schema.org/InStock",
+                description: "2 mois offerts",
+              },
+            ],
+            areaServed: { "@type": "Place", name: "France" },
           }),
         }}
       />
