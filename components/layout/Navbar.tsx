@@ -9,20 +9,25 @@ import { ThemeToggle } from "../theme-toggle"
 import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { useState, useEffect } from "react"
-import { AnimatePresence, motion } from "framer-motion"
-import { useAuth } from "@/context/AuthContext";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
-import { TokenBadge } from "@/components/ui/TokenBadge";
-import ItemSearchDialog from "@/components/ItemSearchDialog";
+import { motion } from "framer-motion"
+import { useAuth } from "@/context/AuthContext"
+import { signOut } from "firebase/auth"
+import { auth } from "@/lib/firebase"
+import { useRouter } from "next/navigation"
+import { UserMenu } from "./UserMenu"
+import ItemSearchDialog from "@/components/ItemSearchDialog"
+import { TokenBadge } from "@/components/ui/TokenBadge"
+import { getUserProfile, UserProfile } from "@/lib/user-profile"
 
-// --- TYPES & CONSTANTS ---
 type IndexStatus = "UP_TO_DATE" | "IN_PROGRESS" | "OUTDATED"
 
 const navLinks = [
@@ -30,80 +35,46 @@ const navLinks = [
     name: "Rechercher",
     href: "/rechercher",
     icon: Icons.scanSearch,
-    description: "Comparez sur le marché secondaire",
   },
   {
     name: "Analyser",
     href: "/analyse",
     icon: Icons.linechart,
-    description: "Explorer les données de marché",
   },
   {
     name: "Cartes",
     href: "/cartes",
     icon: Icons.walletCards,
-    description: "Parcourir les cartes",
   },
   {
     name: "Tarifs",
     href: "/pricing",
     icon: Icons.badgeDollarSign,
-    description: "Offres Free et Premium",
   },
-    {
-    name: "Méthodologie",
+  {
+    name: "Methodologie",
     href: "/methodologie",
     icon: Icons.badgeQuestionMark,
-    description: "Comprendre le fonctionnement",
   },
 ]
 
 export function Navbar() {
   const pathname = usePathname()
+  const router = useRouter()
   const [isScrolled, setIsScrolled] = useState(false)
-  const [hoveredLink, setHoveredLink] = useState<string | null>(null)
-  const { user, loading, isAdmin, isPro } = useAuth();
-  const [portalLoading, setPortalLoading] = useState(false);
-
-  const handlePortal = async () => {
-  if (!user) return;
-
-  setPortalLoading(true);
-  try {
-    const token = await user.getIdToken();
-
-    const response = await fetch("/api/stripe/portal", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({}), // inutile d'envoyer userId
-    });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      console.error("Portal API error:", response.status, data);
-      throw new Error(data?.error || `API error ${response.status}`);
-    }
-
-    if (!data?.url) {
-      throw new Error("No portal URL returned");
-    }
-
-    window.location.assign(data.url);
-  } catch (error) {
-    console.error("Portal error:", error);
-    alert(`Une erreur est survenue : ${(error as Error).message}`);
-  } finally {
-    setPortalLoading(false);
-  }
-};
-
-  const router = useRouter();
   const [indexStatus, setIndexStatus] = useState<IndexStatus | null>(null)
-    const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
+  const { user, loading, isAdmin, isPro } = useAuth()
+
+  // Charger le profil utilisateur
+  useEffect(() => {
+    if (!user) {
+      setProfile(null)
+      return
+    }
+    getUserProfile(user.uid).then(setProfile)
+  }, [user])
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10)
@@ -123,63 +94,80 @@ export function Navbar() {
     return pathname.startsWith(href)
   }
 
-  const IndexBadge = () => {
+  // Index Status Dot - Discret avec tooltip
+  const IndexDot = () => {
     if (!indexStatus) return null
 
     const config = {
       UP_TO_DATE: {
-        label: "Index à jour",
-        bg: "bg-emerald-100/50 border-emerald-200 text-foreground",
-        dot: "bg-emerald-500",
+        label: "Index a jour",
+        color: "bg-emerald-500",
+        pulse: false,
       },
       IN_PROGRESS: {
-        label: "Index en cours",
-        bg: "bg-amber-100/50 border-amber-200 text-foreground",
-        dot: "bg-amber-500",
+        label: "Mise a jour en cours",
+        color: "bg-amber-500",
+        pulse: true,
       },
       OUTDATED: {
-        label: "Index pas à jour",
-        bg: "bg-red-100/50 border-red-200 text-foreground",
-        dot: "bg-red-500",
+        label: "Index en retard",
+        color: "bg-red-500",
+        pulse: true,
       },
     }[indexStatus]
 
     return (
-      <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-sm transition-all duration-300 hover:scale-105 ${config.bg}`}>
-        <span className="relative flex h-2 w-2">
-          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${config.dot}`} />
-          <span className={`relative inline-flex rounded-full h-2 w-2 ${config.dot}`} />
-        </span>
-        <span className="text-[11px] font-bold uppercase tracking-wider">
-          {config.label}
-        </span>
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button className="relative flex items-center justify-center h-8 w-8 rounded-lg hover:bg-muted/50 transition-colors">
+            <span className="relative flex h-2 w-2">
+              {config.pulse && (
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${config.color}`} />
+              )}
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${config.color}`} />
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" sideOffset={8}>
+          <p>{config.label}</p>
+        </TooltipContent>
+      </Tooltip>
     )
   }
 
+  // Desktop Navigation - Style Vercel/Stripe
   const DesktopNavigation = () => (
-    <nav className="hidden lg:flex items-center gap-1">
+    <nav className="hidden lg:flex items-center">
       {navLinks.map((link) => {
         const active = isLinkActive(link.href)
-        const IconComponent = link.icon
-        const isHovered = hoveredLink === link.href
 
         return (
           <Link
             key={link.href}
             href={link.href}
-            onMouseEnter={() => setHoveredLink(link.href)}
-            onMouseLeave={() => setHoveredLink(null)}
             className="relative group"
           >
-            <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 ease-out ${active ? 'text-primary font-semibold' : 'text-muted-foreground hover:text-foreground'}`}>
-              <IconComponent className={`h-4 w-4 transition-all duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`} strokeWidth={active ? 2.5 : 2} />
-              <span className="text-sm font-medium">{link.name}</span>
+            <div className={`
+              relative px-4 py-2 text-sm font-medium transition-colors duration-200
+              ${active
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+              }
+            `}>
+              {link.name}
+
+              {/* Underline indicator */}
               {active && (
-                <motion.div layoutId="activeIndicator" className="absolute inset-0 bg-primary/10 rounded-xl border border-primary/20" initial={false} transition={{ type: "spring", stiffness: 380, damping: 30 }} />
-              )}
-              {!active && isHovered && (
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="absolute inset-0 bg-muted/50 rounded-xl" transition={{ duration: 0.2 }} />
+                <motion.div
+                  layoutId="navbar-indicator"
+                  className="absolute bottom-0 left-2 right-2 h-0.5 bg-foreground rounded-full"
+                  initial={false}
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 35,
+                  }}
+                />
               )}
             </div>
           </Link>
@@ -188,227 +176,250 @@ export function Navbar() {
     </nav>
   )
 
-const MobileNavigation = ({ onClose }: { onClose?: () => void }) => (
-  <nav className="flex flex-col gap-2">
-    {navLinks.map((link, index) => {
-      const active = isLinkActive(link.href)
-      const IconComponent = link.icon
+  // Mobile Navigation
+  const MobileNavigation = () => (
+    <nav className="flex flex-col gap-1 p-2">
+      {navLinks.map((link, index) => {
+        const active = isLinkActive(link.href)
+        const IconComponent = link.icon
 
-      return (
-        <motion.div
-          key={link.href}
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: index * 0.1 }}
-        >
-          <Link
-            href={link.href}
-            onClick={() => {
-              onClose?.() // ✅ ferme le drawer
-            }}
-            className={`group flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 relative overflow-hidden ${
-              active
-                ? "bg-primary/10 text-primary border border-primary/20"
-                : "text-foreground hover:bg-muted/50 border border-transparent"
-            }`}
+        return (
+          <motion.div
+            key={link.href}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.05 }}
           >
-            {/* ... ton contenu inchangé ... */}
-            <div className={`relative flex items-center justify-center w-10 h-10 rounded-lg ${
-              active ? "bg-primary/20" : "bg-muted/50 group-hover:bg-muted"
-            } transition-colors duration-300`}>
-              <IconComponent className="h-5 w-5 relative z-10" strokeWidth={active ? 2.5 : 2} />
-            </div>
-
-            <div className="flex-1 relative z-10">
-              <p className={`font-semibold text-sm ${active ? "text-primary" : ""}`}>
-                {link.name}
-              </p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {link.description}
-              </p>
-            </div>
-          </Link>
-        </motion.div>
-      )
-    })}
-  </nav>
-)
-
+            <Link
+              href={link.href}
+              onClick={() => setSheetOpen(false)}
+              className={`
+                flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
+                ${active
+                  ? "bg-foreground/5 text-foreground font-medium"
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }
+              `}
+            >
+              <IconComponent className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
+              <span>{link.name}</span>
+              {active && (
+                <div className="ml-auto h-1.5 w-1.5 rounded-full bg-foreground" />
+              )}
+            </Link>
+          </motion.div>
+        )
+      })}
+    </nav>
+  )
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b transition-all duration-300 ${isScrolled ? "border-border/60 bg-background/70 backdrop-blur-xl shadow-lg shadow-black/5" : "border-border/40 bg-background/80 backdrop-blur-md shadow-sm"} supports-[backdrop-filter]:bg-background/60`}>
-      <div className="flex h-16 w-full items-center px-4 md:px-8">
-        
-        {/* LOGO SECTION */}
-        <Link href="/" className="flex items-center space-x-2.5 transition-all duration-300 hover:opacity-90 group mr-12">
-          <div className="relative h-28 w-28 transition-all duration-300 group-hover:scale-125 group-hover:rotate-3 ">
+    <header className={`
+      sticky top-0 z-50 w-full transition-all duration-300
+      ${isScrolled
+        ? "bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm"
+        : "bg-background/50 backdrop-blur-md border-b border-transparent"
+      }
+    `}>
+      <div className="flex h-16 items-center justify-between px-4 md:px-6 lg:px-8 max-w-screen-2xl mx-auto">
+
+        {/* Logo */}
+        <Link
+          href="/"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+        >
+          <div className="relative h-24 w-24">
             <Image
               src="/logo/logo_pki.png"
-              alt="PokéIndex"
+              alt="Pokeindex"
               fill
               className="object-contain"
               priority
             />
           </div>
-          <span className="hidden font-bold sm:inline-block text-lg tracking-tight -ml-5">
-            Poké<span className="text-primary -ml-0.25">index</span>
+          <span className="font-bold text-lg tracking-tight hidden sm:block -ml-5">
+            Poke<span className="text-primary">index</span>
           </span>
         </Link>
 
+        {/* Desktop Nav */}
         <DesktopNavigation />
-        <div className="flex-1" />
 
-        <div className="flex items-center gap-2 md:gap-3">
-          <IndexBadge />
-
-          {/* Plan Badge - Free ou Pro */}
-          {!loading && user && (
-            <div className="hidden md:flex items-center">
-              {isPro ? (
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30">
-                  <Icons.sparkles className="h-3 w-3 text-primary" />
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Pro</span>
-                </div>
-              ) : (
-                <Link href="/pricing" className="group flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted/50 border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-all duration-300">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground group-hover:text-primary transition-colors">Free</span>
-                  <Icons.arrowRight className="h-3 w-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
-                </Link>
-              )}
-            </div>
-          )}
-
-          <TokenBadge compact />
-          <ItemSearchDialog buttonClassName="flex" />
-          <ThemeToggle />
-
-          <div className="hidden lg:flex items-center gap-2 ml-2">
-            {!loading && !user && (
-              <Button variant="outline" size="sm" className="h-9 rounded-xl border-border/50 hover:bg-primary/5 transition-all duration-300" onClick={() => router.push("/login")}>
-                Connexion
-              </Button>
-            )}
-            {!loading && user && isAdmin && (
-              <Button variant="ghost" size="sm" className="h-9 rounded-xl text-purple-500 hover:bg-purple-500/10 transition-all duration-300" onClick={() => router.push("/admin")}>
-                <Icons.shield className="h-4 w-4 mr-1.5" />
-                Admin
-              </Button>
-            )}
-            {!loading && user && isPro && !isAdmin && (
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={portalLoading}
-                className="h-9 rounded-xl text-primary hover:bg-primary/10 transition-all duration-300"
-                onClick={handlePortal}
-              >
-                {portalLoading ? (
-                  <Icons.loader className="h-4 w-4 mr-1.5 animate-spin" />
-                ) : (
-                  <Icons.creditCard className="h-4 w-4 mr-1.5" />
-                )}
-                Abonnement
-              </Button>
-            )}
-            {/* CTA Upgrade pour les utilisateurs Free connectés */}
-            {!loading && user && !isPro && !isAdmin && (
-              <Button
-                size="sm"
-                className="h-9 rounded-xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-md hover:shadow-lg transition-all duration-300"
-                onClick={() => router.push("/pricing")}
-              >
-                <Icons.zap className="h-4 w-4 mr-1.5" />
-                Passer Pro
-              </Button>
-            )}
-            {!loading && user && (
-              <Button size="sm" variant="outline" className="h-9 px-4 rounded-xl border-border/50 hover:bg-muted/50" onClick={async () => { await signOut(auth); router.push("/"); }}>
-                Déconnexion
-              </Button>
-            )}
+        {/* Right Section */}
+        <div className="flex items-center gap-1">
+          {/* Index Status Dot */}
+          <div className="hidden md:flex">
+            <IndexDot />
           </div>
 
+          {/* Separator */}
+          <div className="hidden md:block h-5 w-px bg-border mx-2" />
+
+          {/* Search */}
+          <ItemSearchDialog
+            buttonClassName="h-8 w-8 rounded-lg hover:bg-muted/50"
+          />
+
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
+          {/* Separator */}
+          <div className="hidden lg:block h-5 w-px bg-border mx-2" />
+
+          {/* Token Badge - Visible */}
+          <div className="hidden md:flex">
+            <TokenBadge compact />
+          </div>
+
+          {/* User Menu - Desktop */}
+          <div className="hidden lg:flex items-center ml-2">
+            <UserMenu />
+          </div>
+
+          {/* Mobile Menu */}
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden h-9 w-9 rounded-xl hover:bg-muted"
+                className="lg:hidden h-8 w-8 rounded-lg"
               >
                 <Icons.menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[320px] sm:w-[380px] p-0 border-r border-border/50">
-              <div className="bg-gradient-to-br from-primary/5 to-transparent p-6 border-b border-border/50">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center gap-4 text-lg font-bold">
-                    <div className="relative h-24 w-24">
-                      <Image src="/logo/logo_pki.png" alt="Logo" fill className="object-contain" />
-                    </div>
-                    <span className="-ml-5">Pokéindex</span>
-                  </SheetTitle>
-                </SheetHeader>
-              </div>
-              <div className="flex flex-col h-[calc(100%-88px)]">
-                <div className="flex-1 p-6 overflow-y-auto">
-                        <MobileNavigation onClose={() => setSheetOpen(false)} />
+            <SheetContent side="left" className="w-[300px] p-0">
+              {/* Header */}
+              <div className="flex items-center gap-3 p-4 border-b border-border">
+                <div className="relative h-24 w-24">
+                  <Image
+                    src="/logo/logo_pki.png"
+                    alt="Logo"
+                    fill
+                    className="object-contain"
+                  />
                 </div>
-                <div className="p-6 border-t border-border/50 bg-muted/20 space-y-3">
-                  {/* Badge Free/Pro mobile */}
-                  {!loading && user && (
-                    <div className="flex items-center justify-center mb-2">
-                      {isPro ? (
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/20 to-purple-500/20 border border-primary/30">
-                          <Icons.sparkles className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-bold text-primary">Plan Pro actif</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50 border border-border/50">
-                          <span className="text-sm font-medium text-muted-foreground">Plan Gratuit</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                <SheetTitle className="text-lg font-bold -ml-4">
+                  Pokeindex
+                </SheetTitle>
+              </div>
 
-                  {!loading && !user ? (
-                    <Button className="w-full h-12 font-semibold rounded-xl bg-gradient-to-r from-primary to-primary/90" onClick={() => router.push("/login")}>Connexion</Button>
-                  ) : (
-                    <>
-                      {isAdmin && (
-                        <Button variant="outline" className="w-full h-12 rounded-xl text-purple-500 border-purple-500/30 hover:bg-purple-500/10" onClick={() => router.push("/admin")}>
-                          <Icons.shield className="h-4 w-4 mr-2" />
-                          Administration
-                        </Button>
-                      )}
-                      {isPro && !isAdmin && (
-                        <Button
-                          variant="outline"
-                          disabled={portalLoading}
-                          className="w-full h-12 rounded-xl text-primary border-primary/30 hover:bg-primary/10"
-                          onClick={handlePortal}
-                        >
-                          {portalLoading ? (
-                            <Icons.loader className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Icons.creditCard className="h-4 w-4 mr-2" />
-                          )}
-                          Gérer mon abonnement
-                        </Button>
-                      )}
-                      {/* CTA Upgrade mobile pour Free */}
+              {/* Nav Links */}
+              <div className="py-4">
+                <MobileNavigation />
+              </div>
+
+              {/* User Section */}
+              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-muted/20">
+                {!loading && !user ? (
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setSheetOpen(false)
+                      router.push("/login")
+                    }}
+                  >
+                    Connexion
+                  </Button>
+                ) : (
+                  <div className="space-y-3">
+                    {/* User info avec avatar cliquable */}
+                    <button
+                      onClick={() => {
+                        setSheetOpen(false)
+                        router.push("/settings")
+                      }}
+                      className="flex items-center gap-3 w-full px-2 py-2 rounded-xl hover:bg-muted/50 transition-colors"
+                    >
+                      {/* Avatar */}
+                      <div className="relative h-12 w-12 rounded-full overflow-hidden flex-shrink-0">
+                        {profile?.photoURL ? (
+                          <img
+                            src={profile.photoURL}
+                            alt="Avatar"
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full w-full bg-gradient-to-br from-primary/20 to-purple-500/20 text-foreground font-bold">
+                            {profile?.firstName && profile?.lastName
+                              ? `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase()
+                              : user?.email?.substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        {/* Badge Pro/Admin */}
+                        {(isPro || isAdmin) && (
+                          <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                            {isAdmin ? (
+                              <Icons.shield className="h-2.5 w-2.5 text-primary-foreground" />
+                            ) : (
+                              <Icons.sparkles className="h-2.5 w-2.5 text-primary-foreground" />
+                            )}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0 text-left">
+                        {profile?.firstName && (
+                          <p className="text-sm font-semibold truncate">
+                            {profile.firstName} {profile.lastName}
+                          </p>
+                        )}
+                        <p className={`text-sm truncate ${profile?.firstName ? "text-xs text-muted-foreground" : "font-medium"}`}>
+                          {user?.email}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {isAdmin ? "Admin" : isPro ? "Pro" : "Free"}
+                        </p>
+                      </div>
+
+                      <Icons.settings className="h-4 w-4 text-muted-foreground" />
+                    </button>
+
+                    {/* Actions */}
+                    <div className="grid grid-cols-2 gap-2">
                       {!isPro && !isAdmin && (
                         <Button
-                          className="w-full h-12 font-semibold rounded-xl bg-gradient-to-r from-primary to-purple-600 shadow-md"
-                          onClick={() => { setSheetOpen(false); router.push("/pricing"); }}
+                          size="sm"
+                          className="col-span-2 bg-gradient-to-r from-primary to-purple-600"
+                          onClick={() => {
+                            setSheetOpen(false)
+                            router.push("/pricing")
+                          }}
                         >
                           <Icons.zap className="h-4 w-4 mr-2" />
-                          Passer Pro — 9€/mois
+                          Passer Pro
                         </Button>
                       )}
-                      <Button variant="outline" className="w-full h-12 rounded-xl" onClick={async () => { await signOut(auth); router.push("/"); }}>Déconnexion</Button>
-                    </>
-                  )}
-                </div>
+                      {isAdmin && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setSheetOpen(false)
+                            router.push("/admin")
+                          }}
+                        >
+                          <Icons.shield className="h-4 w-4 mr-2" />
+                          Admin
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={isAdmin || (!isPro && !isAdmin) ? "" : "col-span-2"}
+                        onClick={async () => {
+                          await signOut(auth)
+                          setSheetOpen(false)
+                          router.push("/")
+                        }}
+                      >
+                        Deconnexion
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </SheetContent>
           </Sheet>

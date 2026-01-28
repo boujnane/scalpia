@@ -70,7 +70,7 @@ export default async function Image() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            padding: "50px 80px",
+            padding: "40px 70px",
             background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%)",
             borderRadius: 32,
             border: "1px solid rgba(255,255,255,0.1)",
@@ -83,15 +83,15 @@ export default async function Image() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: 32,
+              marginBottom: 24,
             }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="https://www.pokeindex.fr/logo/logo_pki.png"
               alt="Pokéindex"
-              width={160}
-              height={160}
+              width={140}
+              height={140}
               style={{
                 filter: "drop-shadow(0 8px 24px rgba(139,92,246,0.3))",
               }}
@@ -134,7 +134,7 @@ export default async function Image() {
           style={{
             display: "flex",
             gap: 16,
-            marginTop: 40,
+            marginTop: 24,
           }}
         >
           {["Cardmarket", "eBay", "Vinted", "LeBonCoin"].map((source) => (
@@ -159,7 +159,7 @@ export default async function Image() {
         <div
           style={{
             position: "absolute",
-            bottom: 36,
+            bottom: 24,
             display: "flex",
             alignItems: "center",
             gap: 8,
