@@ -228,7 +228,10 @@ export default function LLMPage() {
             Accueil : <a href="https://pokeindex.fr">https://pokeindex.fr</a>
           </li>
           <li>
-            LLM text: <a href="https://pokeindex.fr/llm.txt">https://pokeindex.fr/llm.txt</a>
+            LLM text (short): <a href="https://pokeindex.fr/llms.txt">https://pokeindex.fr/llms.txt</a>
+          </li>
+          <li>
+            LLM text (full): <a href="https://pokeindex.fr/llms-full.txt">https://pokeindex.fr/llms-full.txt</a>
           </li>
           <li>
             Méthodologie : <Link href="/methodologie">/methodologie</Link>
