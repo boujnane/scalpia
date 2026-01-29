@@ -46,9 +46,20 @@ export async function GET(request: NextRequest) {
       subscriptionsMap.set(doc.id, doc.data());
     });
 
+    // Récupérer les profils utilisateurs (photoURL, prénom/nom)
+    const profilesSnap = await adminDb().collection("users").get();
+    const profilesMap = new Map<string, any>();
+    profilesSnap.docs.forEach((doc) => {
+      profilesMap.set(doc.id, doc.data());
+    });
+
     // Fusionner les données
     const users: UserWithSubscription[] = listUsersResult.users.map((user) => {
       const sub = subscriptionsMap.get(user.uid);
+      const profile = profilesMap.get(user.uid);
+      const profileDisplayName = profile?.firstName
+        ? `${profile.firstName}${profile.lastName ? ` ${profile.lastName}` : ""}`
+        : null;
 
       // Parse les timestamps Firestore
       const parseTimestamp = (val: any): string | null => {
@@ -61,8 +72,8 @@ export async function GET(request: NextRequest) {
       return {
         uid: user.uid,
         email: user.email || null,
-        displayName: user.displayName || null,
-        photoURL: user.photoURL || null,
+        displayName: profileDisplayName || user.displayName || null,
+        photoURL: profile?.photoURL || user.photoURL || null,
         createdAt: user.metadata.creationTime || null,
         lastSignIn: user.metadata.lastSignInTime || null,
         tier: sub?.tier || "free",

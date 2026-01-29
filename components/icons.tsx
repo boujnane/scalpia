@@ -43,6 +43,11 @@ import {
   Building2,
   Play,
   BadgeQuestionMark,
+  FolderHeart,
+  PlusCircle,
+  MinusCircle,
+  Calendar,
+  Euro,
 
   // ✅ AJOUTS pour la page Contact
   LifeBuoy,
@@ -142,4 +147,11 @@ export const Icons = {
   fileText: FileText,
   scale: Scale,
   pokeball: PokeballIcon,
+
+  // ✅ Collection page
+  collection: FolderHeart,
+  plusCircle: PlusCircle,
+  minusCircle: MinusCircle,
+  calendar: Calendar,
+  euro: Euro,
 }

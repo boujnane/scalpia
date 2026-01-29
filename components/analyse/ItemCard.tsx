@@ -1,20 +1,58 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import { Item } from "@/lib/analyse/types";
 import { Badge } from "@/components/ui/badge";
-import { getChartAnalysis } from "@/lib/analyse/getChartAnalysis"; 
+import { getChartAnalysis } from "@/lib/analyse/getChartAnalysis";
 import ItemModal from "./ItemModal";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Icons } from "@/components/icons";
 import { useTokens } from "@/context/TokenContext";
 import { NoTokensModal } from "@/components/ui/TokenBadge";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { AddToCollectionDialog } from "@/components/collection/AddToCollectionDialog";
+import { addToCollection, isInCollection, generateItemId } from "@/lib/collection";
+import type { CollectionFormData } from "@/types/collection";
 
 export default function ItemCard({ item }: { item: Item }) {
   const [open, setOpen] = useState(false);
   const [showNoTokensModal, setShowNoTokensModal] = useState(false);
+  const [showCollectionDialog, setShowCollectionDialog] = useState(false);
+  const [inCollection, setInCollection] = useState(false);
   const { consumeToken } = useTokens();
+  const { user } = useAuth();
+
+  // Check if item is already in collection
+  useEffect(() => {
+    if (!user) {
+      setInCollection(false);
+      return;
+    }
+
+    isInCollection(user.uid, item).then(setInCollection).catch(() => setInCollection(false));
+  }, [user, item]);
+
+  // Handle add to collection
+  const handleAddToCollection = async (itemToAdd: Item, formData: CollectionFormData): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      await addToCollection(user.uid, itemToAdd, formData);
+      setInCollection(true);
+      return true;
+    } catch (err) {
+      console.error("Error adding to collection:", err);
+      return false;
+    }
+  };
+
+  // Handle collection button click (prevent opening the modal)
+  const handleCollectionClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowCollectionDialog(true);
+  };
 
   const analysis = useMemo(
     () => getChartAnalysis(item),
@@ -51,12 +89,37 @@ export default function ItemCard({ item }: { item: Item }) {
         role="button"
         aria-label={`Ouvrir les détails de ${item.name}`}
         className="
-          group border border-border rounded-2xl shadow-lg 
-          bg-card overflow-hidden 
-          hover:shadow-xl hover:border-primary/50 transition-all duration-300 
+          group border border-border rounded-2xl shadow-lg
+          bg-card overflow-hidden
+          hover:shadow-xl hover:border-primary/50 transition-all duration-300
           cursor-pointer p-4 flex flex-col items-center
+          relative
         "
       >
+        {/* Add to collection button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`
+                absolute top-2 right-2 z-10
+                h-9 w-9 rounded-full
+                bg-background/80 backdrop-blur-sm border border-border/50
+                hover:bg-background hover:border-primary/50
+                transition-all duration-200
+                ${inCollection ? "text-primary" : "text-muted-foreground"}
+              `}
+              onClick={handleCollectionClick}
+            >
+              <Icons.collection className={`w-4 h-4 ${inCollection ? "fill-primary/20" : ""}`} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="left">
+            {inCollection ? "Dans ma collection" : "Ajouter à ma collection"}
+          </TooltipContent>
+        </Tooltip>
+
         {/* Image */}
         <div className="w-full h-36 sm:h-40 relative flex items-center justify-center bg-secondary/30 rounded-xl overflow-hidden mb-4 border border-border/50">
           {item.image && (
@@ -134,6 +197,13 @@ export default function ItemCard({ item }: { item: Item }) {
 
       <ItemModal item={item} chartData={chartData} open={open} onOpenChange={setOpen} />
       <NoTokensModal open={showNoTokensModal} onClose={() => setShowNoTokensModal(false)} />
+      <AddToCollectionDialog
+        item={item}
+        open={showCollectionDialog}
+        onOpenChange={setShowCollectionDialog}
+        onAdd={handleAddToCollection}
+        isAlreadyInCollection={inCollection}
+      />
     </>
   );
 }

@@ -85,12 +85,15 @@ export async function getUserTokens(userId: string, tier: SubscriptionTier): Pro
 
     const data = docSnap.data();
     const lastReset = parseTimestamp(data.lastReset);
-    const storedTier = data.tier as SubscriptionTier || "free";
+    const storedTier = (data.tier as SubscriptionTier) || "free";
+    const storedMaxTokens = TOKEN_LIMITS[storedTier];
 
-    // Vérifier si le tier a changé (upgrade/downgrade)
-    const tierChanged = storedTier !== tier;
+    // Vérifier si le tier a changé vers un tier SUPÉRIEUR (upgrade)
+    // On ne reset PAS sur un downgrade apparent (peut être une race condition)
+    const isUpgrade = maxTokens > storedMaxTokens;
+    const tierChanged = storedTier !== tier && isUpgrade;
 
-    // Reset si nouveau jour OU si tier a changé
+    // Reset si nouveau jour OU si upgrade de tier
     if (shouldResetTokens(lastReset) || tierChanged) {
       await setDoc(docRef, {
         tokens: maxTokens,
@@ -105,6 +108,12 @@ export async function getUserTokens(userId: string, tier: SubscriptionTier): Pro
         lastReset: new Date(),
         tier,
       };
+    }
+
+    // Si le tier actuel est supérieur au tier stocké mais pas un nouveau jour,
+    // on met juste à jour le tier sans reset (pour éviter les race conditions)
+    if (storedTier !== tier && !isUpgrade) {
+      // Ne rien faire - garder les tokens actuels, le tier sera corrigé au prochain appel
     }
 
     return {

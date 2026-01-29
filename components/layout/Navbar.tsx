@@ -47,6 +47,11 @@ const navLinks = [
     icon: Icons.walletCards,
   },
   {
+    name: "Collection",
+    href: "/ma-collection",
+    icon: Icons.collection,
+  },
+  {
     name: "Tarifs",
     href: "/pricing",
     icon: Icons.badgeDollarSign,
@@ -176,6 +181,12 @@ export function Navbar() {
     </nav>
   )
 
+  const mobileQuickLinks = [
+    { name: "Cartes", href: "/cartes", icon: Icons.walletCards },
+    { name: "Analyse", href: "/analyse", icon: Icons.linechart },
+    { name: "Collection", href: "/ma-collection", icon: Icons.collection },
+  ]
+
   // Mobile Navigation
   const MobileNavigation = () => (
     <nav className="flex flex-col gap-1 p-2">
@@ -196,7 +207,7 @@ export function Navbar() {
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
                 ${active
-                  ? "bg-foreground/5 text-foreground font-medium"
+                  ? "bg-primary/10 text-foreground font-medium ring-1 ring-primary/20"
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 }
               `}
@@ -228,18 +239,18 @@ export function Navbar() {
           href="/"
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
-          <div className="relative h-24 w-24">
-            <Image
-              src="/logo/logo_pki.png"
-              alt="Pokeindex"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-          <span className="font-bold text-lg tracking-tight hidden sm:block -ml-5">
-            Poke<span className="text-primary">index</span>
-          </span>
+        <div className="relative h-24 w-24">
+          <Image
+            src="/logo/logo_pki.png"
+            alt="Pokeindex"
+            fill
+            className="object-contain"
+            priority
+          />
+        </div>
+        <span className="font-bold text-lg tracking-tight hidden sm:block -ml-4">
+          Poké<span className="text-primary">index</span>
+        </span>
         </Link>
 
         {/* Desktop Nav */}
@@ -261,13 +272,18 @@ export function Navbar() {
           />
 
           {/* Theme Toggle */}
-          <ThemeToggle />
+          <div className="hidden sm:flex">
+            <ThemeToggle />
+          </div>
 
           {/* Separator */}
           <div className="hidden lg:block h-5 w-px bg-border mx-2" />
 
           {/* Token Badge - Visible */}
           <div className="hidden md:flex">
+            <TokenBadge compact />
+          </div>
+          <div className="flex md:hidden">
             <TokenBadge compact />
           </div>
 
@@ -287,29 +303,60 @@ export function Navbar() {
                 <Icons.menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] p-0">
+          <SheetContent side="left" className="w-[88vw] max-w-[360px] p-0 overflow-hidden">
               {/* Header */}
-              <div className="flex items-center gap-3 p-4 border-b border-border">
-                <div className="relative h-24 w-24">
-                  <Image
-                    src="/logo/logo_pki.png"
-                    alt="Logo"
-                    fill
-                    className="object-contain"
-                  />
+              <div className="relative border-b border-border">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-purple-500/10" />
+                <div className="relative p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-24 w-24">
+                      <Image
+                        src="/logo/logo_pki.png"
+                        alt="Logo"
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <SheetTitle className="text-lg font-bold -ml-5">
+                        Pokeindex
+                      </SheetTitle>
+                      <p className="text-xs text-muted-foreground -ml-5">
+                        Suivi & collection Pokemon
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    {mobileQuickLinks.map((link) => {
+                      const IconComponent = link.icon
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setSheetOpen(false)}
+                          className="flex flex-col items-center gap-1.5 rounded-xl border border-border/60 bg-background/70 px-2 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/30 transition-colors"
+                        >
+                          <IconComponent className="h-4 w-4" />
+                          <span className="truncate">{link.name}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
                 </div>
-                <SheetTitle className="text-lg font-bold -ml-4">
-                  Pokeindex
-                </SheetTitle>
               </div>
 
-              {/* Nav Links */}
-              <div className="py-4">
+              <div className="flex-1 overflow-y-auto">
+                <div className="px-3 pt-4">
+                  <p className="px-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+                    Navigation
+                  </p>
+                </div>
                 <MobileNavigation />
               </div>
 
               {/* User Section */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border bg-muted/20">
+              <div className="mt-auto p-4 border-t border-border bg-muted/20">
                 {!loading && !user ? (
                   <Button
                     className="w-full"
@@ -328,10 +375,10 @@ export function Navbar() {
                         setSheetOpen(false)
                         router.push("/settings")
                       }}
-                      className="flex items-center gap-3 w-full px-2 py-2 rounded-xl hover:bg-muted/50 transition-colors"
+                      className="flex items-center gap-3 w-full rounded-xl border border-border/60 bg-background/80 px-3 py-3 hover:border-primary/30 transition-colors"
                     >
                       {/* Avatar */}
-                      <div className="relative h-12 w-12 rounded-full overflow-hidden flex-shrink-0">
+                      <div className="relative h-12 w-12 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-offset-2 ring-offset-background ring-primary/30">
                         {profile?.photoURL ? (
                           <img
                             src={profile.photoURL}
@@ -348,30 +395,36 @@ export function Navbar() {
                               : user?.email?.substring(0, 2).toUpperCase()}
                           </div>
                         )}
-                        {/* Badge Pro/Admin */}
-                        {(isPro || isAdmin) && (
-                          <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                            {isAdmin ? (
-                              <Icons.shield className="h-2.5 w-2.5 text-primary-foreground" />
-                            ) : (
-                              <Icons.sparkles className="h-2.5 w-2.5 text-primary-foreground" />
-                            )}
-                          </span>
-                        )}
                       </div>
 
                       <div className="flex-1 min-w-0 text-left">
-                        {profile?.firstName && (
-                          <p className="text-sm font-semibold truncate">
-                            {profile.firstName} {profile.lastName}
-                          </p>
-                        )}
-                        <p className={`text-sm truncate ${profile?.firstName ? "text-xs text-muted-foreground" : "font-medium"}`}>
-                          {user?.email}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {isAdmin ? "Admin" : isPro ? "Pro" : "Free"}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            {profile?.firstName && (
+                              <p className="text-sm font-semibold truncate">
+                                {profile.firstName} {profile.lastName}
+                              </p>
+                            )}
+                            <p className={`text-sm truncate ${profile?.firstName ? "text-xs text-muted-foreground" : "font-medium"}`}>
+                              {user?.email}
+                            </p>
+                          </div>
+                          {isAdmin ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-500 border border-purple-500/30">
+                              <Icons.shield className="h-2.5 w-2.5" />
+                              Admin
+                            </span>
+                          ) : isPro ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-primary/15 text-primary border border-primary/30">
+                              <Icons.sparkles className="h-2.5 w-2.5" />
+                              Pro
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border border-border/60">
+                              Free
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       <Icons.settings className="h-4 w-4 text-muted-foreground" />

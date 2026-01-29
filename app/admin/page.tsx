@@ -14,6 +14,7 @@ import {
   Search,
   UserCircle,
   ExternalLink,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserWithSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [resettingTokens, setResettingTokens] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTier, setFilterTier] = useState<"all" | SubscriptionTier>("all");
   const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "";
@@ -202,6 +204,36 @@ export default function AdminPage() {
       alert("Erreur lors de la modification");
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleResetTokens = async (uid: string, tier: SubscriptionTier) => {
+    if (!user) return;
+
+    setResettingTokens(uid);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch("/api/admin/reset-tokens", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ uid, tier }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to reset tokens");
+      }
+
+      const data = await res.json();
+      alert(`Tokens réinitialisés à ${data.tokens} pour ce compte`);
+    } catch (err) {
+      console.error("Error resetting tokens:", err);
+      alert("Erreur lors du reset des tokens");
+    } finally {
+      setResettingTokens(null);
     }
   };
 
@@ -464,6 +496,23 @@ export default function AdminPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleResetTokens(u.uid, u.tier)}
+                        disabled={resettingTokens === u.uid}
+                        className="h-9 text-xs"
+                        title="Réinitialiser les tokens"
+                      >
+                        {resettingTokens === u.uid ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+                            Tokens
+                          </>
+                        )}
+                      </Button>
                       <Select
                         value={u.tier === "admin" ? "admin" : u.tier}
                         onValueChange={(v) =>

@@ -8,6 +8,8 @@ import { useAuth } from "@/context/AuthContext"
 import { useTokens } from "@/context/TokenContext"
 import { getUserProfile, UserProfile } from "@/lib/user-profile"
 import { Icons } from "@/components/icons"
+import { useAnalyseItems } from "@/hooks/useAnalyseItems"
+import { useCollection } from "@/hooks/useCollection"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +21,10 @@ import {
 
 export function UserMenu() {
   const router = useRouter()
-  const { user, loading, isAdmin, isPro } = useAuth()
+  const { user, loading: authLoading, isAdmin, isPro } = useAuth()
   const { tokens, maxTokens, percentage, isUnlimited, isExhausted } = useTokens()
+  const { items: analyseItems } = useAnalyseItems()
+  const { summary, loading: collectionLoading } = useCollection(analyseItems)
   const [portalLoading, setPortalLoading] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
 
@@ -63,7 +67,7 @@ export function UserMenu() {
     router.push("/")
   }
 
-  if (loading) {
+  if (authLoading) {
     return (
       <div className="h-8 w-8 rounded-full bg-muted animate-pulse" />
     )
@@ -101,6 +105,19 @@ export function UserMenu() {
   const displayName = profile?.firstName
     ? `${profile.firstName}${profile.lastName ? ` ${profile.lastName}` : ""}`
     : null
+
+  const hasInvestment = summary.totalCost > 0
+  const roiValue = hasInvestment
+    ? `${summary.profitLossPercent >= 0 ? "+" : ""}${summary.profitLossPercent.toFixed(1)}%`
+    : "—"
+  const roiColor = hasInvestment
+    ? summary.profitLossPercent >= 0
+      ? "text-emerald-500"
+      : "text-red-500"
+    : "text-muted-foreground"
+  const totalValueLabel = summary.totalValue > 0
+    ? `${summary.totalValue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`
+    : "—"
 
   return (
     <DropdownMenu>
@@ -204,6 +221,38 @@ export function UserMenu() {
               />
             </div>
           )}
+        </div>
+
+        <DropdownMenuSeparator className="m-0" />
+
+        {/* Collection ROI */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Collection
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              ROI global
+            </span>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-background/70 px-3 py-2 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                ROI
+              </p>
+              <p className={`text-sm font-bold tabular-nums ${roiColor}`}>
+                {collectionLoading ? "…" : roiValue}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Valeur
+              </p>
+              <p className="text-sm font-semibold tabular-nums text-foreground">
+                {collectionLoading ? "…" : totalValueLabel}
+              </p>
+            </div>
+          </div>
         </div>
 
         <DropdownMenuSeparator className="m-0" />
