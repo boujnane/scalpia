@@ -15,6 +15,11 @@ import {
   UserCircle,
   ExternalLink,
   RotateCcw,
+  Download,
+  Image as ImageIcon,
+  TrendingUp,
+  TrendingDown,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +38,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import ProtectedPage from "@/components/ProtectedPage";
+import { useAnalyseItems } from "@/hooks/useAnalyseItems";
+import { computeISPFromItems, ISPIndexSummary } from "@/lib/analyse/finance/ispIndex";
 
 type UserWithSubscription = {
   uid: string;
@@ -72,6 +79,14 @@ export default function AdminPage() {
   const [resettingTokens, setResettingTokens] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTier, setFilterTier] = useState<"all" | SubscriptionTier>("all");
+  const [generatingImage, setGeneratingImage] = useState(false);
+
+  // ISP Data
+  const { items: allItems, loading: itemsLoading } = useAnalyseItems();
+  const ispSummary: ISPIndexSummary = useMemo(() => {
+    if (!allItems || allItems.length === 0) return computeISPFromItems([]);
+    return computeISPFromItems(allItems);
+  }, [allItems]);
   const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "";
   const hasPosthog = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY && posthogHost);
   const posthogDashboardUrl = posthogHost.includes("eu.i.")
@@ -237,6 +252,56 @@ export default function AdminPage() {
     }
   };
 
+  const handleDownloadISPImage = async () => {
+    if (!user || itemsLoading) return;
+
+    setGeneratingImage(true);
+    try {
+      const token = await user.getIdToken();
+
+      // Préparer les données ISP pour l'API
+      const ispData = {
+        current: ispSummary.current,
+        change7d: ispSummary.change7d,
+        change30d: ispSummary.change30d,
+        trend: ispSummary.trend,
+        history: ispSummary.history.slice(-30).map(p => ({ date: p.date, value: p.value })),
+        lastUpdate: ispSummary.lastUpdate,
+      };
+
+      const res = await fetch("/api/admin/isp-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(ispData),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Erreur lors de la génération de l'image");
+      }
+
+      // Télécharger l'image
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      a.download = `ISP-FR_${today}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error generating ISP image:", err);
+      alert(err instanceof Error ? err.message : "Erreur lors de la génération de l'image");
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
   return (
     <ProtectedPage>
       {authLoading || loading ? (
@@ -362,6 +427,96 @@ export default function AdminPage() {
                 </Badge>
               </div>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ISP-FR Export */}
+      <Card className="mb-6 border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ImageIcon className="w-5 h-5 text-primary" />
+            Export Image ISP-FR (Twitter)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Preview des données */}
+            <div className="flex-1 p-4 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-border/50">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide">Valeur actuelle</p>
+                  <p className="text-4xl font-bold text-primary tabular-nums">
+                    {itemsLoading ? "..." : ispSummary.current.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Base 100</p>
+                </div>
+                <div className={`p-3 rounded-xl ${
+                  ispSummary.trend === "up" ? "bg-success/10" :
+                  ispSummary.trend === "down" ? "bg-destructive/10" : "bg-muted"
+                }`}>
+                  {ispSummary.trend === "up" ? (
+                    <TrendingUp className="w-6 h-6 text-success" />
+                  ) : ispSummary.trend === "down" ? (
+                    <TrendingDown className="w-6 h-6 text-destructive" />
+                  ) : (
+                    <Minus className="w-6 h-6 text-muted-foreground" />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg bg-background/50">
+                  <p className="text-xs text-muted-foreground">7 jours</p>
+                  <p className={`text-lg font-bold tabular-nums ${
+                    (ispSummary.change7d ?? 0) >= 0 ? "text-success" : "text-destructive"
+                  }`}>
+                    {ispSummary.change7d !== null
+                      ? `${ispSummary.change7d >= 0 ? "+" : ""}${(ispSummary.change7d * 100).toFixed(2)}%`
+                      : "N/A"}
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-background/50">
+                  <p className="text-xs text-muted-foreground">30 jours</p>
+                  <p className={`text-lg font-bold tabular-nums ${
+                    (ispSummary.change30d ?? 0) >= 0 ? "text-success" : "text-destructive"
+                  }`}>
+                    {ispSummary.change30d !== null
+                      ? `${ispSummary.change30d >= 0 ? "+" : ""}${(ispSummary.change30d * 100).toFixed(2)}%`
+                      : "N/A"}
+                  </p>
+                </div>
+              </div>
+
+              {ispSummary.lastUpdate && (
+                <p className="text-xs text-muted-foreground mt-3">
+                  Dernière mise à jour : {new Date(ispSummary.lastUpdate).toLocaleDateString("fr-FR", {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </p>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col justify-center gap-3 lg:w-64">
+              <Button
+                onClick={handleDownloadISPImage}
+                disabled={generatingImage || itemsLoading}
+                className="h-12"
+              >
+                {generatingImage ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Télécharger l'image
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Format : 1200x630px (Twitter/OpenGraph)
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

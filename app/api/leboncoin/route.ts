@@ -25,7 +25,20 @@ export async function GET(req: Request) {
     await page.goto(searchURL, { waitUntil: "domcontentloaded", timeout: 60000 });
 
     const offerCardSelector = 'article[data-test-id="ad"]';
-    await page.waitForSelector(offerCardSelector, { timeout: 30000 });
+
+    // Attendre soit les résultats, soit le message "pas de résultats"
+    const result = await Promise.race([
+      page.waitForSelector(offerCardSelector, { timeout: 30000 }).then(() => 'results'),
+      page.waitForSelector('p:has-text("nous n\'avons pas")', { timeout: 30000 }).then(() => 'no-results'),
+    ]).catch(() => 'timeout');
+
+    // Si pas de résultats, retourner liste vide
+    if (result === 'no-results' || result === 'timeout') {
+      return NextResponse.json({
+        message: `Recherche "${query}" effectuée - aucun résultat.`,
+        offers: [],
+      });
+    }
 
     const offers = await page.$$eval(offerCardSelector, (cards) =>
       cards.slice(0, 30).map((card) => {

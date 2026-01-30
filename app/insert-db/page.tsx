@@ -347,7 +347,14 @@ export default function InsertDbPage() {
     for (const id of itemIds) {
       const item = items.find(i => i.id === id);
       if (item && !prefetchCache.current.has(id)) {
-        await prefetchItem(item);
+        try {
+          await prefetchItem(item);
+        } catch (err) {
+          console.error(`Erreur batch prefetch pour ${item.name}:`, err);
+          // Continue avec le prochain item même en cas d'erreur
+        }
+        // Petit délai entre chaque item pour laisser les browsers se fermer
+        await new Promise(r => setTimeout(r, 1000));
       }
     }
     setBatchPrefetching(false);
@@ -363,7 +370,14 @@ export default function InsertDbPage() {
 
     for (const item of unprocessedItems) {
       if (!prefetchCache.current.has(item.id)) {
-        await prefetchItem(item);
+        try {
+          await prefetchItem(item);
+        } catch (err) {
+          console.error(`Erreur batch prefetch pour ${item.name}:`, err);
+          // Continue avec le prochain item même en cas d'erreur
+        }
+        // Petit délai entre chaque item pour laisser les browsers se fermer
+        await new Promise(r => setTimeout(r, 1000));
       }
     }
     setBatchPrefetching(false);
@@ -1085,6 +1099,11 @@ export default function InsertDbPage() {
                     {currentError && <div className="text-sm text-destructive">{currentError}</div>}
 
                     {/* Vinted results */}
+                    {vintedResults && vintedResults?.filteredVinted?.valid?.length === 0 && (
+                      <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
+                        Vinted : aucun résultat trouvé
+                      </div>
+                    )}
                     {vintedResults?.filteredVinted?.valid?.length > 0 && (
                       <section>
                         <h3 className="font-medium mb-2 text-foreground">Annonces Vinted trouvées</h3>
@@ -1130,6 +1149,11 @@ export default function InsertDbPage() {
                     )}
 
                     {/* eBay results */}
+                    {ebayResults && ebayResults?.valid?.length === 0 && (
+                      <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
+                        eBay : aucun résultat trouvé
+                      </div>
+                    )}
                     {ebayResults?.valid?.length > 0 && (
                       <section>
                         <h3 className="font-medium mb-2 text-foreground">Annonces eBay vendues</h3>
@@ -1190,6 +1214,11 @@ export default function InsertDbPage() {
                     )}
 
                     {/* Le Bon Coin results */}
+                    {(vintedResults || ebayResults) && lbcResults.length === 0 && (
+                      <div className="text-sm text-muted-foreground bg-muted/30 p-2 rounded">
+                        LeBonCoin : aucun résultat trouvé
+                      </div>
+                    )}
                     {lbcResults.length > 0 && (
                       <section>
                         <h3 className="font-medium mb-2 text-foreground">Annonces Le Bon Coin</h3>
