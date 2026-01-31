@@ -75,4 +75,5 @@ export type PricePoint = {
     "flamme blanche",
     "mega evolution",
     "flammes fantasmagoriques",
+    "heros transcendants",
   ]);

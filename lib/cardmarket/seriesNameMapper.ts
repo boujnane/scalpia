@@ -3,6 +3,7 @@
 // Dictionnaire complet des séries Pokémon TCG
 const SERIES_FR: Record<string, string> = {
   // Séries récentes
+  "Ascended Heroes": "Héros Transcendants",
   "Mega Evolution": "Méga-Évolution",
   "Scarlet & Violet": "Écarlate et Violet",
   "Sword & Shield": "Épée et Bouclier",

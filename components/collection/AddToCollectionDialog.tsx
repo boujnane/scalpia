@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Icons } from "@/components/icons";
 import { useAuth } from "@/context/AuthContext";
 import type { Item } from "@/lib/analyse/types";
@@ -40,6 +41,8 @@ export function AddToCollectionDialog({
   const [notes, setNotes] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [showPurchaseFields, setShowPurchaseFields] = useState(false);
+  const [preOwned, setPreOwned] = useState(false);
+  const [ownedSince, setOwnedSince] = useState<string>("");
 
   const handleSubmit = async () => {
     if (!user || quantity < 1) return;
@@ -51,6 +54,8 @@ export function AddToCollectionDialog({
       purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
       purchaseDate: purchaseDate || undefined,
       notes: notes || undefined,
+      preOwned,
+      ownedSince: ownedSince || undefined,
     };
 
     const success = await onAdd(item, formData);
@@ -64,6 +69,8 @@ export function AddToCollectionDialog({
       setPurchaseDate("");
       setNotes("");
       setShowPurchaseFields(false);
+      setPreOwned(false);
+      setOwnedSince("");
       onOpenChange(false);
     }
   };
@@ -176,6 +183,45 @@ export function AddToCollectionDialog({
                 <Icons.plusCircle className="w-4 h-4" />
               </Button>
             </div>
+          </div>
+
+          {/* Pre-owned checkbox */}
+          <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="preOwned"
+                checked={preOwned}
+                onCheckedChange={(checked) => setPreOwned(checked === true)}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <label htmlFor="preOwned" className="text-sm font-medium cursor-pointer">
+                  Je possédais déjà cet article
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Cochez si vous ajoutez un article que vous possédiez avant d'utiliser l'application.
+                  Il sera inclus dans vos statistiques depuis le début.
+                </p>
+              </div>
+            </div>
+
+            {preOwned && (
+              <div className="space-y-2 pl-7">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <Icons.calendar className="w-4 h-4 text-muted-foreground" />
+                  Depuis quand ? (optionnel)
+                </label>
+                <Input
+                  type="date"
+                  value={ownedSince}
+                  onChange={(e) => setOwnedSince(e.target.value)}
+                  placeholder="Laisser vide pour inclure depuis le début"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Laissez vide pour l'inclure depuis le début de votre collection.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Toggle purchase fields */}

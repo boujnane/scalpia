@@ -88,6 +88,10 @@ export async function GET(req: Request) {
     }
   }
 
+  // Include sets released in the last 60 days even without cards (new releases)
+  const RECENT_DAYS = 60;
+  const recentCutoff = Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000;
+
   const available: any[] = [];
   for (let i = 0; i < allSets.length; i += CONCURRENCY) {
     const chunk = allSets.slice(i, i + CONCURRENCY);
@@ -95,12 +99,14 @@ export async function GET(req: Request) {
     const checks = await Promise.all(
       chunk.map(async (s: any) => {
         const r = await hasCards(Number(s.id));
-        return { s, ...r };
+        const isRecent = s.released_at && new Date(s.released_at).getTime() > recentCutoff;
+        return { s, ...r, isRecent };
       })
     );
 
-    checks.forEach(({ s, ok, count }) => {
-      if (ok && count > 0) available.push(s);
+    checks.forEach(({ s, ok, count, isRecent }) => {
+      // Include if has cards OR is a recent release
+      if ((ok && count > 0) || isRecent) available.push(s);
     });
 
   }

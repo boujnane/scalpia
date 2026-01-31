@@ -28,7 +28,7 @@ type UseCollectionReturn = {
   loading: boolean;
   error: string | null;
   addItem: (item: Item, formData: CollectionFormData) => Promise<boolean>;
-  updateItem: (itemId: string, updates: Partial<Pick<CollectionItem, "quantity" | "purchase">>) => Promise<boolean>;
+  updateItem: (itemId: string, updates: Partial<Pick<CollectionItem, "quantity" | "purchase" | "ownedSince">>) => Promise<boolean>;
   removeItem: (itemId: string) => Promise<boolean>;
   refresh: () => Promise<void>;
   isInCollection: (item: Item) => boolean;
@@ -114,6 +114,8 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
       setCollectionItems(items);
 
       // Filter snapshots to only include dates >= collection start date
+      // collectionStartDate is based on addedAt (when user started using the app)
+      // NOT ownedSince (which is for pre-owned items)
       if (items.length > 0) {
         const collectionStartDate = items.reduce((earliest, item) => {
           const addedAt = item.addedAt instanceof Date ? item.addedAt : new Date(item.addedAt);
@@ -210,7 +212,8 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
 
     const recalculateSnapshots = async () => {
       try {
-        // Find the earliest date an item was added to the collection
+        // Find the earliest date an item was added to the collection (addedAt)
+        // This represents when the user started using the app, NOT ownedSince
         const collectionStartDate = collectionItems.reduce((earliest, item) => {
           const addedAt = item.addedAt instanceof Date ? item.addedAt : new Date(item.addedAt);
           const dateStr = addedAt.toISOString().slice(0, 10);
@@ -249,12 +252,18 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
           let itemsWithPriceCount = 0;
 
           for (const collectionItem of collectionItems) {
-            // Only count items that were in the collection at this date
-            const addedAt = collectionItem.addedAt instanceof Date
-              ? collectionItem.addedAt
-              : new Date(collectionItem.addedAt);
-            const addedAtStr = addedAt.toISOString().slice(0, 10);
-            if (date < addedAtStr) continue; // Item wasn't in collection yet
+            // Use ownedSince if available, otherwise use addedAt
+            // This allows users to track items they owned before adding to the app
+            let ownedSinceStr: string;
+            if (collectionItem.ownedSince) {
+              ownedSinceStr = collectionItem.ownedSince;
+            } else {
+              const addedAt = collectionItem.addedAt instanceof Date
+                ? collectionItem.addedAt
+                : new Date(collectionItem.addedAt);
+              ownedSinceStr = addedAt.toISOString().slice(0, 10);
+            }
+            if (date < ownedSinceStr) continue; // Item wasn't owned yet
 
             const sourceItem = itemsMap.get(collectionItem.itemId);
             if (!sourceItem) continue;
@@ -316,7 +325,7 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
   // Update collection item
   const updateItem = useCallback(async (
     itemId: string,
-    updates: Partial<Pick<CollectionItem, "quantity" | "purchase">>
+    updates: Partial<Pick<CollectionItem, "quantity" | "purchase" | "ownedSince">>
   ): Promise<boolean> => {
     if (!user) return false;
 

@@ -105,6 +105,14 @@ export async function addToCollection(
       updateData.purchase = mergedPurchase;
     }
 
+    // Update ownedSince if provided (keep existing if not)
+    if (formData.preOwned && formData.ownedSince) {
+      updateData.ownedSince = formData.ownedSince;
+    } else if (formData.preOwned && !formData.ownedSince) {
+      // preOwned without date = use earliest possible date
+      updateData.ownedSince = "1970-01-01";
+    }
+
     await setDoc(docRef, updateData, { merge: true });
   } else {
     // Create new entry - only include purchase if defined
@@ -128,6 +136,11 @@ export async function addToCollection(
       };
     }
 
+    // Add ownedSince if preOwned
+    if (formData.preOwned) {
+      newItem.ownedSince = formData.ownedSince ?? "1970-01-01";
+    }
+
     await setDoc(docRef, newItem);
   }
 }
@@ -138,7 +151,7 @@ export async function addToCollection(
 export async function updateCollectionItem(
   userId: string,
   itemId: string,
-  updates: Partial<Pick<CollectionItem, "quantity" | "purchase">>
+  updates: Partial<Pick<CollectionItem, "quantity" | "purchase" | "ownedSince">>
 ): Promise<void> {
   const docRef = doc(getUserCollectionRef(userId), itemId);
 
@@ -182,6 +195,7 @@ export async function getCollection(userId: string): Promise<CollectionItem[]> {
       addedAt: parseTimestamp(data.addedAt),
       updatedAt: parseTimestamp(data.updatedAt),
       purchase: data.purchase,
+      ownedSince: data.ownedSince ?? null,
     } as CollectionItem;
   });
 }
@@ -209,6 +223,7 @@ export async function getCollectionItem(
     addedAt: parseTimestamp(data.addedAt),
     updatedAt: parseTimestamp(data.updatedAt),
     purchase: data.purchase,
+    ownedSince: data.ownedSince ?? null,
   } as CollectionItem;
 }
 

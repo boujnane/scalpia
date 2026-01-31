@@ -14,6 +14,8 @@ export type CollectionItem = {
   addedAt: Date;
   updatedAt: Date;
   purchase?: PurchaseMetadata;
+  /** Date depuis laquelle l'item est possédé (format YYYY-MM-DD). Si défini, utilisé pour les calculs de croissance au lieu de addedAt */
+  ownedSince?: string | null;
 };
 
 /**
@@ -58,6 +60,10 @@ export type CollectionFormData = {
   purchasePrice?: number;
   purchaseDate?: string;
   notes?: string;
+  /** Si true, l'item était déjà possédé avant l'ajout */
+  preOwned?: boolean;
+  /** Date depuis laquelle l'item est possédé (format YYYY-MM-DD) */
+  ownedSince?: string;
 };
 
 /**

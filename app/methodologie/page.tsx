@@ -444,7 +444,7 @@ export default function MethodologiePage() {
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     {[
-                      { title: "L'état exact", desc: "On ne vérifie pas physiquement chaque produit" },
+                      { title: "L'état exact", desc: "Bien que les annonces soient vérifiées visuellement afin d'identifier d'éventuels défauts, il ne nous est pas possible de vérifer physiquement chaque produit" },
                       { title: "Les deals privés", desc: "Négociations en DM, échanges entre collectionneurs" },
                       { title: "Les frais annexes", desc: "Livraison, assurance, (la protection acheteur est incluse dans les prix pour vinted)" },
                       { title: "Les conseils d'achat", desc: "On donne des indicateurs, pas des recommandations" },

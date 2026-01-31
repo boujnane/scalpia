@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,7 +13,6 @@ import type { Item } from "@/lib/analyse/types";
 import { cn } from "@/lib/utils";
 import { AddToCollectionDialog } from "@/components/collection/AddToCollectionDialog";
 import { useCollection } from "@/hooks/useCollection";
-import { generateItemId } from "@/lib/collection";
 
 type AddItemSearchDialogProps = {
   buttonClassName?: string;
@@ -53,12 +52,6 @@ export default function AddItemSearchDialog({
   const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [addingItemId, setAddingItemId] = useState<string | null>(null);
-  const [addedItemId, setAddedItemId] = useState<string | null>(null);
-  const [addError, setAddError] = useState<string | null>(null);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const addedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { addItem, isInCollection } = useCollection();
 
   useEffect(() => {
@@ -90,16 +83,8 @@ export default function AddItemSearchDialog({
     if (!open) {
       setQuery("");
       setSubmittedQuery("");
-      setAddError(null);
     }
   }, [open]);
-
-  useEffect(() => {
-    return () => {
-      if (addedTimeoutRef.current) clearTimeout(addedTimeoutRef.current);
-      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    };
-  }, []);
 
   const normalizedQuery = normalizeText(submittedQuery);
   const queryTokens = useMemo(() => tokenize(submittedQuery), [submittedQuery]);
@@ -147,26 +132,6 @@ export default function AddItemSearchDialog({
     setAddDialogOpen(true);
   };
 
-  const handleQuickAdd = async (item: Item) => {
-    const itemId = generateItemId(item);
-    setAddError(null);
-    setAddingItemId(itemId);
-    const success = await addItem(item, { quantity: 1 });
-    setAddingItemId(null);
-    if (!success) {
-      setAddError("Impossible d'ajouter cet item. Réessayez.");
-      return;
-    }
-
-    setAddedItemId(itemId);
-    if (addedTimeoutRef.current) clearTimeout(addedTimeoutRef.current);
-    addedTimeoutRef.current = setTimeout(() => setAddedItemId(null), 1800);
-
-    setToastMessage(`${item.type} ${item.name} ajouté à la collection.`);
-    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
-    toastTimeoutRef.current = setTimeout(() => setToastMessage(null), 2200);
-  };
-
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -189,7 +154,7 @@ export default function AddItemSearchDialog({
               <div className="min-w-0">
                 <DialogTitle>Ajouter à ma collection</DialogTitle>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Recherchez un produit puis ajoutez-le rapidement (+1) ou ouvrez le formulaire complet.
+                  Recherchez un produit puis cliquez dessus pour l'ajouter.
                 </p>
               </div>
             </div>
@@ -249,19 +214,12 @@ export default function AddItemSearchDialog({
                 </div>
               )}
 
-              {addError && (
-                <div className="text-sm text-destructive">{addError}</div>
-              )}
-
               {!loading &&
                 !error &&
                 submittedQuery &&
                 results.map((item) => {
                   const analysis = getChartAnalysis(item);
-                  const itemId = generateItemId(item);
                   const alreadyInCollection = isInCollection(item);
-                  const isAdding = addingItemId === itemId;
-                  const isAdded = addedItemId === itemId;
                   return (
                     <div
                       key={`${item.name}-${item.type}-${item.releaseDate}`}
@@ -317,47 +275,16 @@ export default function AddItemSearchDialog({
                       <Button
                         variant="secondary"
                         className="w-full sm:w-auto sm:shrink-0"
-                        onClick={() => handleQuickAdd(item)}
-                        disabled={isAdding}
+                        onClick={() => handleOpenAddDialog(item)}
                       >
-                        {isAdding ? (
-                          <>
-                            <Icons.spinner className="h-4 w-4 mr-2 animate-spin" />
-                            Ajout...
-                          </>
-                        ) : isAdded ? (
-                          <>
-                            <Icons.check className="h-4 w-4 mr-2" />
-                            Ajouté
-                          </>
-                        ) : (
-                          <>
-                            <Icons.add className="h-4 w-4 mr-2" />
-                            {alreadyInCollection ? "Ajouter +1" : "Ajouter"}
-                          </>
-                        )}
+                        <Icons.add className="h-4 w-4 mr-2" />
+                        {alreadyInCollection ? "Ajouter +1" : "Ajouter"}
                       </Button>
                     </div>
                   );
                 })}
             </div>
           </ScrollArea>
-
-          <div
-            className={cn(
-              "absolute bottom-4 right-4 left-4 sm:left-auto sm:right-4",
-              "rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-lg",
-              "transition-all duration-200",
-              toastMessage ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
-            )}
-            role="status"
-            aria-live="polite"
-          >
-            <div className="flex items-center gap-2">
-              <Icons.check className="h-4 w-4 text-success" />
-              <span className="text-foreground">{toastMessage}</span>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 

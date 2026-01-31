@@ -8,6 +8,7 @@ import { useAnalyseItems } from "@/hooks/useAnalyseItems";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Icons } from "@/components/icons";
 import {
@@ -96,6 +97,8 @@ export default function MaCollectionPage() {
   const [editingItem, setEditingItem] = useState<CollectionItemWithPrice | null>(null);
   const [editQuantity, setEditQuantity] = useState(1);
   const [editPurchasePrice, setEditPurchasePrice] = useState("");
+  const [editPreOwned, setEditPreOwned] = useState(false);
+  const [editOwnedSince, setEditOwnedSince] = useState("");
   const [deletingItem, setDeletingItem] = useState<CollectionItemWithPrice | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -162,6 +165,39 @@ export default function MaCollectionPage() {
     return result;
   }, [items, filterBloc, sortKey, sortDirection, searchQuery]);
 
+  // Calculate filtered summary for KPIs
+  const filteredSummary = useMemo(() => {
+    let totalValue = 0;
+    let totalCost = 0;
+    let totalQuantity = 0;
+
+    for (const item of filteredItems) {
+      if (item.currentValue !== null) {
+        totalValue += item.currentValue;
+      }
+      if (item.purchase?.price && item.purchase.price > 0) {
+        totalCost += item.purchase.price * item.quantity;
+      } else if (item.retailPrice && item.retailPrice > 0) {
+        totalCost += item.retailPrice * item.quantity;
+      } else if (item.purchase?.totalCost) {
+        totalCost += item.purchase.totalCost;
+      }
+      totalQuantity += item.quantity;
+    }
+
+    const profitLoss = totalCost > 0 ? totalValue - totalCost : 0;
+    const profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0;
+
+    return {
+      totalValue,
+      totalCost,
+      totalItems: filteredItems.length,
+      totalQuantity,
+      profitLoss,
+      profitLossPercent,
+    };
+  }, [filteredItems]);
+
   // Prepare chart data
   const chartData = useMemo(() => {
     return [...snapshots]
@@ -210,13 +246,17 @@ export default function MaCollectionPage() {
     setEditingItem(item);
     setEditQuantity(item.quantity);
     setEditPurchasePrice(item.purchase?.price?.toString() ?? "");
+    // Check if item has ownedSince set (preOwned)
+    const hasOwnedSince = !!item.ownedSince && item.ownedSince !== "1970-01-01";
+    setEditPreOwned(!!item.ownedSince);
+    setEditOwnedSince(hasOwnedSince ? item.ownedSince! : "");
   };
 
   const handleEditSubmit = async () => {
     if (!editingItem) return;
     setSubmitting(true);
 
-    const updates: Partial<Pick<CollectionItemWithPrice, "quantity" | "purchase">> = {
+    const updates: Partial<Pick<CollectionItemWithPrice, "quantity" | "purchase" | "ownedSince">> = {
       quantity: editQuantity,
     };
 
@@ -245,6 +285,13 @@ export default function MaCollectionPage() {
         date: null,
         notes: null,
       };
+    }
+
+    // Handle ownedSince
+    if (editPreOwned) {
+      updates.ownedSince = editOwnedSince || "1970-01-01";
+    } else {
+      updates.ownedSince = null;
     }
 
     const success = await updateItem(editingItem.itemId, updates);
@@ -381,89 +428,96 @@ export default function MaCollectionPage() {
 
             {/* KPI Cards */}
             {items.length > 0 && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                {/* Valeur totale */}
-                <div className="col-span-2 sm:col-span-1 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-primary/20">
-                      <Wallet className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Valeur totale</p>
-                      <p className="text-xl sm:text-2xl font-bold text-primary tabular-nums">
-                        {summary.totalValue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Coût total */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-muted">
-                      <PiggyBank className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Investi</p>
-                      <p className="text-xl sm:text-2xl font-bold tabular-nums">
-                        {summary.totalCost > 0
-                          ? `${summary.totalCost.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`
-                          : "—"}
-                      </p>
+              <div className="space-y-2">
+                {(hasSearch || hasBlocFilter) && (
+                  <p className="text-xs text-muted-foreground">
+                    Valeurs filtrées ({filteredSummary.totalItems} produit{filteredSummary.totalItems > 1 ? "s" : ""} • {filteredSummary.totalQuantity} article{filteredSummary.totalQuantity > 1 ? "s" : ""})
+                  </p>
+                )}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                  {/* Valeur totale */}
+                  <div className="col-span-2 sm:col-span-1 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-primary/20">
+                        <Wallet className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Valeur totale</p>
+                        <p className="text-xl sm:text-2xl font-bold text-primary tabular-nums">
+                          {filteredSummary.totalValue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Plus-value */}
-                <div className={`p-4 sm:p-5 rounded-2xl border ${
-                  summary.profitLoss >= 0
-                    ? "bg-success/5 border-success/20"
-                    : "bg-destructive/5 border-destructive/20"
-                }`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl ${
-                      summary.profitLoss >= 0 ? "bg-success/20" : "bg-destructive/20"
-                    }`}>
-                      {summary.profitLoss >= 0 ? (
-                        <TrendingUp className="w-5 h-5 text-success" />
-                      ) : (
-                        <TrendingDown className="w-5 h-5 text-destructive" />
-                      )}
+                  {/* Coût total */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-muted">
+                        <PiggyBank className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Investi</p>
+                        <p className="text-xl sm:text-2xl font-bold tabular-nums">
+                          {filteredSummary.totalCost > 0
+                            ? `${filteredSummary.totalCost.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`
+                            : "—"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Plus-value</p>
-                      <p className={`text-xl sm:text-2xl font-bold tabular-nums ${
-                        summary.profitLoss >= 0 ? "text-success" : "text-destructive"
+                  </div>
+
+                  {/* Plus-value */}
+                  <div className={`p-4 sm:p-5 rounded-2xl border ${
+                    filteredSummary.profitLoss >= 0
+                      ? "bg-success/5 border-success/20"
+                      : "bg-destructive/5 border-destructive/20"
+                  }`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl ${
+                        filteredSummary.profitLoss >= 0 ? "bg-success/20" : "bg-destructive/20"
                       }`}>
-                        {summary.totalCost > 0 ? (
-                          <>
-                            {summary.profitLoss >= 0 ? "+" : ""}
-                            {summary.profitLoss.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
-                          </>
-                        ) : "—"}
-                      </p>
+                        {filteredSummary.profitLoss >= 0 ? (
+                          <TrendingUp className="w-5 h-5 text-success" />
+                        ) : (
+                          <TrendingDown className="w-5 h-5 text-destructive" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">Plus-value</p>
+                        <p className={`text-xl sm:text-2xl font-bold tabular-nums ${
+                          filteredSummary.profitLoss >= 0 ? "text-success" : "text-destructive"
+                        }`}>
+                          {filteredSummary.totalCost > 0 ? (
+                            <>
+                              {filteredSummary.profitLoss >= 0 ? "+" : ""}
+                              {filteredSummary.profitLoss.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                            </>
+                          ) : "—"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* ROI */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-muted">
-                      <Target className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs sm:text-sm text-muted-foreground">ROI</p>
-                      <p className={`text-xl sm:text-2xl font-bold tabular-nums ${
-                        summary.profitLossPercent >= 0 ? "text-success" : "text-destructive"
-                      }`}>
-                        {summary.totalCost > 0 ? (
-                          <>
-                            {summary.profitLossPercent >= 0 ? "+" : ""}
-                            {summary.profitLossPercent.toFixed(1)}%
-                          </>
-                        ) : "—"}
-                      </p>
+                  {/* ROI */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-muted">
+                        <Target className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-xs sm:text-sm text-muted-foreground">ROI</p>
+                        <p className={`text-xl sm:text-2xl font-bold tabular-nums ${
+                          filteredSummary.profitLossPercent >= 0 ? "text-success" : "text-destructive"
+                        }`}>
+                          {filteredSummary.totalCost > 0 ? (
+                            <>
+                              {filteredSummary.profitLossPercent >= 0 ? "+" : ""}
+                              {filteredSummary.profitLossPercent.toFixed(1)}%
+                            </>
+                          ) : "—"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -880,6 +934,43 @@ export default function MaCollectionPage() {
                     {(parseFloat(editPurchasePrice) * editQuantity).toFixed(2)} €
                   </span>
                 </p>
+              )}
+            </div>
+
+            {/* Pre-owned checkbox */}
+            <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="editPreOwned"
+                  checked={editPreOwned}
+                  onCheckedChange={(checked) => setEditPreOwned(checked === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <label htmlFor="editPreOwned" className="text-sm font-medium cursor-pointer">
+                    Je possédais déjà cet article
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Cochez si cet article était déjà dans votre collection avant d'utiliser l'application.
+                  </p>
+                </div>
+              </div>
+
+              {editPreOwned && (
+                <div className="space-y-2 pl-7">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Icons.calendar className="w-4 h-4 text-muted-foreground" />
+                    Depuis quand ? (optionnel)
+                  </label>
+                  <Input
+                    type="date"
+                    value={editOwnedSince}
+                    onChange={(e) => setEditOwnedSince(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Laissez vide pour l'inclure depuis le début de votre collection.
+                  </p>
+                </div>
               )}
             </div>
           </div>

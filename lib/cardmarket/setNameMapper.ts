@@ -11,6 +11,7 @@ const SETS_FR: Record<string, string> = {
   // MEGA EVOLUTION
   // =======================
   "Mega Evolution": "Méga-Évolution",
+  "Ascended Heroes": "Héros Transcendants",
   "Phantasmal Flames": "Flammes Fantasmagoriques",
 
   // =======================
