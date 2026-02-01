@@ -74,6 +74,18 @@ const TYPE_CONFIG: Record<string, { icon: LucideIcon; color: string; bgColor: st
     bgColor: "bg-rose-100 dark:bg-rose-900/30",
     description: "Poster + boosters",
   },
+  Coffret: {
+    icon: Box,
+    color: "text-orange-600 dark:text-orange-400",
+    bgColor: "bg-orange-100 dark:bg-orange-900/30",
+    description: "Coffret thématique",
+  },
+  Pokébox: {
+    icon: Gift,
+    color: "text-red-600 dark:text-red-400",
+    bgColor: "bg-red-100 dark:bg-red-900/30",
+    description: "Pokébox avec carte promo",
+  },
 };
 
 /* ═══════════════════════════════════════════════════════════
@@ -133,6 +145,8 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
       "Artset",
       "Bundle",
       "Coffret Collection Poster",
+      "Coffret",
+      "Pokébox",
     ],
     []
   );

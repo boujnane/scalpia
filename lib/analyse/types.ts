@@ -7,7 +7,8 @@ export type Item = {
   image?: string;
   type:
     | "ETB" | "Display" | "Demi-Display" | "Tri-Pack"
-    | "UPC" | "Artset" | "Bundle" | "Coffret Collection Poster";
+    | "UPC" | "Artset" | "Bundle" | "Coffret Collection Poster"
+    | "Coffret" | "Pokébox";
   retailPrice?: number;
   prices?: PricePoint[];
 };

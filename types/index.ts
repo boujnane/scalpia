@@ -36,3 +36,5 @@ export type LBCOffer = {
   | "Artset"
   | "Bundle"
   | "Coffret Collection Poster"
+  | "Coffret"
+  | "Pokébox"
