@@ -57,7 +57,7 @@ const ANALYSE_TUTORIAL_STEPS: TutorialStep[] = [
     id: "series-analytics",
     target: "[data-tutorial='series-analytics']",
     title: "Analyse par série",
-    description: "Filtrez par ère, triez par performance et visualisez les tendances. Cliquez sur une série pour accéder à ses métriques détaillées.",
+    description: "Filtrez par bloc, triez par performance et visualisez les tendances. Cliquez sur une série pour accéder à ses métriques détaillées.",
     position: "top",
   },
   {

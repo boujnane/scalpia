@@ -11,6 +11,7 @@ import { Icons } from "@/components/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { ProBadge } from "@/components/analyse/ProWidget";
+import { useTutorial, type TutorialStep } from "@/components/tutorial";
 
 const TrendingCarousel = dynamic(() => import("@/components/home/TrendingCarousel"), {
   ssr: false,
@@ -43,8 +44,100 @@ const HomeInsightsSection = dynamic(() => import("@/components/home/HomeInsights
 export default function HomePage() {
   const prefersReducedMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
+  const { startTutorial, hasCompleted } = useTutorial();
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (hasCompleted("home")) return;
+
+    const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
+
+    const desktopSteps: TutorialStep[] = [
+      {
+        id: "nav-logo",
+        target: "[data-tutorial='nav-logo']",
+        title: "Logo & Accueil",
+        description: "Cliquez ici pour revenir à la page d'accueil à tout moment.",
+        position: "bottom",
+      },
+      {
+        id: "nav-links",
+        target: "[data-tutorial='nav-links']",
+        title: "Navigation principale",
+        description: "Accédez rapidement aux pages clés : Recherche, Analyse, Cartes, Collection.",
+        position: "bottom",
+      },
+      {
+        id: "nav-search",
+        target: "[data-tutorial='nav-search']",
+        title: "Recherche rapide",
+        description: "Ouvrez la recherche instantanée depuis la barre de navigation.",
+        position: "bottom",
+      },
+      {
+        id: "nav-tokens",
+        target: "[data-tutorial='nav-tokens']",
+        title: "Jetons",
+        description: "Suivez vos jetons disponibles pour certaines fonctionnalités.",
+        position: "bottom",
+      },
+      {
+        id: "nav-theme",
+        target: "[data-tutorial='nav-theme']",
+        title: "Thème",
+        description: "Basculez entre clair et sombre.",
+        position: "bottom",
+      },
+      {
+        id: "nav-user",
+        target: "[data-tutorial='nav-user']",
+        title: "Compte",
+        description: "Accédez à votre profil, paramètres et déconnexion.",
+        position: "bottom",
+      },
+    ];
+
+    const mobileSteps: TutorialStep[] = [
+      {
+        id: "nav-logo",
+        target: "[data-tutorial='nav-logo']",
+        title: "Logo & Accueil",
+        description: "Touchez ici pour revenir à l'accueil.",
+        position: "bottom",
+      },
+      {
+        id: "nav-menu",
+        target: "[data-tutorial='nav-menu']",
+        title: "Menu",
+        description: "Ouvrez le menu pour accéder à toutes les sections.",
+        position: "bottom",
+      },
+      {
+        id: "nav-search",
+        target: "[data-tutorial='nav-search']",
+        title: "Recherche rapide",
+        description: "Lancez une recherche instantanée depuis l'icône.",
+        position: "bottom",
+      },
+      {
+        id: "nav-tokens",
+        target: "[data-tutorial='nav-tokens']",
+        title: "Jetons",
+        description: "Vos jetons disponibles sont visibles ici.",
+        position: "bottom",
+      },
+    ];
+
+    const steps = isDesktop ? desktopSteps : mobileSteps;
+
+    const timer = setTimeout(() => {
+      startTutorial(steps, "home");
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [mounted, hasCompleted, startTutorial]);
 
   const platforms = [
     { name: "eBay", icon: "🛒", color: "from-ebay to-ebay-soft", mobileColor: "bg-ebay-soft", ariaLabel: "eBay" },

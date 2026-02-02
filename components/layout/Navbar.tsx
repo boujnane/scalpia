@@ -237,6 +237,7 @@ export function Navbar() {
         {/* Logo */}
         <Link
           href="/"
+          data-tutorial="nav-logo"
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
         >
         <div className="relative h-24 w-24">
@@ -254,7 +255,9 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Nav */}
-        <DesktopNavigation />
+        <div data-tutorial="nav-links">
+          <DesktopNavigation />
+        </div>
 
         {/* Right Section */}
         <div className="flex items-center gap-1">
@@ -267,12 +270,14 @@ export function Navbar() {
           <div className="hidden md:block h-5 w-px bg-border mx-2" />
 
           {/* Search */}
-          <ItemSearchDialog
-            buttonClassName="h-8 w-8 rounded-lg hover:bg-muted/50"
-          />
+          <div data-tutorial="nav-search">
+            <ItemSearchDialog
+              buttonClassName="h-8 w-8 rounded-lg hover:bg-muted/50"
+            />
+          </div>
 
           {/* Theme Toggle */}
-          <div className="hidden sm:flex">
+          <div className="hidden sm:flex" data-tutorial="nav-theme">
             <ThemeToggle />
           </div>
 
@@ -280,15 +285,15 @@ export function Navbar() {
           <div className="hidden lg:block h-5 w-px bg-border mx-2" />
 
           {/* Token Badge - Visible */}
-          <div className="hidden md:flex">
+          <div className="hidden md:flex" data-tutorial="nav-tokens">
             <TokenBadge compact />
           </div>
-          <div className="flex md:hidden">
+          <div className="flex md:hidden" data-tutorial="nav-tokens">
             <TokenBadge compact />
           </div>
 
           {/* User Menu - Desktop */}
-          <div className="hidden lg:flex items-center ml-2">
+          <div className="hidden lg:flex items-center ml-2" data-tutorial="nav-user">
             <UserMenu />
           </div>
 
@@ -299,6 +304,7 @@ export function Navbar() {
                 variant="ghost"
                 size="icon"
                 className="lg:hidden h-8 w-8 rounded-lg"
+                data-tutorial="nav-menu"
               >
                 <Icons.menu className="h-5 w-5" />
               </Button>

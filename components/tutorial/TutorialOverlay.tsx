@@ -18,6 +18,7 @@ type TooltipStyle = {
   left: number;
   arrowPosition: "top" | "bottom" | "left" | "right";
   arrowOffset: number;
+  width: number;
 };
 
 export function TutorialOverlay() {
@@ -27,18 +28,53 @@ export function TutorialOverlay() {
     top: 0,
     left: 0,
     arrowPosition: "top",
-    arrowOffset: 50
+    arrowOffset: 50,
+    width: 360
   });
 
   // Prevent scroll loop
   const isScrollingRef = useRef(false);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const getScrollParent = (node: Element | null): Element | null => {
+    if (!node) return null;
+    let parent = node.parentElement;
+    while (parent) {
+      const style = window.getComputedStyle(parent);
+      const overflowY = style.overflowY;
+      const overflowX = style.overflowX;
+      const isScrollable =
+        (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") ||
+        (overflowX === "auto" || overflowX === "scroll" || overflowX === "overlay");
+      if (isScrollable && parent.scrollHeight > parent.clientHeight) {
+        return parent;
+      }
+      parent = parent.parentElement;
+    }
+    return document.scrollingElement || document.documentElement;
+  };
+
+  const scrollToTarget = (element: Element, topSafe: number) => {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const behavior: ScrollBehavior = prefersReducedMotion ? "auto" : "smooth";
+    const scrollParent = getScrollParent(element);
+    const elementRect = element.getBoundingClientRect();
+
+    if (!scrollParent || scrollParent === document.documentElement || scrollParent === document.body) {
+      const currentTop = window.scrollY || window.pageYOffset;
+      const targetTop = currentTop + elementRect.top - topSafe - 12;
+      window.scrollTo({ top: Math.max(0, targetTop), behavior });
+      return;
+    }
+
+    const parentRect = scrollParent.getBoundingClientRect();
+    const currentTop = scrollParent.scrollTop;
+    const targetTop = currentTop + (elementRect.top - parentRect.top) - topSafe - 12;
+    scrollParent.scrollTo({ top: Math.max(0, targetTop), behavior });
+  };
+
   const updateTargetPosition = useCallback(() => {
     if (!currentStep) return;
-
-    // Skip if we're in the middle of a programmatic scroll
-    if (isScrollingRef.current) return;
 
     const element = document.querySelector(currentStep.target);
     if (!element) {
@@ -48,17 +84,25 @@ export function TutorialOverlay() {
 
     const rect = element.getBoundingClientRect();
 
-    // Check if element is reasonably in viewport (with some tolerance for mobile)
-    const tolerance = 50;
-    const isInViewport =
-      rect.top >= -tolerance &&
-      rect.bottom <= window.innerHeight + tolerance;
+    const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+    const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+    const nav = document.querySelector("[data-tutorial='navigation']");
+    const navHeight = nav instanceof HTMLElement ? nav.getBoundingClientRect().height : 0;
+    const isNavTarget = element instanceof HTMLElement
+      ? element.closest("[data-tutorial='navigation']") !== null
+      : false;
+    const topSafe = (isNavTarget ? 0 : navHeight) + 12;
+    const bottomSafe = 12;
 
-    if (!isInViewport) {
-      // Set flag to prevent scroll event from re-triggering
+    const isFullyInView =
+      rect.top >= topSafe &&
+      rect.bottom <= viewportHeight - bottomSafe;
+
+    if (!isFullyInView && !isScrollingRef.current) {
+      // Set flag to prevent re-triggering scroll while we animate
       isScrollingRef.current = true;
 
-      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      scrollToTarget(element, topSafe);
 
       // Clear any existing timeout
       if (scrollTimeoutRef.current) {
@@ -69,8 +113,7 @@ export function TutorialOverlay() {
       scrollTimeoutRef.current = setTimeout(() => {
         isScrollingRef.current = false;
         updateTargetPosition();
-      }, 500);
-      return;
+      }, 700);
     }
 
     const padding = 8;
@@ -83,7 +126,7 @@ export function TutorialOverlay() {
 
     // Calculer position du tooltip
     const position = currentStep.position || "bottom";
-    const tooltipWidth = 360;
+    const tooltipWidth = Math.min(360, viewportWidth - 32);
     const tooltipHeight = 180;
     const gap = 20;
 
@@ -115,8 +158,8 @@ export function TutorialOverlay() {
     }
 
     // Garder dans la fenêtre
-    const clampedLeft = Math.max(20, Math.min(tooltipLeft, window.innerWidth - tooltipWidth - 20));
-    const clampedTop = Math.max(20, Math.min(tooltipTop, window.innerHeight - tooltipHeight - 20));
+    const clampedLeft = Math.max(16, Math.min(tooltipLeft, viewportWidth - tooltipWidth - 16));
+    const clampedTop = Math.max(16, Math.min(tooltipTop, viewportHeight - tooltipHeight - 16));
 
     // Calculer offset de la flèche
     const arrowOffset = position === "top" || position === "bottom"
@@ -127,7 +170,8 @@ export function TutorialOverlay() {
       top: clampedTop,
       left: clampedLeft,
       arrowPosition: arrowPos,
-      arrowOffset
+      arrowOffset,
+      width: tooltipWidth
     });
   }, [currentStep]);
 
@@ -165,6 +209,10 @@ export function TutorialOverlay() {
 
     window.addEventListener("resize", updateTargetPosition);
     window.addEventListener("scroll", handleScroll, { passive: true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", updateTargetPosition);
+      window.visualViewport.addEventListener("scroll", handleScroll, { passive: true });
+    }
 
     return () => {
       clearTimeout(timer);
@@ -176,6 +224,46 @@ export function TutorialOverlay() {
       }
       window.removeEventListener("resize", updateTargetPosition);
       window.removeEventListener("scroll", handleScroll);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", updateTargetPosition);
+        window.visualViewport.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, [isActive, currentStep, currentStepIndex, updateTargetPosition]);
+
+  // Force scroll to the current step when it changes (even if partially visible)
+  useEffect(() => {
+    if (!isActive || !currentStep) return;
+
+    let attempts = 0;
+    let cancelled = false;
+
+    const tryScroll = () => {
+      if (cancelled) return;
+      const element = document.querySelector(currentStep.target);
+      if (!element) {
+        if (attempts < 6) {
+          attempts += 1;
+          setTimeout(tryScroll, 120);
+        }
+        return;
+      }
+
+      const nav = document.querySelector("[data-tutorial='navigation']");
+      const navHeight = nav instanceof HTMLElement ? nav.getBoundingClientRect().height : 0;
+      const isNavTarget = element instanceof HTMLElement
+        ? element.closest("[data-tutorial='navigation']") !== null
+        : false;
+      const topSafe = (isNavTarget ? 0 : navHeight) + 12;
+
+      scrollToTarget(element, topSafe);
+      updateTargetPosition();
+    };
+
+    const kickoff = setTimeout(tryScroll, 60);
+    return () => {
+      cancelled = true;
+      clearTimeout(kickoff);
     };
   }, [isActive, currentStep, currentStepIndex, updateTargetPosition]);
 
@@ -267,8 +355,8 @@ export function TutorialOverlay() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.96 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
-          className="fixed z-[101] w-[360px]"
-          style={{ top: tooltipStyle.top, left: tooltipStyle.left }}
+          className="fixed z-[101]"
+          style={{ top: tooltipStyle.top, left: tooltipStyle.left, width: tooltipStyle.width }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Arrow */}
