@@ -101,7 +101,7 @@ export default function BlocTabs({ items }: BlocTabsProps) {
     <div className="space-y-6">
       {/* --- DOCK D'IMAGES (custom, pas de TabsList/Trigger visible) --- */}
 {/* --- DOCK D'IMAGES (responsive + fades corrects) --- */}
-<div className="relative">
+<div className="relative" data-tutorial="product-bloc-selector">
   {/* Conteneur “surface” du dock : utile pour que les fades prennent la bonne couleur */}
   <div className="relative rounded-3xl bg-card/30 border border-border/40 backdrop-blur-sm">
     
@@ -254,7 +254,9 @@ export default function BlocTabs({ items }: BlocTabsProps) {
                 </AccordionItem>
               </Accordion>
 
-              <ItemsGrid items={activeItems} />
+              <div data-tutorial="product-items">
+                <ItemsGrid items={activeItems} />
+              </div>
             </>
           )}
         </TabsContent>

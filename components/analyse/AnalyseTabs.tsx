@@ -212,8 +212,9 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
     return (
       <div className="space-y-4 w-full">
         {/* Select dropdown pour choisir le type */}
-        <Select value={selectedType} onValueChange={setSelectedType}>
-          <SelectTrigger className="w-full h-14 bg-background border-border">
+        <div data-tutorial="product-type-selector">
+          <Select value={selectedType} onValueChange={setSelectedType}>
+            <SelectTrigger className="w-full h-14 bg-background border-border">
             <div className="flex items-center gap-3 w-full">
               {(() => {
                 const Icon = selectedTab.config.icon;
@@ -228,8 +229,8 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
                 <p className="text-xs text-muted-foreground">{selectedTab.config.description}</p>
               </div>
             </div>
-          </SelectTrigger>
-          <SelectContent className="min-w-[320px]">
+            </SelectTrigger>
+            <SelectContent className="min-w-[320px]">
             {tabs.map((tab) => {
               const Icon = tab.config.icon;
               return (
@@ -260,12 +261,13 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
                 </SelectItem>
               );
             })}
-          </SelectContent>
-        </Select>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Mini stats pour le type sélectionné */}
         {selectedTab.count > 0 && (
-          <div className="flex items-center justify-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50">
+          <div className="flex items-center justify-center gap-4 p-3 rounded-xl bg-muted/30 border border-border/50" data-tutorial="product-type-summary">
             <div className="text-center">
               <p className="text-lg font-bold text-foreground">{selectedTab.count}</p>
               <p className="text-[10px] text-muted-foreground">Produits</p>
@@ -290,7 +292,7 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
         )}
 
         {/* Contenu du type sélectionné */}
-        <div className="w-full">
+        <div className="w-full" data-tutorial="product-blocs">
           {selectedTab.count > 0 ? (
             <BlocTabs items={selectedTab.data} />
           ) : (
@@ -307,7 +309,7 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
   return (
     <div className="space-y-6">
       {/* Grille des types de produits */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-3 px-1">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 pt-3 px-1" data-tutorial="product-type-selector">
         {tabs.map((tab) => {
           const Icon = tab.config.icon;
           const isSelected = selectedType === tab.label;
@@ -378,7 +380,7 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
       {/* Contenu du type sélectionné */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         {/* Header du type sélectionné */}
-        <div className={`p-5 border-b border-border ${selectedTab.config.bgColor}`}>
+        <div className={`p-5 border-b border-border ${selectedTab.config.bgColor}`} data-tutorial="product-type-summary">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-xl bg-background/60 backdrop-blur-sm">
               {(() => {
@@ -419,7 +421,7 @@ export default function AnalyseTabs({ items }: { items: Item[] }) {
         </div>
 
         {/* Contenu */}
-        <div className="p-4">
+        <div className="p-4" data-tutorial="product-blocs">
           {selectedTab.count > 0 ? (
             <BlocTabs items={selectedTab.data} />
           ) : (

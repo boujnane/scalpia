@@ -68,6 +68,37 @@ const ANALYSE_TUTORIAL_STEPS: TutorialStep[] = [
     position: "bottom",
   },
 ];
+
+const PRODUCTS_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    id: "product-type-selector",
+    target: "[data-tutorial='product-type-selector']",
+    title: "Choisissez un type",
+    description: "Sélectionnez le type de produit pour filtrer les résultats (ETB, Display, etc.).",
+    position: "bottom",
+  },
+  {
+    id: "product-type-summary",
+    target: "[data-tutorial='product-type-summary']",
+    title: "Résumé du type",
+    description: "Retrouvez le nombre de produits, le prix moyen et la variation 7 jours.",
+    position: "bottom",
+  },
+  {
+    id: "product-bloc-selector",
+    target: "[data-tutorial='product-bloc-selector']",
+    title: "Blocs / séries",
+    description: "Faites défiler pour changer de bloc et explorer les séries.",
+    position: "bottom",
+  },
+  {
+    id: "product-items",
+    target: "[data-tutorial='product-items']",
+    title: "Liste des produits",
+    description: "Découvrez les items disponibles pour le bloc sélectionné.",
+    position: "top",
+  },
+];
 import { ProWidget, ProBadge } from "@/components/analyse/ProWidget";
 import {
   MarketSentimentWidget,
@@ -95,13 +126,16 @@ export default function AnalysePage() {
 
   // Lancer le tutoriel au premier visit (après chargement des données)
   useEffect(() => {
-    if (!loading && !hasCompleted("analyse")) {
-      const timer = setTimeout(() => {
-        startTutorial(ANALYSE_TUTORIAL_STEPS, "analyse");
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [loading, hasCompleted, startTutorial]);
+    if (loading) return;
+    const isProducts = activeSection === "products";
+    const key = isProducts ? "analyse-products" : "analyse";
+    if (hasCompleted(key)) return;
+
+    const timer = setTimeout(() => {
+      startTutorial(isProducts ? PRODUCTS_TUTORIAL_STEPS : ANALYSE_TUTORIAL_STEPS, key);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [loading, hasCompleted, startTutorial, activeSection]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -216,8 +250,8 @@ export default function AnalysePage() {
                     <RefreshCw className={`w-4 h-4 text-muted-foreground ${refreshing ? "animate-spin" : ""}`} />
                   </button>
                   <TutorialHelpButton
-                    steps={ANALYSE_TUTORIAL_STEPS}
-                    tutorialKey="analyse"
+                    steps={activeSection === "products" ? PRODUCTS_TUTORIAL_STEPS : ANALYSE_TUTORIAL_STEPS}
+                    tutorialKey={activeSection === "products" ? "analyse-products" : "analyse"}
                     label="Guide"
                     className="hidden sm:inline-flex"
                   />

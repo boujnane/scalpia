@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 import { ProBadge } from "@/components/analyse/ProWidget";
 import { useTutorial, type TutorialStep } from "@/components/tutorial";
+import { useAuth } from "@/context/AuthContext";
 
 const TrendingCarousel = dynamic(() => import("@/components/home/TrendingCarousel"), {
   ssr: false,
@@ -45,11 +46,13 @@ export default function HomePage() {
   const prefersReducedMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
   const { startTutorial, hasCompleted } = useTutorial();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;
+    if (authLoading || !user) return;
     if (hasCompleted("home")) return;
 
     const isDesktop = window.matchMedia("(min-width: 1024px)").matches;
