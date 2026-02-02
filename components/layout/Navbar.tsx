@@ -57,7 +57,7 @@ const navLinks = [
     icon: Icons.badgeDollarSign,
   },
   {
-    name: "Methodologie",
+    name: "Méthodologie",
     href: "/methodologie",
     icon: Icons.badgeQuestionMark,
   },

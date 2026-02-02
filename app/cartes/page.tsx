@@ -1,6 +1,7 @@
 "use client";
 
 import { SetFinancePanel, pickGradedSpotlight } from "@/components/cardmarket/SetFinancePanel";
+import { AddCardToCollectionDialog } from "@/components/collection/AddCardToCollectionDialog";
 import { mapSeriesNameToFR } from "@/lib/cardmarket/seriesNameMapper";
 import { mapSetNameToFR } from "@/lib/cardmarket/setNameMapper";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -8,6 +9,7 @@ import { useTokens } from "@/context/TokenContext";
 import { useAuth } from "@/context/AuthContext";
 import { captureEvent } from "@/lib/posthog";
 import { TokenBadge, NoTokensModal } from "@/components/ui/TokenBadge";
+import type { CMCard } from "@/lib/cardmarket/types";
 
 /* =======================
    Icons & UI Assets
@@ -52,27 +54,6 @@ const LoaderSpinner = () => (
 /* =======================
    Types
 ======================= */
-interface CMCard {
-  id: number;
-  cardmarketId?: number;
-  name: string;
-  rarity?: string;
-  card_number?: string;
-  image?: string;
-  prices?: {
-    fr?: number;
-    avg7?: number;
-    graded?: {
-      psa?: Record<string, number>;
-      cgc?: Record<string, number>;
-      bgs?: Record<string, number>;
-    };
-  };
-  episode: { name: string };
- cardmarket_url?: string | null;  // ✅ ici
-  tcggo_url?: string | null;    
-}
-
 interface CMSet {
   id: number;
   name: string;
@@ -184,7 +165,15 @@ const CardGridItem = ({ card, onClick }: { card: CMCard; onClick: () => void }) 
   );
 };
 
-const CardDetailModal = ({ card: initialCard, onClose }: { card: CMCard; onClose: () => void }) => {
+const CardDetailModal = ({
+  card: initialCard,
+  onClose,
+  onAddToCollection,
+}: {
+  card: CMCard;
+  onClose: () => void;
+  onAddToCollection: (card: CMCard) => void;
+}) => {
   const [card, setCard] = useState<CMCard>(initialCard);
   const [isScraping, setIsScraping] = useState(false);
   
@@ -299,6 +288,20 @@ return (
             {/* NOTE: graded détails -> à ajouter ici si tu veux, mais tu ne me l'as pas demandé pour le modal */}
 
             <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  onAddToCollection(card);
+                  onClose();
+                }}
+                className="
+                  flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold
+                  bg-primary text-primary-foreground
+                  hover:opacity-95 transition active:scale-[0.99]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background
+                "
+              >
+                Ajouter à ma collection
+              </button>
               {isScraping ? (
                 <button
                   disabled
@@ -399,6 +402,8 @@ export default function CardmarketSetViewer() {
   const [selectedSet, setSelectedSet] = useState<CMSet | null>(null);
   const [expandedSeries, setExpandedSeries] = useState<Set<string>>(new Set());
   const [selectedCard, setSelectedCard] = useState<CMCard | null>(null);
+  const [cardToAdd, setCardToAdd] = useState<CMCard | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRarities, setSelectedRarities] = useState<Set<string>>(new Set());
@@ -414,6 +419,11 @@ export default function CardmarketSetViewer() {
   const [showNoTokensModal, setShowNoTokensModal] = useState(false);
   const [restoredSet, setRestoredSet] = useState(false);
   const RESTORE_TTL_MS = 60 * 60 * 1000;
+
+  const handleAddToCollection = useCallback((card: CMCard) => {
+    setCardToAdd(card);
+    setAddDialogOpen(true);
+  }, []);
 
  useEffect(() => {
  setLoadingSets(true);
@@ -1091,7 +1101,24 @@ const fetchAllCards = async (setId: string) => {
           </>
         )}
 
-        {selectedCard && <CardDetailModal card={selectedCard} onClose={() => setSelectedCard(null)} />}
+        {selectedCard && (
+          <CardDetailModal
+            card={selectedCard}
+            onClose={() => setSelectedCard(null)}
+            onAddToCollection={handleAddToCollection}
+          />
+        )}
+
+        {cardToAdd && (
+          <AddCardToCollectionDialog
+            card={cardToAdd}
+            open={addDialogOpen}
+            onOpenChange={(open) => {
+              setAddDialogOpen(open);
+              if (!open) setCardToAdd(null);
+            }}
+          />
+        )}
 
         {/* Finance drawer: mounted only when a set exists */}
         {selectedSet && (

@@ -4,6 +4,7 @@ export const SET_MAPPING: Record<string, string> = {
   // ===================== MEGA EVOLUTION =====================
   "phantasmal-flames": "me02",
   "mega-evolution": "me01",
+  "ascended-heroes": "me02.5",
   "black-bolt": "sv10.5b",
   "white-flare": "sv10.5w",
 
@@ -274,7 +275,7 @@ export interface MappedCard {
 
 const TCGDEX_SET_CACHE = new Map<string, any>();
 
-async function fetchTCGdexSet(setId: string): Promise<any | null> {
+export async function fetchTCGdexSet(setId: string): Promise<any | null> {
   console.log(`📥 Attempting to fetch TCGdex set: "${setId}"`);
 
   if (TCGDEX_SET_CACHE.has(setId)) {

@@ -21,6 +21,12 @@ ${JSON.stringify(items)}
 
 RÈGLES DE FILTRAGE POUR LES PRODUITS SCELLÉS :
 
+0️⃣ PRINCIPES DE TOLÉRANCE (IMPORTANT)
+- Si un item semble correspondre au produit recherché mais que certains détails manquent ou sont ambigus, **garder** l’item.
+- Ne rejette que si c’est clairement un autre produit, ouvert/vidé, ou un accessoire.
+- Tolère les abréviations (ETB, EV, SWSH, SV), le FR/EN mélangé, et les erreurs mineures.
+- Pour les produits scellés, accepter les variantes de taille/format si elles correspondent au même set/série.
+
 1️⃣ Tolérance orthographique
 - Ignorer les fautes mineures, accents manquants, majuscules/minuscules.
 - Exemples valides pour “ETB Rivalités Destinées” :
@@ -55,18 +61,27 @@ RÈGLES DE FILTRAGE POUR LES PRODUITS SCELLÉS :
 - ETB Miraidon Ecarlate et Violet  ↔ EV 1
 - **Note** : ETB = Coffret Dresseur d’Élite, donc accepter toutes les mentions “Coffret Dresseur d’Élite” correspondant à la série EV ou ME.
 
-3️⃣ Cartes à l’unité
-- STRICT : orthographe exacte, édition, langue, variantes (Holo/Reverse), gradées/non gradées.
-- Rejeter toute carte qui ne correspond pas exactement au nom recherché.
+3️⃣ Displays / Demi‑display / Boîtes de boosters
+- Considérer comme **valide** pour une recherche de display :
+  - "demi display", "half display", "1/2 display", "display x18", "boîte 18 boosters".
+- Ne pas rejeter un item si le titre contient "demi display" + le nom de la série (ex: Faille Paradoxe).
+- Rejeter uniquement si c’est un lot mixte ou un produit ouvert/vidé.
 
-4️⃣ LOTS et accessoires
+4️⃣ Cartes à l’unité
+- Plutôt strict mais pas excessif : le nom de la carte doit correspondre, mais tolérer accents, FR/EN,
+  et variantes de formulation (ex: "holo" vs "holographique").
+- Rejeter si le nom de carte est différent ou si c’est un lot/accessoire.
+
+5️⃣ LOTS et accessoires
 - Toujours rejeter : lots de cartes, classeurs, sleeves, top loaders, proxies, stickers, codes online.
+- Pour les produits scellés : accepter un lot uniquement si c’est **le même produit scellé**
+  (ex: "lot de 2 ETB Rivalités Destinées") et bien scellé. Rejeter les lots mixtes.
 
-5️⃣ Priorité
+6️⃣ Priorité
 - Si la recherche est un produit scellé → conserver les produits scellés correspondant au **fuzzy match** ET à la table de correspondance EV/ME.
 - Si la recherche est une carte → conserver uniquement les cartes exactes.
 
-6️⃣ FORMAT DE SORTIE
+7️⃣ FORMAT DE SORTIE
 Produire un JSON STRICT, sans texte additionnel :
 
 {

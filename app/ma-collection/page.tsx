@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCollection } from "@/hooks/useCollection";
@@ -51,6 +51,10 @@ import {
 } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import AddItemSearchDialog from "@/components/collection/AddItemSearchDialog";
+import AddCardSearchDialog from "@/components/collection/AddCardSearchDialog";
+import { SeriesGrid } from "@/components/collection/SeriesGrid";
+import { mapSetNameToFR } from "@/lib/cardmarket/setNameMapper";
+import type { CMSet } from "@/lib/cardmarket/types";
 import {
   AreaChart,
   Area,
@@ -60,6 +64,7 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from "recharts";
+import { motion } from "framer-motion";
 import {
   LayoutGrid,
   Table2,
@@ -68,30 +73,31 @@ import {
   ArrowDown,
   TrendingUp,
   TrendingDown,
-  Minus,
   ArrowUpDown,
   Wallet,
   PiggyBank,
   Target,
   Package,
 } from "lucide-react";
-import type { CollectionItemWithPrice } from "@/types/collection";
+import type { CollectionCardWithPrice, CollectionEntryWithPrice, CollectionItemWithPrice } from "@/types/collection";
 
 type ViewMode = "grid" | "table";
 type SortKey = "addedAt" | "value" | "profitLoss" | "name";
+type CategoryFilter = "all" | "item" | "card";
 
 export default function MaCollectionPage() {
   const { user, loading: authLoading } = useAuth();
-  const { items: allItems, loading: itemsLoading } = useAnalyseItems();
+  const { items: allItems, loading: itemsLoading, refresh: refreshAnalyseItems } = useAnalyseItems();
   const {
     items,
+    cards,
     snapshots,
     summary,
     loading: collectionLoading,
     error,
     updateItem,
     removeItem,
-    refresh,
+    refresh: refreshCollection,
   } = useCollection(allItems);
 
   const [editingItem, setEditingItem] = useState<CollectionItemWithPrice | null>(null);
@@ -99,11 +105,18 @@ export default function MaCollectionPage() {
   const [editPurchasePrice, setEditPurchasePrice] = useState("");
   const [editPreOwned, setEditPreOwned] = useState(false);
   const [editOwnedSince, setEditOwnedSince] = useState("");
-  const [deletingItem, setDeletingItem] = useState<CollectionItemWithPrice | null>(null);
+  const [editingCard, setEditingCard] = useState<CollectionCardWithPrice | null>(null);
+  const [editCardQuantity, setEditCardQuantity] = useState(1);
+  const [editCardPurchasePrice, setEditCardPurchasePrice] = useState("");
+  const [editCardPreOwned, setEditCardPreOwned] = useState(false);
+  const [editCardOwnedSince, setEditCardOwnedSince] = useState("");
+  const [deletingEntry, setDeletingEntry] = useState<CollectionEntryWithPrice | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [setLogosByName, setSetLogosByName] = useState<Record<string, string>>({});
 
   // UI State
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [filterCategory, setFilterCategory] = useState<CategoryFilter>("all");
   const [filterBloc, setFilterBloc] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("addedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
@@ -114,17 +127,69 @@ export default function MaCollectionPage() {
     profitLoss: "Plus-value",
     name: "Nom",
   };
+  const categoryLabels: Record<CategoryFilter, string> = {
+    all: "Tous",
+    item: "Produits",
+    card: "Cartes",
+  };
 
   const loading = authLoading || itemsLoading || collectionLoading;
+  const totalEntries = items.length + cards.length;
+
+  useEffect(() => {
+    if (cards.length === 0) return;
+    if (Object.keys(setLogosByName).length > 0) return;
+    let cancelled = false;
+
+    const fetchSetLogos = async () => {
+      try {
+        const res = await fetch("/api/cardmarket/sets/available");
+        const data = await res.json().catch(() => null);
+        const sets: CMSet[] = Array.isArray(data) ? data : data?.data || [];
+        const next: Record<string, string> = {};
+
+        for (const set of sets) {
+          const frName = mapSetNameToFR(set.name);
+          if (!set.logo) continue;
+          if (!next[set.name]) {
+            next[set.name] = set.logo;
+          }
+          if (!next[frName]) {
+            next[frName] = set.logo;
+          }
+        }
+
+        if (!cancelled) {
+          setSetLogosByName(next);
+        }
+      } catch (err) {
+        console.error("Erreur chargement logos séries:", err);
+      }
+    };
+
+    fetchSetLogos();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cards.length, setLogosByName]);
 
   // Get unique blocs for filter
   const blocs = useMemo(() => {
-    const uniqueBlocs = new Set(items.map((i) => i.itemBloc));
+    const uniqueBlocs = new Set<string>();
+    for (const item of items) {
+      uniqueBlocs.add(item.itemBloc);
+    }
+    for (const card of cards) {
+      uniqueBlocs.add(mapSetNameToFR(card.setName));
+    }
     return Array.from(uniqueBlocs).sort();
-  }, [items]);
+  }, [items, cards]);
 
   // Filter and sort items
   const filteredItems = useMemo(() => {
+    if (filterCategory === "card") return [];
+
     let result = [...items];
 
     // Search filter
@@ -163,7 +228,69 @@ export default function MaCollectionPage() {
     });
 
     return result;
-  }, [items, filterBloc, sortKey, sortDirection, searchQuery]);
+  }, [items, filterCategory, filterBloc, sortKey, sortDirection, searchQuery]);
+
+  const filteredCards = useMemo(() => {
+    if (filterCategory === "item") return [];
+
+    let result = [...cards];
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (c) => {
+          const setLabel = mapSetNameToFR(c.setName).toLowerCase();
+          return (
+            c.cardName.toLowerCase().includes(q) ||
+            (c.cardNumber ?? "").toLowerCase().includes(q) ||
+            c.setName.toLowerCase().includes(q) ||
+            setLabel.includes(q) ||
+            (c.rarity ?? "").toLowerCase().includes(q)
+          );
+        }
+      );
+    }
+
+    if (filterBloc !== "all") {
+      result = result.filter((c) => mapSetNameToFR(c.setName) === filterBloc);
+    }
+
+    result.sort((a, b) => {
+      let comparison = 0;
+      switch (sortKey) {
+        case "value":
+          comparison = (a.currentValue ?? 0) - (b.currentValue ?? 0);
+          break;
+        case "profitLoss":
+          comparison = (a.profitLoss ?? 0) - (b.profitLoss ?? 0);
+          break;
+        case "name":
+          comparison = a.cardName.localeCompare(b.cardName);
+          break;
+        default:
+          comparison = a.addedAt.getTime() - b.addedAt.getTime();
+      }
+      return sortDirection === "desc" ? -comparison : comparison;
+    });
+
+    return result;
+  }, [cards, filterCategory, filterBloc, sortKey, sortDirection, searchQuery]);
+
+  const groupedCards = useMemo(() => {
+    const groups = new Map<string, CollectionCardWithPrice[]>();
+    for (const card of filteredCards) {
+      const key = mapSetNameToFR(card.setName);
+      const existing = groups.get(key);
+      if (existing) {
+        existing.push(card);
+      } else {
+        groups.set(key, [card]);
+      }
+    }
+    return Array.from(groups.entries())
+      .map(([setName, cards]) => ({ setName, cards }))
+      .sort((a, b) => a.setName.localeCompare(b.setName));
+  }, [filteredCards]);
 
   // Calculate filtered summary for KPIs
   const filteredSummary = useMemo(() => {
@@ -185,21 +312,49 @@ export default function MaCollectionPage() {
       totalQuantity += item.quantity;
     }
 
+    for (const card of filteredCards) {
+      if (card.currentValue !== null) {
+        totalValue += card.currentValue;
+      }
+      const costBasis = card.purchase?.totalCost && card.purchase.totalCost > 0
+        ? card.purchase.totalCost
+        : (card.purchase?.price && card.purchase.price > 0
+          ? card.purchase.price * card.quantity
+          : (card.priceAtPurchase && card.priceAtPurchase > 0
+            ? card.priceAtPurchase * card.quantity
+            : 0));
+      if (costBasis > 0) {
+        totalCost += costBasis;
+      }
+      totalQuantity += card.quantity;
+    }
+
     const profitLoss = totalCost > 0 ? totalValue - totalCost : 0;
     const profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0;
 
     return {
       totalValue,
       totalCost,
-      totalItems: filteredItems.length,
+      totalItems: filteredItems.length + filteredCards.length,
       totalQuantity,
       profitLoss,
       profitLossPercent,
     };
-  }, [filteredItems]);
+  }, [filteredItems, filteredCards]);
 
-  // Prepare chart data
+  const filteredCount = filteredItems.length + filteredCards.length;
+
+  // Prepare chart data (fallback to current value if no snapshots yet)
   const chartData = useMemo(() => {
+    if (snapshots.length === 0 && (items.length > 0 || cards.length > 0)) {
+      const today = new Date().toISOString().slice(0, 10);
+      return [{
+        date: today,
+        value: summary.totalValue,
+        cost: summary.totalCost,
+      }];
+    }
+
     return [...snapshots]
       .reverse()
       .map((s) => ({
@@ -207,7 +362,7 @@ export default function MaCollectionPage() {
         value: s.totalValue,
         cost: s.totalCost,
       }));
-  }, [snapshots]);
+  }, [snapshots, items.length, cards.length, summary.totalValue, summary.totalCost]);
 
   const latestSnapshotDate = useMemo(() => {
     if (snapshots.length === 0) return null;
@@ -229,7 +384,10 @@ export default function MaCollectionPage() {
 
   const hasSearch = searchQuery.trim().length > 0;
   const hasBlocFilter = filterBloc !== "all";
+  const hasCategoryFilter = filterCategory !== "all";
   const hasCustomSort = sortKey !== "addedAt" || sortDirection !== "desc";
+  const showItemsSection = filterCategory !== "card";
+  const showCardsSection = filterCategory !== "item";
 
   // Handle sort toggle
   const handleSort = (key: SortKey) => {
@@ -250,6 +408,15 @@ export default function MaCollectionPage() {
     const hasOwnedSince = !!item.ownedSince && item.ownedSince !== "1970-01-01";
     setEditPreOwned(!!item.ownedSince);
     setEditOwnedSince(hasOwnedSince ? item.ownedSince! : "");
+  };
+
+  const handleEditCard = (card: CollectionCardWithPrice) => {
+    setEditingCard(card);
+    setEditCardQuantity(card.quantity);
+    setEditCardPurchasePrice(card.purchase?.price?.toString() ?? "");
+    const hasOwnedSince = !!card.ownedSince && card.ownedSince !== "1970-01-01";
+    setEditCardPreOwned(!!card.ownedSince);
+    setEditCardOwnedSince(hasOwnedSince ? card.ownedSince! : "");
   };
 
   const handleEditSubmit = async () => {
@@ -299,17 +466,65 @@ export default function MaCollectionPage() {
     if (success) setEditingItem(null);
   };
 
+  const handleEditCardSubmit = async () => {
+    if (!editingCard) return;
+    setSubmitting(true);
+
+    const updates: Partial<Pick<CollectionItemWithPrice, "quantity" | "purchase" | "ownedSince">> = {
+      quantity: editCardQuantity,
+    };
+
+    const trimmedPrice = editCardPurchasePrice.trim();
+    if (trimmedPrice) {
+      const price = parseFloat(trimmedPrice);
+      if (!Number.isNaN(price) && price > 0) {
+        updates.purchase = {
+          price,
+          totalCost: price * editCardQuantity,
+          date: editingCard.purchase?.date ?? null,
+          notes: editingCard.purchase?.notes ?? null,
+        };
+      } else {
+        updates.purchase = {
+          price: 0,
+          totalCost: 0,
+          date: null,
+          notes: null,
+        };
+      }
+    } else if (editingCard.purchase) {
+      updates.purchase = {
+        price: 0,
+        totalCost: 0,
+        date: null,
+        notes: null,
+      };
+    }
+
+    if (editCardPreOwned) {
+      updates.ownedSince = editCardOwnedSince || "1970-01-01";
+    } else {
+      updates.ownedSince = null;
+    }
+
+    const success = await updateItem(editingCard.cardId, updates);
+    setSubmitting(false);
+    if (success) setEditingCard(null);
+  };
+
   // Handle delete
   const handleDelete = async () => {
-    if (!deletingItem) return;
+    if (!deletingEntry) return;
     setSubmitting(true);
-    const success = await removeItem(deletingItem.itemId);
+    const entryId = deletingEntry.category === "card" ? deletingEntry.cardId : deletingEntry.itemId;
+    const success = await removeItem(entryId);
     setSubmitting(false);
-    if (success) setDeletingItem(null);
+    if (success) setDeletingEntry(null);
   };
 
   const handleResetFilters = () => {
     setSearchQuery("");
+    setFilterCategory("all");
     setFilterBloc("all");
     setSortKey("addedAt");
     setSortDirection("desc");
@@ -402,18 +617,31 @@ export default function MaCollectionPage() {
                     Ma Collection
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    {summary.totalItems} produit{summary.totalItems > 1 ? "s" : ""} • {summary.totalQuantity} article{summary.totalQuantity > 1 ? "s" : ""}
+                    {summary.totalItems} élément{summary.totalItems > 1 ? "s" : ""} • {summary.totalQuantity} exemplaire{summary.totalQuantity > 1 ? "s" : ""}
                   </p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex items-center gap-2">
                   <AddItemSearchDialog
-                    buttonLabel="Ajouter"
+                    buttonLabel="Ajouter un produit"
                     buttonVariant="default"
                     buttonClassName="w-fit h-8"
                   />
-                  <Button variant="outline" size="sm" onClick={refresh} className="w-fit">
+                  <AddCardSearchDialog
+                    buttonLabel="Ajouter une carte"
+                    buttonVariant="outline"
+                    buttonClassName="w-fit h-8"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await refreshAnalyseItems();
+                      await refreshCollection();
+                    }}
+                    className="w-fit"
+                  >
                     <Icons.refreshCw className="w-4 h-4 mr-2" />
                     Actualiser
                   </Button>
@@ -427,11 +655,11 @@ export default function MaCollectionPage() {
             </div>
 
             {/* KPI Cards */}
-            {items.length > 0 && (
+            {totalEntries > 0 && (
               <div className="space-y-2">
-                {(hasSearch || hasBlocFilter) && (
+                {(hasSearch || hasBlocFilter || hasCategoryFilter) && (
                   <p className="text-xs text-muted-foreground">
-                    Valeurs filtrées ({filteredSummary.totalItems} produit{filteredSummary.totalItems > 1 ? "s" : ""} • {filteredSummary.totalQuantity} article{filteredSummary.totalQuantity > 1 ? "s" : ""})
+                    Valeurs filtrées ({filteredSummary.totalItems} élément{filteredSummary.totalItems > 1 ? "s" : ""} • {filteredSummary.totalQuantity} exemplaire{filteredSummary.totalQuantity > 1 ? "s" : ""})
                   </p>
                 )}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -528,7 +756,7 @@ export default function MaCollectionPage() {
       </header>
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {items.length === 0 ? (
+        {totalEntries === 0 ? (
           // ═══════════════════════════════════════════════════════════
           // EMPTY STATE
           // ═══════════════════════════════════════════════════════════
@@ -541,7 +769,7 @@ export default function MaCollectionPage() {
             </div>
             <h2 className="text-2xl font-bold mb-2">Votre collection est vide</h2>
             <p className="text-muted-foreground text-center max-w-md mb-8">
-              Commencez à construire votre collection en ajoutant des produits depuis la page d'analyse.
+              Commencez à construire votre collection en ajoutant des produits scellés ou des cartes.
               Vous pourrez ensuite suivre leur valeur en temps réel.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -564,12 +792,14 @@ export default function MaCollectionPage() {
             {/* ─────────────────────────────────────────────────────────
                 CHART
             ───────────────────────────────────────────────────────── */}
-            {chartData.length > 1 && (
+            {chartData.length > 0 && (
               <section className="bg-card border border-border rounded-2xl p-4 sm:p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h2 className="text-lg font-semibold">Évolution de la valeur</h2>
-                    <p className="text-sm text-muted-foreground">Historique sur {chartData.length} jours</p>
+                    <p className="text-sm text-muted-foreground">
+                      Historique sur {chartData.length} jour{chartData.length > 1 ? "s" : ""}
+                    </p>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={220}>
@@ -627,26 +857,38 @@ export default function MaCollectionPage() {
                 <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                   {/* Search & Filters */}
                   <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:flex-none sm:w-72">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Rechercher..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9"
-                      />
-                    </div>
-                    <Select value={filterBloc} onValueChange={setFilterBloc}>
-                      <SelectTrigger className="w-[200px]">
-                        <SelectValue placeholder="Toutes les séries" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Toutes les séries</SelectItem>
-                        {blocs.map((bloc) => (
-                          <SelectItem key={bloc} value={bloc}>{bloc}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="relative flex-1 sm:flex-none sm:w-72">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  <ToggleGroup
+                    type="single"
+                    value={filterCategory}
+                    onValueChange={(v) => v && setFilterCategory(v as CategoryFilter)}
+                    variant="outline"
+                    size="sm"
+                    className="flex"
+                  >
+                    <ToggleGroupItem value="all">Tous</ToggleGroupItem>
+                    <ToggleGroupItem value="item">Produits</ToggleGroupItem>
+                    <ToggleGroupItem value="card">Cartes</ToggleGroupItem>
+                  </ToggleGroup>
+                  <Select value={filterBloc} onValueChange={setFilterBloc}>
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Tous les blocs / séries" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les blocs / séries</SelectItem>
+                      {blocs.map((bloc) => (
+                        <SelectItem key={bloc} value={bloc}>{bloc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   </div>
 
                   {/* View Toggle & Sort */}
@@ -704,7 +946,8 @@ export default function MaCollectionPage() {
                 <div className="flex flex-wrap items-center gap-2 justify-between">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary">
-                      {filteredItems.length} résultat{filteredItems.length > 1 ? "s" : ""}
+                      {filteredCount} résultat{filteredCount > 1 ? "s" : ""}
+                      {hasCategoryFilter && ` • ${categoryLabels[filterCategory]}`}
                       {hasBlocFilter && ` • ${filterBloc}`}
                     </Badge>
                     {hasSearch && (
@@ -716,6 +959,17 @@ export default function MaCollectionPage() {
                       >
                         <Icons.search className="w-3 h-3" />
                         “{searchQuery.trim()}”
+                        <Icons.close className="w-3 h-3" />
+                      </Button>
+                    )}
+                    {hasCategoryFilter && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 px-2 gap-1"
+                        onClick={() => setFilterCategory("all")}
+                      >
+                        {categoryLabels[filterCategory]}
                         <Icons.close className="w-3 h-3" />
                       </Button>
                     )}
@@ -745,7 +999,7 @@ export default function MaCollectionPage() {
                       </Button>
                     )}
                   </div>
-                  {(hasSearch || hasBlocFilter || hasCustomSort) && (
+                  {(hasSearch || hasBlocFilter || hasCategoryFilter || hasCustomSort) && (
                     <Button variant="ghost" size="sm" className="h-7" onClick={handleResetFilters}>
                       Réinitialiser
                     </Button>
@@ -754,114 +1008,160 @@ export default function MaCollectionPage() {
               </div>
             </div>
 
-            {/* ─────────────────────────────────────────────────────────
-                GRID VIEW
-            ───────────────────────────────────────────────────────── */}
-            {viewMode === "grid" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredItems.map((item) => (
-                  <CollectionCard
-                    key={item.itemId}
-                    item={item}
-                    onEdit={() => handleEdit(item)}
-                    onDelete={() => setDeletingItem(item)}
-                  />
-                ))}
-              </div>
+            {showItemsSection && (
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold">Produits scellés</h3>
+                  <span className="text-xs text-muted-foreground">
+                    {filteredItems.length} produit{filteredItems.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                {filteredItems.length === 0 ? (
+                  <div className="text-sm text-muted-foreground bg-muted/40 border border-border rounded-xl px-4 py-3">
+                    Aucun produit ne correspond à vos filtres.
+                  </div>
+                ) : (
+                  <>
+                    {viewMode === "grid" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        {filteredItems.map((item, index) => (
+                          <CollectionItemCard
+                            key={item.itemId}
+                            item={item}
+                            index={index}
+                            onEdit={() => handleEdit(item)}
+                            onDelete={() => setDeletingEntry(item)}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {viewMode === "table" && (
+                      <>
+                        <div className="md:hidden text-sm text-muted-foreground bg-muted/40 border border-border rounded-xl px-4 py-3">
+                          La vue tableau est disponible sur écran large. Affichage en grille sur mobile.
+                        </div>
+                        <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {filteredItems.map((item, index) => (
+                            <CollectionItemCard
+                              key={item.itemId}
+                              item={item}
+                              index={index}
+                              onEdit={() => handleEdit(item)}
+                              onDelete={() => setDeletingEntry(item)}
+                            />
+                          ))}
+                        </div>
+                        <div className="hidden md:block bg-card border border-border rounded-2xl overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="hover:bg-transparent">
+                                <TableHead className="w-[300px]">Produit</TableHead>
+                                <TableHead className="text-center">Qté</TableHead>
+                                <TableHead className="text-right">Prix unitaire</TableHead>
+                                <TableHead className="text-right">Valeur</TableHead>
+                                <TableHead className="text-right">Plus-value</TableHead>
+                                <TableHead className="text-right w-[100px]">Actions</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredItems.map((item) => (
+                                <TableRow key={item.itemId}>
+                                  <TableCell>
+                                    <div className="flex items-center gap-3">
+                                      <div className="relative w-12 h-12 rounded-lg bg-muted/50 overflow-hidden flex-shrink-0">
+                                        {item.itemImage ? (
+                                          <Image src={item.itemImage} alt={item.itemName} fill className="object-contain p-1" />
+                                        ) : (
+                                          <div className="flex items-center justify-center h-full">
+                                            <Package className="w-5 h-5 text-muted-foreground" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="font-medium truncate">{item.itemType} {item.itemName}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{item.itemBloc}</p>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    <Badge variant="secondary">x{item.quantity}</Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {item.currentPrice !== null ? `${item.currentPrice.toFixed(2)} €` : "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right font-semibold text-primary tabular-nums">
+                                    {item.currentValue !== null ? `${item.currentValue.toFixed(2)} €` : "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {item.profitLoss !== null ? (
+                                      <span className={`font-semibold tabular-nums ${item.profitLoss >= 0 ? "text-success" : "text-destructive"}`}>
+                                        {item.profitLoss >= 0 ? "+" : ""}{item.profitLoss.toFixed(2)} €
+                                      </span>
+                                    ) : "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(item)}>
+                                            <Icons.edit className="w-4 h-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Modifier</TooltipContent>
+                                      </Tooltip>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button variant="ghost" size="icon-sm" onClick={() => setDeletingEntry(item)}>
+                                            <Icons.delete className="w-4 h-4 text-destructive" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>Supprimer</TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </section>
             )}
 
-            {/* ─────────────────────────────────────────────────────────
-                TABLE VIEW
-            ───────────────────────────────────────────────────────── */}
-            {viewMode === "table" && (
-              <>
-                <div className="md:hidden text-sm text-muted-foreground bg-muted/40 border border-border rounded-xl px-4 py-3">
-                  La vue tableau est disponible sur écran large. Affichage en grille sur mobile.
+            {showCardsSection && (
+              <section className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold">Cartes</h3>
+                  <span className="text-xs text-muted-foreground">
+                    {filteredCards.length} carte{filteredCards.length > 1 ? "s" : ""} • {groupedCards.length} série{groupedCards.length > 1 ? "s" : ""}
+                  </span>
                 </div>
-                <div className="md:hidden grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {filteredItems.map((item) => (
-                    <CollectionCard
-                      key={item.itemId}
-                      item={item}
-                      onEdit={() => handleEdit(item)}
-                      onDelete={() => setDeletingItem(item)}
-                    />
-                  ))}
-                </div>
-                <div className="hidden md:block bg-card border border-border rounded-2xl overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent">
-                        <TableHead className="w-[300px]">Produit</TableHead>
-                        <TableHead className="text-center">Qté</TableHead>
-                        <TableHead className="text-right">Prix unitaire</TableHead>
-                        <TableHead className="text-right">Valeur</TableHead>
-                        <TableHead className="text-right">Plus-value</TableHead>
-                        <TableHead className="text-right w-[100px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredItems.map((item) => (
-                        <TableRow key={item.itemId}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="relative w-12 h-12 rounded-lg bg-muted/50 overflow-hidden flex-shrink-0">
-                                {item.itemImage ? (
-                                  <Image src={item.itemImage} alt={item.itemName} fill className="object-contain p-1" />
-                                ) : (
-                                  <div className="flex items-center justify-center h-full">
-                                    <Package className="w-5 h-5 text-muted-foreground" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="font-medium truncate">{item.itemType} {item.itemName}</p>
-                                <p className="text-xs text-muted-foreground truncate">{item.itemBloc}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <Badge variant="secondary">x{item.quantity}</Badge>
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {item.currentPrice !== null ? `${item.currentPrice.toFixed(2)} €` : "—"}
-                          </TableCell>
-                          <TableCell className="text-right font-semibold text-primary tabular-nums">
-                            {item.currentValue !== null ? `${item.currentValue.toFixed(2)} €` : "—"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {item.profitLoss !== null ? (
-                              <span className={`font-semibold tabular-nums ${item.profitLoss >= 0 ? "text-success" : "text-destructive"}`}>
-                                {item.profitLoss >= 0 ? "+" : ""}{item.profitLoss.toFixed(2)} €
-                              </span>
-                            ) : "—"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon-sm" onClick={() => handleEdit(item)}>
-                                    <Icons.edit className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Modifier</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon-sm" onClick={() => setDeletingItem(item)}>
-                                    <Icons.delete className="w-4 h-4 text-destructive" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Supprimer</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </>
+
+                {filteredCards.length === 0 ? (
+                  <div className="text-sm text-muted-foreground bg-muted/40 border border-border rounded-xl px-4 py-3">
+                    Aucune carte ne correspond à vos filtres.
+                  </div>
+                ) : (
+                  <SeriesGrid
+                    groupedCards={groupedCards.map((group) => ({
+                      ...group,
+                      setName: group.setName,
+                      cards: group.cards.map((card) => ({
+                        ...card,
+                        setName: mapSetNameToFR(card.setName),
+                      })),
+                    }))}
+                    setLogosByName={setLogosByName}
+                    onEditCard={handleEditCard}
+                    onDeleteCard={(card) => setDeletingEntry(card)}
+                  />
+                )}
+              </section>
             )}
           </div>
         )}
@@ -986,14 +1286,134 @@ export default function MaCollectionPage() {
       </Dialog>
 
       {/* ═══════════════════════════════════════════════════════════
+          EDIT CARD DIALOG
+      ═══════════════════════════════════════════════════════════ */}
+      <Dialog open={!!editingCard} onOpenChange={(open) => !open && setEditingCard(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Icons.edit className="w-5 h-5 text-primary" />
+              Modifier la carte
+            </DialogTitle>
+            <DialogDescription>
+              {editingCard?.cardName}
+              {editingCard?.cardNumber ? ` · #${editingCard.cardNumber}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Quantité</label>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setEditCardQuantity(Math.max(1, editCardQuantity - 1))}
+                  disabled={editCardQuantity <= 1}
+                >
+                  <Icons.minusCircle className="w-4 h-4" />
+                </Button>
+                <Input
+                  type="number"
+                  min={1}
+                  value={editCardQuantity}
+                  onChange={(e) => setEditCardQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-24 text-center tabular-nums"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setEditCardQuantity(editCardQuantity + 1)}
+                >
+                  <Icons.plusCircle className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Prix d'achat unitaire</label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder={editingCard?.priceAtPurchase ? editingCard.priceAtPurchase.toFixed(2) : "0.00"}
+                  value={editCardPurchasePrice}
+                  onChange={(e) => setEditCardPurchasePrice(e.target.value)}
+                  className="pr-8 tabular-nums"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+              </div>
+              {editingCard?.priceAtPurchase && !editCardPurchasePrice && (
+                <p className="text-xs text-muted-foreground">
+                  Prix à l'ajout : {editingCard.priceAtPurchase.toFixed(2)} €
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="editCardPreOwned"
+                  checked={editCardPreOwned}
+                  onCheckedChange={(checked) => setEditCardPreOwned(checked === true)}
+                  className="mt-0.5"
+                />
+                <div className="space-y-1">
+                  <label htmlFor="editCardPreOwned" className="text-sm font-medium cursor-pointer">
+                    Je possédais déjà cette carte
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Cochez si cette carte était déjà dans votre collection avant d'utiliser l'application.
+                  </p>
+                </div>
+              </div>
+
+              {editCardPreOwned && (
+                <div className="space-y-2 pl-7">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Icons.calendar className="w-4 h-4 text-muted-foreground" />
+                    Depuis quand ? (optionnel)
+                  </label>
+                  <Input
+                    type="date"
+                    value={editCardOwnedSince}
+                    onChange={(e) => setEditCardOwnedSince(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Laissez vide pour l'inclure depuis le début de votre collection.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingCard(null)} disabled={submitting}>
+              Annuler
+            </Button>
+            <Button onClick={handleEditCardSubmit} disabled={submitting}>
+              {submitting ? <Icons.spinner className="w-4 h-4 animate-spin" /> : "Enregistrer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══════════════════════════════════════════════════════════
           DELETE DIALOG
       ═══════════════════════════════════════════════════════════ */}
-      <AlertDialog open={!!deletingItem} onOpenChange={(open) => !open && setDeletingItem(null)}>
+      <AlertDialog open={!!deletingEntry} onOpenChange={(open) => !open && setDeletingEntry(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Supprimer cet article ?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deletingEntry?.category === "card" ? "Supprimer cette carte ?" : "Supprimer cet article ?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              <span className="font-medium text-foreground">{deletingItem?.itemType} {deletingItem?.itemName}</span> sera retiré de votre collection. Cette action est irréversible.
+              <span className="font-medium text-foreground">
+                {deletingEntry?.category === "card"
+                  ? deletingEntry?.cardName
+                  : `${deletingEntry?.itemType} ${deletingEntry?.itemName}`}
+              </span>{" "}
+              sera retiré de votre collection. Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1015,12 +1435,14 @@ export default function MaCollectionPage() {
 // ═══════════════════════════════════════════════════════════
 // COLLECTION CARD COMPONENT
 // ═══════════════════════════════════════════════════════════
-function CollectionCard({
+function CollectionItemCard({
   item,
+  index = 0,
   onEdit,
   onDelete,
 }: {
   item: CollectionItemWithPrice;
+  index?: number;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -1030,7 +1452,12 @@ function CollectionCard({
     (item.purchase?.totalCost !== undefined && item.purchase.totalCost > 0);
 
   return (
-    <div className="group bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.3 }}
+      className="group bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+    >
       {/* Image Section */}
       <div className="relative h-36 bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center">
         {item.itemImage ? (
@@ -1147,6 +1574,6 @@ function CollectionCard({
           </Tooltip>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

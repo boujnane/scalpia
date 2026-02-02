@@ -1,7 +1,7 @@
 // app/api/cardmarket/sets/[id]/cards/mapped/route.ts
 import { NextResponse } from "next/server";
 import { BASE_URL, headers } from "@/app/api/cardmarket/_utils";
-import { mapCardsBatch } from "@/lib/cardMapper";
+import { cardmarketSlugToTCGdex, fetchTCGdexSet, mapCardsBatch } from "@/lib/cardMapper";
 
 export const runtime = "nodejs";
 
@@ -15,6 +15,17 @@ function log(reqId: string, payload: any) {
   console.log("[mapped-route]", { reqId, ...payload });
 }
 
+function hashToId(value: string, fallback: number) {
+  if (!value) return fallback;
+  let hash = 0;
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  const abs = Math.abs(hash);
+  return abs > 0 ? abs : fallback;
+}
+
 export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }) {
   const reqId = makeReqId();
   const t0 = Date.now();
@@ -23,6 +34,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const { id } = await ctx.params;
     const { searchParams } = new URL(req.url);
     const page = searchParams.get("page") || "1";
+    const force = searchParams.get("force") === "1";
 
     log(reqId, { step: "start", id, page });
 
@@ -30,7 +42,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
     const cacheKey = `mapped:v3:${id}:${page}`;
     const cached = CACHE.get(cacheKey);
-    if (cached && Date.now() - cached.ts < TTL) {
+    if (!force && cached && Date.now() - cached.ts < TTL) {
       log(reqId, { step: "cache-hit", ageMs: Date.now() - cached.ts });
       return NextResponse.json(cached.data);
     }
@@ -67,8 +79,57 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
 
     const json = await res.json();
 
+    const rawCards = json.data || [];
+    if (!rawCards.length) {
+      const tcgdexSetId = episodeSlug ? cardmarketSlugToTCGdex(episodeSlug) : null;
+      if (tcgdexSetId) {
+        const tcgdexSet = await fetchTCGdexSet(tcgdexSetId);
+        if (tcgdexSet?.cards?.length) {
+          const fallbackCards = tcgdexSet.cards.map((card: any, index: number) => ({
+            id: hashToId(card.id ?? `${tcgdexSetId}-${card.localId ?? index}`, index + 1),
+            cardmarketId: undefined,
+            name: card.name,
+            rarity: card.rarity ?? null,
+            card_number: card.localId ?? null,
+            image: card.images?.large ?? null,
+            prices: { fr: null, avg7: null, graded: null },
+            episode: {
+              name: episodeName ?? tcgdexSet.name ?? null,
+              id: Number(id) || null,
+              slug: episodeSlug ?? null,
+            },
+            cardmarket_url: null,
+            tcggo_url: null,
+            tcgdexId: card.id ?? null,
+            mappedFromTCGdex: true,
+          }));
+
+          const response = {
+            data: fallbackCards,
+            paging: { current: 1, total: 1, per_page: fallbackCards.length },
+            results: fallbackCards.length,
+            mapping_stats: {
+              total: fallbackCards.length,
+              mapped_from_tcgdex: fallbackCards.length,
+              using_cardmarket_fallback: 0,
+              cardmarket_urls_present: 0,
+              fallback_source: "tcgdex-only",
+            },
+          };
+
+          CACHE.set(cacheKey, { data: response, ts: Date.now() });
+          log(reqId, {
+            step: "tcgdex-fallback",
+            total: fallbackCards.length,
+            setId: tcgdexSetId,
+          });
+          return NextResponse.json(response);
+        }
+      }
+    }
+
     // Normalize
-    const cmCards = (json.data || []).map((card: any) => ({
+    const cmCards = rawCards.map((card: any) => ({
       id: card.id,
       name: card.name,
       card_number: card.card_number,

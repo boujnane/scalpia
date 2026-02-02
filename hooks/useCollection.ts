@@ -4,34 +4,47 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
-  getCollection,
+  getCollectionEntries,
   addToCollection,
+  addCardToCollection,
   updateCollectionItem,
   removeFromCollection,
   getCollectionSnapshots,
   saveCollectionSnapshot,
+  deleteSnapshotsBefore,
   generateItemId,
+  generateCardId,
 } from "@/lib/collection";
 import type {
   CollectionItem,
+  CollectionCard,
+  CollectionEntry,
   CollectionItemWithPrice,
+  CollectionCardWithPrice,
+  CollectionEntryWithPrice,
   CollectionSnapshot,
   CollectionSummary,
   CollectionFormData,
 } from "@/types/collection";
+import { isCollectionItem, isCollectionCard } from "@/types/collection";
 import type { Item } from "@/lib/analyse/types";
+import type { CMCard } from "@/lib/cardmarket/types";
 
 type UseCollectionReturn = {
   items: CollectionItemWithPrice[];
+  cards: CollectionCardWithPrice[];
+  entries: CollectionEntryWithPrice[];
   snapshots: CollectionSnapshot[];
   summary: CollectionSummary;
   loading: boolean;
   error: string | null;
   addItem: (item: Item, formData: CollectionFormData) => Promise<boolean>;
+  addCard: (card: CMCard, formData: CollectionFormData) => Promise<boolean>;
   updateItem: (itemId: string, updates: Partial<Pick<CollectionItem, "quantity" | "purchase" | "ownedSince">>) => Promise<boolean>;
   removeItem: (itemId: string) => Promise<boolean>;
   refresh: () => Promise<void>;
   isInCollection: (item: Item) => boolean;
+  isCardInCollection: (card: CMCard) => boolean;
 };
 
 /**
@@ -73,15 +86,47 @@ function getIndexedDates(items: Item[]): Set<string> {
   return dates;
 }
 
+function extractCardmarketId(card: CollectionCard): number | null {
+  if (typeof card.cardmarketId === "number" && !Number.isNaN(card.cardmarketId)) {
+    return card.cardmarketId;
+  }
+  // Handle legacy data where cardmarketId might be stored as string
+  const rawId = (card as unknown as { cardmarketId?: unknown }).cardmarketId;
+  if (typeof rawId === "string") {
+    const parsed = Number(rawId);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  const match = card.cardId.match(/card-(\d+)/);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+function getCardCostBasis(card: CollectionCard): number | null {
+  if (card.purchase) {
+    if (typeof card.purchase.totalCost === "number") {
+      return card.purchase.totalCost;
+    }
+    if (typeof card.purchase.price === "number") {
+      return card.purchase.price * card.quantity;
+    }
+  }
+  if (card.priceAtPurchase && card.priceAtPurchase > 0) {
+    return card.priceAtPurchase * card.quantity;
+  }
+  return null;
+}
+
 /**
  * Hook for managing user collection
  */
 export function useCollection(allItems: Item[] = []): UseCollectionReturn {
   const { user } = useAuth();
-  const [collectionItems, setCollectionItems] = useState<CollectionItem[]>([]);
+  const [collectionEntries, setCollectionEntries] = useState<CollectionEntry[]>([]);
   const [snapshots, setSnapshots] = useState<CollectionSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cardPrices, setCardPrices] = useState<Record<number, number | null>>({});
 
   // Create a map of itemId to Item for quick lookup
   const itemsMap = useMemo(() => {
@@ -93,10 +138,20 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
     return map;
   }, [allItems]);
 
+  const collectionItems = useMemo(
+    () => collectionEntries.filter(isCollectionItem),
+    [collectionEntries]
+  );
+
+  const collectionCards = useMemo(
+    () => collectionEntries.filter(isCollectionCard),
+    [collectionEntries]
+  );
+
   // Fetch collection data
   const fetchCollection = useCallback(async () => {
     if (!user) {
-      setCollectionItems([]);
+      setCollectionEntries([]);
       setSnapshots([]);
       setLoading(false);
       return;
@@ -106,22 +161,29 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
     setError(null);
 
     try {
-      const [items, snapshotData] = await Promise.all([
-        getCollection(user.uid),
+      const [entries, snapshotData] = await Promise.all([
+        getCollectionEntries(user.uid),
         getCollectionSnapshots(user.uid, 90),
       ]);
 
-      setCollectionItems(items);
+      setCollectionEntries(entries);
 
       // Filter snapshots to only include dates >= collection start date
       // collectionStartDate is based on addedAt (when user started using the app)
       // NOT ownedSince (which is for pre-owned items)
-      if (items.length > 0) {
-        const collectionStartDate = items.reduce((earliest, item) => {
+      const itemsOnly = entries.filter(isCollectionItem);
+      if (itemsOnly.length > 0) {
+        const collectionStartDate = itemsOnly.reduce((earliest, item) => {
           const addedAt = item.addedAt instanceof Date ? item.addedAt : new Date(item.addedAt);
           const dateStr = addedAt.toISOString().slice(0, 10);
           return dateStr < earliest ? dateStr : earliest;
         }, new Date().toISOString().slice(0, 10));
+
+        // Delete old snapshots from Firestore that are before collection start
+        const oldSnapshots = snapshotData.filter(s => s.date < collectionStartDate);
+        if (oldSnapshots.length > 0) {
+          await deleteSnapshotsBefore(user.uid, collectionStartDate);
+        }
 
         const filteredSnapshots = snapshotData.filter(s => s.date >= collectionStartDate);
         setSnapshots(filteredSnapshots);
@@ -172,6 +234,101 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
     });
   }, [collectionItems, itemsMap]);
 
+  const cardmarketIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const card of collectionCards) {
+      const id = extractCardmarketId(card);
+      if (id !== null) ids.add(id);
+    }
+    return Array.from(ids);
+  }, [collectionCards]);
+
+  const cardmarketIdsKey = useMemo(() => cardmarketIds.join(","), [cardmarketIds]);
+
+  useEffect(() => {
+    if (!user) {
+      setCardPrices({});
+      return;
+    }
+    if (cardmarketIds.length === 0) {
+      setCardPrices({});
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchCardPrices = async () => {
+      try {
+        const nextPrices: Record<number, number | null> = {};
+        const chunks: number[][] = [];
+        for (let i = 0; i < cardmarketIds.length; i += 50) {
+          chunks.push(cardmarketIds.slice(i, i + 50));
+        }
+
+        for (const chunk of chunks) {
+          const res = await fetch("/api/cardmarket/cards/batch", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cardIds: chunk }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data?.error || `API error ${res.status}`);
+          }
+
+          const cards = Array.isArray(data?.cards) ? data.cards : [];
+          for (const card of cards) {
+            const rawId = card?.cardmarketId ?? card?.id ?? card?.cardmarket_id;
+            const id = Number(rawId);
+            if (Number.isNaN(id)) continue;
+            const price = card?.prices?.fr ?? card?.prices?.avg7 ?? null;
+            nextPrices[id] = typeof price === "number" ? price : null;
+          }
+        }
+
+        if (!cancelled) {
+          setCardPrices(nextPrices);
+        }
+      } catch (err) {
+        console.error("Error fetching card prices:", err);
+      }
+    };
+
+    fetchCardPrices();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, cardmarketIdsKey, cardmarketIds]);
+
+  const cardsWithPrices = useMemo((): CollectionCardWithPrice[] => {
+    return collectionCards.map((card) => {
+      const cardmarketId = extractCardmarketId(card);
+      const currentPrice = cardmarketId !== null ? cardPrices[cardmarketId] ?? null : null;
+      const currentValue = currentPrice !== null ? currentPrice * card.quantity : null;
+      const costBasis = getCardCostBasis(card);
+      const profitLoss = currentValue !== null && costBasis !== null
+        ? currentValue - costBasis
+        : null;
+      const profitLossPercent = profitLoss !== null && costBasis !== null && costBasis > 0
+        ? (profitLoss / costBasis) * 100
+        : null;
+
+      return {
+        ...card,
+        currentPrice,
+        currentValue,
+        profitLoss,
+        profitLossPercent,
+      };
+    });
+  }, [collectionCards, cardPrices]);
+
+  const entriesWithPrices = useMemo(
+    () => [...itemsWithPrices, ...cardsWithPrices],
+    [itemsWithPrices, cardsWithPrices]
+  );
+
   // Calculate summary
   const summary = useMemo((): CollectionSummary => {
     let totalValue = 0;
@@ -192,18 +349,29 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
       totalQuantity += item.quantity;
     }
 
+    for (const card of cardsWithPrices) {
+      if (card.currentValue !== null) {
+        totalValue += card.currentValue;
+      }
+      const costBasis = getCardCostBasis(card);
+      if (costBasis !== null && costBasis > 0) {
+        totalCost += costBasis;
+      }
+      totalQuantity += card.quantity;
+    }
+
     const profitLoss = totalCost > 0 ? totalValue - totalCost : 0;
     const profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0;
 
     return {
       totalValue,
       totalCost,
-      totalItems: itemsWithPrices.length,
+      totalItems: itemsWithPrices.length + cardsWithPrices.length,
       totalQuantity,
       profitLoss,
       profitLossPercent,
     };
-  }, [itemsWithPrices]);
+  }, [itemsWithPrices, cardsWithPrices]);
 
   // Recalculate snapshots based on actual indexed prices
   // Starting from the date the first item was added to the collection
@@ -241,11 +409,14 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
         }
 
         let hasChanges = false;
+        const today = new Date().toISOString().slice(0, 10);
 
-        // For each indexed date, calculate collection value
+        // For each indexed date, calculate collection value (except today - handled separately)
         for (const date of indexedDates) {
           // Skip dates before the collection was created
           if (date < collectionStartDate) continue;
+          // Skip today - we'll handle it separately to include cards
+          if (date === today) continue;
 
           // Calculate value for this date
           let totalValue = 0;
@@ -294,6 +465,32 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
           hasChanges = true;
         }
 
+        // Always update today's snapshot to include cards value
+        const todayItemsValue = itemsWithPrices.reduce((sum, item) => sum + (item.currentValue ?? 0), 0);
+        const todayCardsValue = cardsWithPrices.reduce((sum, card) => sum + (card.currentValue ?? 0), 0);
+        const todayTotalValue = todayItemsValue + todayCardsValue;
+
+        // Calculate cards cost for today's snapshot
+        let cardsCost = 0;
+        for (const card of cardsWithPrices) {
+          const costBasis = getCardCostBasis(card);
+          if (costBasis !== null && costBasis > 0) {
+            cardsCost += costBasis;
+          }
+        }
+
+        const existingToday = existingByDate.get(today);
+        const todayTotalCost = totalCost + cardsCost;
+        if (!existingToday || Math.abs(existingToday.totalValue - todayTotalValue) >= 0.01) {
+          await saveCollectionSnapshot(user.uid, {
+            date: today,
+            totalValue: todayTotalValue,
+            totalCost: todayTotalCost,
+            itemCount: collectionItems.length + collectionCards.length,
+          });
+          hasChanges = true;
+        }
+
         // Refresh snapshots if changes were made
         if (hasChanges) {
           const newSnapshots = await getCollectionSnapshots(user.uid, 90);
@@ -305,7 +502,7 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
     };
 
     recalculateSnapshots();
-  }, [user, loading, collectionItems, allItems, itemsMap, itemsWithPrices]);
+  }, [user, loading, collectionItems, collectionCards, allItems, itemsMap, itemsWithPrices, cardsWithPrices]);
 
   // Add item to collection
   const addItem = useCallback(async (item: Item, formData: CollectionFormData): Promise<boolean> => {
@@ -317,6 +514,21 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
       return true;
     } catch (err) {
       console.error("Error adding to collection:", err);
+      setError(err instanceof Error ? err.message : "Erreur lors de l'ajout");
+      return false;
+    }
+  }, [user, fetchCollection]);
+
+  // Add card to collection
+  const addCard = useCallback(async (card: CMCard, formData: CollectionFormData): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      await addCardToCollection(user.uid, card, formData);
+      await fetchCollection();
+      return true;
+    } catch (err) {
+      console.error("Error adding card to collection:", err);
       setError(err instanceof Error ? err.message : "Erreur lors de l'ajout");
       return false;
     }
@@ -361,16 +573,25 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
     return collectionItems.some((ci) => ci.itemId === itemId);
   }, [collectionItems]);
 
+  const isCardInCollectionCheck = useCallback((card: CMCard): boolean => {
+    const cardId = generateCardId(card);
+    return collectionCards.some((cc) => cc.cardId === cardId);
+  }, [collectionCards]);
+
   return {
     items: itemsWithPrices,
+    cards: cardsWithPrices,
+    entries: entriesWithPrices,
     snapshots,
     summary,
     loading,
     error,
     addItem,
+    addCard,
     updateItem,
     removeItem,
     refresh: fetchCollection,
     isInCollection: isInCollectionCheck,
+    isCardInCollection: isCardInCollectionCheck,
   };
 }

@@ -15,11 +15,14 @@ import {
 import { db } from "@/lib/firebase";
 import type {
   CollectionItem,
+  CollectionCard,
+  CollectionEntry,
   CollectionSnapshot,
   CollectionFormData,
   PurchaseMetadata,
 } from "@/types/collection";
 import type { Item } from "@/lib/analyse/types";
+import type { CMCard } from "@/lib/cardmarket/types";
 
 /**
  * Get the collection reference for a user
@@ -68,7 +71,7 @@ export async function addToCollection(
   const now = serverTimestamp();
 
   let purchase: PurchaseMetadata | undefined;
-  if (formData.purchasePrice !== undefined && formData.purchasePrice > 0) {
+  if (formData.purchasePrice !== undefined && Number.isFinite(formData.purchasePrice)) {
     purchase = {
       price: formData.purchasePrice,
       totalCost: formData.purchasePrice * formData.quantity,
@@ -97,6 +100,7 @@ export async function addToCollection(
     // Build update object, only including purchase if defined
     const updateData: Record<string, unknown> = {
       ...existingData,
+      category: "item",
       quantity: newQuantity,
       updatedAt: now,
     };
@@ -117,6 +121,7 @@ export async function addToCollection(
   } else {
     // Create new entry - only include purchase if defined
     const newItem: Record<string, unknown> = {
+      category: "item",
       itemId,
       itemName: item.name,
       itemImage: item.image ?? "",
@@ -186,6 +191,7 @@ export async function getCollection(userId: string): Promise<CollectionItem[]> {
   return snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
+      category: "item",
       itemId: data.itemId,
       itemName: data.itemName,
       itemImage: data.itemImage,
@@ -214,6 +220,7 @@ export async function getCollectionItem(
 
   const data = snapshot.data();
   return {
+    category: "item",
     itemId: data.itemId,
     itemName: data.itemName,
     itemImage: data.itemImage,
@@ -283,6 +290,32 @@ export async function getCollectionSnapshots(
 }
 
 /**
+ * Delete snapshots before a given date
+ */
+export async function deleteSnapshotsBefore(
+  userId: string,
+  beforeDate: string
+): Promise<number> {
+  const q = query(
+    getUserSnapshotsRef(userId),
+    orderBy("date", "asc")
+  );
+
+  const snapshot = await getDocs(q);
+  let deletedCount = 0;
+
+  for (const docSnap of snapshot.docs) {
+    const data = docSnap.data();
+    if (data.date < beforeDate) {
+      await deleteDoc(docSnap.ref);
+      deletedCount++;
+    }
+  }
+
+  return deletedCount;
+}
+
+/**
  * Get today's snapshot if it exists
  */
 export async function getTodaySnapshot(
@@ -302,4 +335,218 @@ export async function getTodaySnapshot(
     itemCount: data.itemCount,
     createdAt: parseTimestamp(data.createdAt),
   } as CollectionSnapshot;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Card-specific functions
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Generate a stable card ID from card data
+ */
+export function generateCardId(card: CMCard): string {
+  // Use cardmarketId if available, otherwise use name+set
+  const cmId = card.cardmarketId ?? card.id;
+  if (cmId) {
+    return `card-${cmId}`;
+  }
+  const setName = card.episode?.name ?? "unknown";
+  return `card-${card.name}-${setName}`.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+/**
+ * Add or update a card in the user's collection
+ */
+export async function addCardToCollection(
+  userId: string,
+  card: CMCard,
+  formData: CollectionFormData
+): Promise<void> {
+  const cardId = generateCardId(card);
+  const docRef = doc(getUserCollectionRef(userId), cardId);
+
+  const existing = await getDoc(docRef);
+  const now = serverTimestamp();
+
+  // Get current price FR for storing at purchase
+  const priceFR = card.prices?.fr ?? card.prices?.avg7 ?? null;
+
+  let purchase: PurchaseMetadata | undefined;
+  if (formData.purchasePrice !== undefined && Number.isFinite(formData.purchasePrice)) {
+    purchase = {
+      price: formData.purchasePrice,
+      totalCost: formData.purchasePrice * formData.quantity,
+      date: formData.purchaseDate ?? null,
+      notes: formData.notes ?? null,
+    };
+  }
+
+  if (existing.exists()) {
+    // Update existing card
+    const existingData = existing.data() as CollectionCard;
+    const newQuantity = existingData.quantity + formData.quantity;
+
+    // Merge purchase data if provided
+    let mergedPurchase = existingData.purchase;
+    if (purchase) {
+      const existingCost = existingData.purchase?.totalCost ?? 0;
+      mergedPurchase = {
+        price: purchase.price,
+        totalCost: existingCost + purchase.totalCost,
+        date: purchase.date ?? existingData.purchase?.date ?? null,
+        notes: purchase.notes ?? existingData.purchase?.notes ?? null,
+      };
+    }
+
+    const updateData: Record<string, unknown> = {
+      ...existingData,
+      category: "card",
+      quantity: newQuantity,
+      updatedAt: now,
+    };
+
+    if (mergedPurchase) {
+      updateData.purchase = mergedPurchase;
+    }
+
+    if (formData.preOwned && formData.ownedSince) {
+      updateData.ownedSince = formData.ownedSince;
+    } else if (formData.preOwned && !formData.ownedSince) {
+      updateData.ownedSince = "1970-01-01";
+    }
+
+    await setDoc(docRef, updateData, { merge: true });
+  } else {
+    // Create new card entry
+    const newCard: Record<string, unknown> = {
+      category: "card",
+      cardId,
+      cardmarketId: card.cardmarketId ?? card.id ?? null,
+      cardName: card.name,
+      cardImage: card.image ?? "",
+      cardNumber: card.card_number ?? null,
+      rarity: card.rarity ?? null,
+      setName: card.episode?.name ?? "Unknown",
+      setId: null, // Could be populated if we have set ID
+      quantity: formData.quantity,
+      addedAt: now,
+      updatedAt: now,
+      priceAtPurchase: priceFR,
+    };
+
+    if (purchase) {
+      newCard.purchase = {
+        price: purchase.price,
+        totalCost: purchase.totalCost,
+        date: purchase.date ?? null,
+        notes: purchase.notes ?? null,
+      };
+    }
+
+    if (formData.preOwned) {
+      newCard.ownedSince = formData.ownedSince ?? "1970-01-01";
+    }
+
+    await setDoc(docRef, newCard);
+  }
+}
+
+/**
+ * Get all entries (items + cards) in the user's collection
+ */
+export async function getCollectionEntries(userId: string): Promise<CollectionEntry[]> {
+  const q = query(
+    getUserCollectionRef(userId),
+    orderBy("addedAt", "desc")
+  );
+
+  const snapshot = await getDocs(q);
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+
+    // Determine type based on category field or presence of itemId/cardId
+    const category = data.category ?? (data.itemId ? "item" : "card");
+
+    if (category === "card") {
+      return {
+        category: "card",
+        cardId: data.cardId,
+        cardmarketId: data.cardmarketId ?? undefined,
+        cardName: data.cardName,
+        cardImage: data.cardImage,
+        cardNumber: data.cardNumber ?? undefined,
+        rarity: data.rarity ?? undefined,
+        setName: data.setName,
+        setId: data.setId ?? undefined,
+        quantity: data.quantity,
+        addedAt: parseTimestamp(data.addedAt),
+        updatedAt: parseTimestamp(data.updatedAt),
+        purchase: data.purchase,
+        ownedSince: data.ownedSince ?? null,
+        priceAtPurchase: data.priceAtPurchase ?? undefined,
+      } as CollectionCard;
+    }
+
+    return {
+      category: "item",
+      itemId: data.itemId,
+      itemName: data.itemName,
+      itemImage: data.itemImage,
+      itemType: data.itemType,
+      itemBloc: data.itemBloc,
+      quantity: data.quantity,
+      addedAt: parseTimestamp(data.addedAt),
+      updatedAt: parseTimestamp(data.updatedAt),
+      purchase: data.purchase,
+      ownedSince: data.ownedSince ?? null,
+    } as CollectionItem;
+  });
+}
+
+/**
+ * Check if a card exists in the collection
+ */
+export async function isCardInCollection(
+  userId: string,
+  card: CMCard
+): Promise<boolean> {
+  const cardId = generateCardId(card);
+  const docRef = doc(getUserCollectionRef(userId), cardId);
+  const snapshot = await getDoc(docRef);
+  return snapshot.exists();
+}
+
+/**
+ * Get a single card from the collection
+ */
+export async function getCollectionCard(
+  userId: string,
+  cardId: string
+): Promise<CollectionCard | null> {
+  const docRef = doc(getUserCollectionRef(userId), cardId);
+  const snapshot = await getDoc(docRef);
+
+  if (!snapshot.exists()) return null;
+
+  const data = snapshot.data();
+  if (data.category !== "card") return null;
+
+  return {
+    category: "card",
+    cardId: data.cardId,
+    cardmarketId: data.cardmarketId ?? undefined,
+    cardName: data.cardName,
+    cardImage: data.cardImage,
+    cardNumber: data.cardNumber ?? undefined,
+    rarity: data.rarity ?? undefined,
+    setName: data.setName,
+    setId: data.setId ?? undefined,
+    quantity: data.quantity,
+    addedAt: parseTimestamp(data.addedAt),
+    updatedAt: parseTimestamp(data.updatedAt),
+    purchase: data.purchase,
+    ownedSince: data.ownedSince ?? null,
+    priceAtPurchase: data.priceAtPurchase ?? undefined,
+  } as CollectionCard;
 }

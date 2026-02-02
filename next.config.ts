@@ -14,6 +14,18 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "assets.tcgdex.net",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.tcggo.com",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 };
