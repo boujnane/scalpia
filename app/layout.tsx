@@ -6,8 +6,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
 import { TokenProvider } from "@/context/TokenContext";
 import { CookieConsentProvider } from "@/context/CookieConsentContext";
+import { TutorialProvider } from "@/context/TutorialContext";
 import Footer from "@/components/layout/Footer";
 import CookieBanner from "@/components/CookieBanner";
+import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 import { PostHogProvider } from "./providers";
@@ -87,21 +89,24 @@ export default function RootLayout({
           <PostHogProvider>
             <AuthProvider>
               <TokenProvider>
-                <ThemeProvider
-                    attribute="class"
-                    defaultTheme="system"
-                    enableSystem
-                    disableTransitionOnChange
-                    >
-                    <Navbar />
-                    <main className="flex-1 w-full">
-                      {children}
-                      <SpeedInsights />
-                      <Analytics />
-                    </main>
-                    <Footer />
-                    <CookieBanner />
-                </ThemeProvider>
+                <TutorialProvider>
+                  <ThemeProvider
+                      attribute="class"
+                      defaultTheme="system"
+                      enableSystem
+                      disableTransitionOnChange
+                      >
+                      <Navbar />
+                      <main className="flex-1 w-full">
+                        {children}
+                        <SpeedInsights />
+                        <Analytics />
+                      </main>
+                      <Footer />
+                      <CookieBanner />
+                      <TutorialOverlay />
+                  </ThemeProvider>
+                </TutorialProvider>
               </TokenProvider>
             </AuthProvider>
           </PostHogProvider>

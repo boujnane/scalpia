@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Item } from "@/lib/analyse/types";
@@ -24,6 +24,34 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useTutorial, TutorialHelpButton, type TutorialStep } from "@/components/tutorial";
+
+/* ═══════════════════════════════════════════════════════════
+   Mini Tutorial - Vue Avancée (Pro only)
+═══════════════════════════════════════════════════════════ */
+const ADVANCED_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    id: "series-selector",
+    target: "[data-tutorial='series-selector']",
+    title: "Sélectionnez une série",
+    description: "Choisissez une série pour voir ses indicateurs financiers : Sharpe, Sortino, RSI, volatilité et plus.",
+    position: "bottom",
+  },
+  {
+    id: "sharpe-ranking",
+    target: "[data-tutorial='sharpe-ranking']",
+    title: "Top Sharpe Ratio",
+    description: "Les séries avec le meilleur rendement ajusté au risque. Un ratio > 1 est considéré comme excellent.",
+    position: "right",
+  },
+  {
+    id: "rsi-ranking",
+    target: "[data-tutorial='rsi-ranking']",
+    title: "RSI Survendu",
+    description: "Séries avec un RSI < 35, potentiellement sous-évaluées. Un signal d'opportunité d'achat.",
+    position: "left",
+  },
+];
 
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -77,8 +105,19 @@ interface SeriesAnalyticsProps {
 
 export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
   const { isPro } = useAuth();
+  const { startTutorial, hasCompleted, isActive } = useTutorial();
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+
+  // Mini tutoriel pour la vue avancée (Pro only)
+  useEffect(() => {
+    if (viewMode === "advanced" && isPro && !isActive && !hasCompleted("advanced-view")) {
+      const timer = setTimeout(() => {
+        startTutorial(ADVANCED_TUTORIAL_STEPS, "advanced-view");
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [viewMode, isPro, isActive, hasCompleted, startTutorial]);
   const [selectedBloc, setSelectedBloc] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [metricPeriod, setMetricPeriod] = useState<MetricPeriod>("return7d");
@@ -183,7 +222,7 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
           {/* Bottom row: Controls */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             {/* View mode toggle */}
-            <div className="flex items-center gap-1 p-1 rounded-lg bg-muted order-1 sm:order-none">
+            <div className="flex items-center gap-1 p-1 rounded-lg bg-muted order-1 sm:order-none" data-tutorial="series-view-modes">
               <button
                 onClick={() => setViewMode("grid")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
@@ -497,7 +536,7 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
 
             <div className={`p-4 space-y-4 ${!isPro ? "blur-[6px] pointer-events-none select-none" : ""}`}>
               {/* Series selector */}
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3" data-tutorial="series-selector">
               <Select
                 value={selectedSeries?.seriesName || ""}
                 onValueChange={(value) => {
@@ -524,6 +563,11 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
                   ))}
                 </SelectContent>
               </Select>
+              <TutorialHelpButton
+                steps={ADVANCED_TUTORIAL_STEPS}
+                tutorialKey="advanced-view"
+                label="Guide avancé"
+              />
             </div>
 
             {/* Selected series details */}
@@ -565,7 +609,7 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
 
             {/* Quick insights */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="border-border/50">
+              <Card className="border-border/50" data-tutorial="sharpe-ranking">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-success" />
@@ -597,7 +641,7 @@ export default function SeriesAnalytics({ items }: SeriesAnalyticsProps) {
                 </CardContent>
               </Card>
 
-              <Card className="border-border/50">
+              <Card className="border-border/50" data-tutorial="rsi-ranking">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-primary" />

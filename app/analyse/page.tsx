@@ -9,6 +9,7 @@ import SeriesAnalytics from "@/components/analyse/SeriesAnalytics";
 import { useSeriesFinance } from "@/hooks/useSeriesFinance";
 import { useAnalyseItems } from "@/hooks/useAnalyseItems";
 import { useAuth } from "@/context/AuthContext";
+import { useTutorial, TutorialHelpButton, type TutorialStep } from "@/components/tutorial";
 import {
   TrendingUp,
   TrendingDown,
@@ -22,6 +23,51 @@ import {
   Zap,
   X
 } from "lucide-react";
+
+const ANALYSE_TUTORIAL_STEPS: TutorialStep[] = [
+  {
+    id: "navigation",
+    target: "[data-tutorial='navigation']",
+    title: "Choisissez votre vue",
+    description: "Vue d'ensemble pour les tendances globales, ou Produits pour explorer boosters, displays et coffrets en détail.",
+    position: "bottom",
+  },
+  {
+    id: "isp-index",
+    target: "[data-tutorial='isp-index']",
+    title: "L'Index du marché",
+    description: "Le pouls du marché scellé français. Cet indicateur agrège tous les prix pour vous montrer la tendance générale en un coup d'œil.",
+    position: "bottom",
+  },
+  {
+    id: "top-movers",
+    target: "[data-tutorial='top-movers']",
+    title: "Top des variations",
+    description: "Les séries qui bougent le plus cette semaine. Repérez rapidement les hausses et les baisses significatives.",
+    position: "top",
+  },
+  {
+    id: "pro-widgets",
+    target: "[data-tutorial='pro-widgets']",
+    title: "Indicateurs avancés",
+    description: "Sentiment, volatilité et signaux de marché. Des outils d'analyse réservés aux membres Pro.",
+    position: "top",
+  },
+  {
+    id: "series-analytics",
+    target: "[data-tutorial='series-analytics']",
+    title: "Analyse par série",
+    description: "Filtrez par ère, triez par performance et visualisez les tendances. Cliquez sur une série pour accéder à ses métriques détaillées.",
+    position: "top",
+  },
+  {
+    id: "series-view-modes",
+    target: "[data-tutorial='series-view-modes']",
+    title: "Modes d'affichage",
+    description: "Aperçu pour une vue rapide, Données pour un tableau complet, ou Avancé (Pro) pour des graphiques et métriques approfondies.",
+    position: "bottom",
+  },
+];
 import { ProWidget, ProBadge } from "@/components/analyse/ProWidget";
 import {
   MarketSentimentWidget,
@@ -37,6 +83,7 @@ export default function AnalysePage() {
   const [activeSection, setActiveSection] = useState<"overview" | "products">("overview");
   const [refreshing, setRefreshing] = useState(false);
   const [proBannerDismissed, setProBannerDismissed] = useState(false);
+  const { startTutorial, hasCompleted } = useTutorial();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -45,6 +92,16 @@ export default function AnalysePage() {
       setActiveSection("products");
     }
   }, []);
+
+  // Lancer le tutoriel au premier visit (après chargement des données)
+  useEffect(() => {
+    if (!loading && !hasCompleted("analyse")) {
+      const timer = setTimeout(() => {
+        startTutorial(ANALYSE_TUTORIAL_STEPS, "analyse");
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, hasCompleted, startTutorial]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -158,6 +215,12 @@ export default function AnalysePage() {
                   >
                     <RefreshCw className={`w-4 h-4 text-muted-foreground ${refreshing ? "animate-spin" : ""}`} />
                   </button>
+                  <TutorialHelpButton
+                    steps={ANALYSE_TUTORIAL_STEPS}
+                    tutorialKey="analyse"
+                    label="Guide"
+                    className="hidden sm:inline-flex"
+                  />
                 </div>
               </div>
               <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
@@ -234,7 +297,7 @@ export default function AnalysePage() {
       ═══════════════════════════════════════════════════════════ */}
       <nav className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/50">
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1 py-2">
+          <div className="flex items-center gap-1 py-2" data-tutorial="navigation">
             <button
               onClick={() => setActiveSection("overview")}
               className={`
@@ -280,12 +343,12 @@ export default function AnalysePage() {
           <div className="space-y-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
 
             {/* ISP Index - Hero metric (Visual weight = most important) */}
-            <section>
+            <section data-tutorial="isp-index">
               <ISPIndexCard items={items} />
             </section>
 
             {/* Top Movers - Accroche visuelle */}
-            <section className="space-y-4">
+            <section className="space-y-4" data-tutorial="top-movers">
               <div>
                 <h2 className="text-xl font-semibold text-foreground">Mouvements de la semaine</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">Séries avec les plus fortes variations</p>
@@ -294,7 +357,7 @@ export default function AnalysePage() {
             </section>
 
             {/* Indicateurs Pro - Widgets avancés */}
-            <section className="space-y-4">
+            <section className="space-y-4" data-tutorial="pro-widgets">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold text-foreground">Indicateurs avancés</h2>
                 <ProBadge />
@@ -346,7 +409,7 @@ export default function AnalysePage() {
             </section>
 
             {/* Analyse des séries - Composant unifié */}
-            <section className="space-y-4">
+            <section className="space-y-4" data-tutorial="series-analytics">
               <div>
                 <h2 className="text-xl font-semibold text-foreground">Analyse des séries</h2>
                 <p className="text-sm text-muted-foreground mt-0.5">Performance, données et métriques avancées</p>
