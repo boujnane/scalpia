@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTutorial } from "@/context/TutorialContext";
 import { Button } from "@/components/ui/button";
@@ -30,8 +30,15 @@ export function TutorialOverlay() {
     arrowOffset: 50
   });
 
+  // Prevent scroll loop
+  const isScrollingRef = useRef(false);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const updateTargetPosition = useCallback(() => {
     if (!currentStep) return;
+
+    // Skip if we're in the middle of a programmatic scroll
+    if (isScrollingRef.current) return;
 
     const element = document.querySelector(currentStep.target);
     if (!element) {
@@ -39,16 +46,30 @@ export function TutorialOverlay() {
       return;
     }
 
-    // Scroll vers l'élément si hors écran
     const rect = element.getBoundingClientRect();
+
+    // Check if element is reasonably in viewport (with some tolerance for mobile)
+    const tolerance = 50;
     const isInViewport =
-      rect.top >= 0 &&
-      rect.bottom <= window.innerHeight;
+      rect.top >= -tolerance &&
+      rect.bottom <= window.innerHeight + tolerance;
 
     if (!isInViewport) {
+      // Set flag to prevent scroll event from re-triggering
+      isScrollingRef.current = true;
+
       element.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Recalculer après scroll
-      setTimeout(() => updateTargetPosition(), 400);
+
+      // Clear any existing timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      // Reset flag after scroll animation completes
+      scrollTimeoutRef.current = setTimeout(() => {
+        isScrollingRef.current = false;
+        updateTargetPosition();
+      }, 500);
       return;
     }
 
@@ -132,13 +153,29 @@ export function TutorialOverlay() {
     // Petit délai pour laisser le DOM se stabiliser
     const timer = setTimeout(updateTargetPosition, 100);
 
+    // Throttled scroll handler to prevent performance issues
+    let scrollRafId: number | null = null;
+    const handleScroll = () => {
+      if (scrollRafId) return;
+      scrollRafId = requestAnimationFrame(() => {
+        updateTargetPosition();
+        scrollRafId = null;
+      });
+    };
+
     window.addEventListener("resize", updateTargetPosition);
-    window.addEventListener("scroll", updateTargetPosition, true);
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       clearTimeout(timer);
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      if (scrollRafId) {
+        cancelAnimationFrame(scrollRafId);
+      }
       window.removeEventListener("resize", updateTargetPosition);
-      window.removeEventListener("scroll", updateTargetPosition, true);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [isActive, currentStep, currentStepIndex, updateTargetPosition]);
 

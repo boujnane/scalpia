@@ -608,30 +608,30 @@ export default function MaCollectionPage() {
           <div className="flex flex-col gap-6">
             {/* Title row */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/20">
-                  <Icons.collection className="w-6 h-6 text-primary" />
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-primary/20 shrink-0">
+                  <Icons.collection className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                 </div>
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                <div className="min-w-0">
+                  <h1 className="text-xl sm:text-3xl font-bold text-foreground tracking-tight truncate">
                     Ma Collection
                   </h1>
-                  <p className="text-sm text-muted-foreground">
-                    {summary.totalItems} élément{summary.totalItems > 1 ? "s" : ""} • {summary.totalQuantity} exemplaire{summary.totalQuantity > 1 ? "s" : ""}
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                    {summary.totalItems} élément{summary.totalItems > 1 ? "s" : ""} • {summary.totalQuantity} ex.
                   </p>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   <AddItemSearchDialog
-                    buttonLabel="Ajouter un produit"
+                    buttonLabel="Produit"
                     buttonVariant="default"
-                    buttonClassName="w-fit h-8"
+                    buttonClassName="h-8 text-xs sm:text-sm"
                   />
                   <AddCardSearchDialog
-                    buttonLabel="Ajouter une carte"
+                    buttonLabel="Carte"
                     buttonVariant="outline"
-                    buttonClassName="w-fit h-8"
+                    buttonClassName="h-8 text-xs sm:text-sm"
                   />
                   <Button
                     variant="outline"
@@ -640,15 +640,15 @@ export default function MaCollectionPage() {
                       await refreshAnalyseItems();
                       await refreshCollection();
                     }}
-                    className="w-fit"
+                    className="h-8"
                   >
-                    <Icons.refreshCw className="w-4 h-4 mr-2" />
-                    Actualiser
+                    <Icons.refreshCw className="w-4 h-4" />
+                    <span className="hidden sm:inline ml-2">Actualiser</span>
                   </Button>
                 </div>
                 {lastUpdatedLabel && (
-                  <p className="text-xs text-muted-foreground">
-                    Dernière MAJ : {lastUpdatedLabel}
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">
+                    MAJ : {lastUpdatedLabel}
                   </p>
                 )}
               </div>
@@ -852,18 +852,17 @@ export default function MaCollectionPage() {
             {/* ─────────────────────────────────────────────────────────
                 TOOLBAR
             ───────────────────────────────────────────────────────── */}
-            <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/80 backdrop-blur border-b border-border/50">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                  {/* Search & Filters */}
-                  <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                  <div className="relative flex-1 sm:flex-none sm:w-72">
+            <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/95 backdrop-blur-md border-b border-border/50">
+              <div className="flex flex-col gap-2 sm:gap-3">
+                {/* Row 1: Search + Category Toggle */}
+                <div className="flex gap-2 items-center">
+                  <div className="relative flex-1 min-w-0">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       placeholder="Rechercher..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
+                      className="pl-9 h-9 text-sm"
                     />
                   </div>
                   <ToggleGroup
@@ -872,31 +871,36 @@ export default function MaCollectionPage() {
                     onValueChange={(v) => v && setFilterCategory(v as CategoryFilter)}
                     variant="outline"
                     size="sm"
-                    className="flex"
+                    className="shrink-0"
                   >
-                    <ToggleGroupItem value="all">Tous</ToggleGroupItem>
-                    <ToggleGroupItem value="item">Produits</ToggleGroupItem>
-                    <ToggleGroupItem value="card">Cartes</ToggleGroupItem>
+                    <ToggleGroupItem value="all" className="text-xs px-2">Tous</ToggleGroupItem>
+                    <ToggleGroupItem value="item" className="text-xs px-2 hidden xs:inline-flex">Produits</ToggleGroupItem>
+                    <ToggleGroupItem value="card" className="text-xs px-2 hidden xs:inline-flex">Cartes</ToggleGroupItem>
                   </ToggleGroup>
+                </div>
+
+                {/* Row 2: Bloc filter + Sort + View */}
+                <div className="flex gap-2 items-center justify-between">
                   <Select value={filterBloc} onValueChange={setFilterBloc}>
-                    <SelectTrigger className="w-[200px]">
-                      <SelectValue placeholder="Tous les blocs / séries" />
+                    <SelectTrigger className="w-auto max-w-[180px] sm:max-w-[200px] h-8 text-xs sm:text-sm">
+                      <SelectValue placeholder="Série / Bloc" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous les blocs / séries</SelectItem>
+                      <SelectItem value="all">Tous les blocs</SelectItem>
                       {blocs.map((bloc) => (
-                        <SelectItem key={bloc} value={bloc}>{bloc}</SelectItem>
+                        <SelectItem key={bloc} value={bloc} className="text-sm truncate">
+                          {bloc}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  </div>
 
-                  {/* View Toggle & Sort */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
-                      <SelectTrigger className="w-[150px]">
-                        <ArrowUpDown className="w-4 h-4 mr-2" />
-                        <SelectValue />
+                      <SelectTrigger className="w-auto h-8 text-xs sm:text-sm">
+                        <ArrowUpDown className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                        <span className="hidden sm:inline"><SelectValue /></span>
+                        <span className="sm:hidden">Tri</span>
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="addedAt">Date d'ajout</SelectItem>
@@ -905,25 +909,19 @@ export default function MaCollectionPage() {
                         <SelectItem value="name">Nom</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon-sm"
-                          onClick={() => setSortDirection((d) => (d === "desc" ? "asc" : "desc"))}
-                          aria-label="Changer l'ordre de tri"
-                        >
-                          {sortDirection === "desc" ? (
-                            <ArrowDown className="w-4 h-4" />
-                          ) : (
-                            <ArrowUp className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {sortDirection === "desc" ? "Tri décroissant" : "Tri croissant"}
-                      </TooltipContent>
-                    </Tooltip>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => setSortDirection((d) => (d === "desc" ? "asc" : "desc"))}
+                      aria-label="Changer l'ordre de tri"
+                    >
+                      {sortDirection === "desc" ? (
+                        <ArrowDown className="w-4 h-4" />
+                      ) : (
+                        <ArrowUp className="w-4 h-4" />
+                      )}
+                    </Button>
                     <ToggleGroup
                       type="single"
                       value={viewMode}

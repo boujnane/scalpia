@@ -247,11 +247,11 @@ export function AddCardToCollectionDialog({
           <Button
             type="button"
             variant="ghost"
-            className="w-full justify-start text-muted-foreground"
+            className="w-full justify-start items-start text-left whitespace-normal h-auto py-2 text-muted-foreground"
             onClick={() => setShowPurchaseFields(!showPurchaseFields)}
           >
             <Icons.chevronDown
-              className={`w-4 h-4 mr-2 transition-transform ${showPurchaseFields ? "rotate-180" : ""}`}
+              className={`w-4 h-4 mr-2 mt-0.5 transition-transform ${showPurchaseFields ? "rotate-180" : ""}`}
             />
             {showPurchaseFields ? "Masquer" : "Ajouter"} les informations d'achat (optionnel)
           </Button>

@@ -103,16 +103,16 @@ export function SeriesGrid({
   return (
     <div className="space-y-6">
       {/* Series Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
         {seriesData.map((series, index) => (
           <motion.button
             key={series.setName}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.3 }}
+            transition={{ delay: index * 0.03, duration: 0.25 }}
             onClick={() => handleToggle(series.setName)}
             className={cn(
-              "group relative flex flex-col items-center p-4 rounded-2xl border transition-all duration-300",
+              "group relative flex flex-col items-center p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-300",
               "bg-card hover:bg-card/80",
               expandedSeries === series.setName
                 ? "border-primary ring-2 ring-primary/20 shadow-lg shadow-primary/10"
@@ -120,37 +120,37 @@ export function SeriesGrid({
             )}
           >
             {/* Series Logo */}
-            <div className="relative w-16 h-16 mb-3 flex items-center justify-center">
+            <div className="relative w-10 h-10 sm:w-16 sm:h-16 mb-2 sm:mb-3 flex items-center justify-center">
               {series.setImage ? (
                 <Image
                   src={series.setImage}
                   alt={series.setName}
                   fill
-                  sizes="64px"
+                  sizes="(max-width: 640px) 40px, 64px"
                   className="object-contain group-hover:scale-110 transition-transform duration-300"
                 />
               ) : (
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
-                  <Layers className="w-6 h-6 text-primary" />
+                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
+                  <Layers className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
                 </div>
               )}
             </div>
 
             {/* Series Name */}
-            <h4 className="text-xs font-semibold text-center line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+            <h4 className="text-[10px] sm:text-xs font-semibold text-center line-clamp-2 mb-1.5 sm:mb-2 group-hover:text-primary transition-colors leading-tight">
               {series.setName}
             </h4>
 
             {/* Card Count */}
             <Badge
               variant="secondary"
-              className="mb-2 text-[10px] px-2 py-0.5"
+              className="mb-1.5 sm:mb-2 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0"
             >
               {series.cards.length} carte{series.cards.length > 1 ? "s" : ""}
             </Badge>
 
             {/* Value */}
-            <p className="text-sm font-bold text-primary tabular-nums">
+            <p className="text-xs sm:text-sm font-bold text-primary tabular-nums">
               {series.totalValue.toFixed(0)} €
             </p>
 
@@ -158,14 +158,14 @@ export function SeriesGrid({
             {series.totalCost > 0 && (
               <div
                 className={cn(
-                  "flex items-center gap-0.5 text-[10px] font-semibold mt-1",
+                  "flex items-center gap-0.5 text-[9px] sm:text-[10px] font-semibold mt-0.5 sm:mt-1",
                   series.profitLoss >= 0 ? "text-success" : "text-destructive"
                 )}
               >
                 {series.profitLoss >= 0 ? (
-                  <TrendingUp className="w-3 h-3" />
+                  <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 ) : (
-                  <TrendingDown className="w-3 h-3" />
+                  <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 )}
                 {series.profitLoss >= 0 ? "+" : ""}
                 {series.profitLossPercent.toFixed(0)}%
@@ -175,7 +175,7 @@ export function SeriesGrid({
             {/* Expand indicator */}
             <ChevronDown
               className={cn(
-                "absolute bottom-2 right-2 w-4 h-4 text-muted-foreground transition-transform duration-300",
+                "absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground transition-transform duration-300",
                 expandedSeries === series.setName && "rotate-180 text-primary"
               )}
             />

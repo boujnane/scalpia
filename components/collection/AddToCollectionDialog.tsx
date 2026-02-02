@@ -79,10 +79,10 @@ export function AddToCollectionDialog({
   if (!authLoading && !user) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
-            <DialogTitle>Connexion requise</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-left leading-snug break-words">Connexion requise</DialogTitle>
+            <DialogDescription className="text-left break-words">
               Connectez-vous pour ajouter des articles à votre collection.
             </DialogDescription>
           </DialogHeader>
@@ -99,8 +99,12 @@ export function AddToCollectionDialog({
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="font-semibold truncate">{item.type} {item.name}</p>
-                <p className="text-sm text-muted-foreground">{item.bloc}</p>
+                <p className="font-semibold leading-snug break-words sm:truncate">
+                  {item.type} {item.name}
+                </p>
+                <p className="text-sm text-muted-foreground break-words sm:truncate">
+                  {item.bloc}
+                </p>
               </div>
             </div>
           </div>
@@ -122,13 +126,13 @@ export function AddToCollectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-left leading-snug break-words">
             <Icons.collection className="w-5 h-5 text-primary" />
             {isAlreadyInCollection ? "Ajouter des exemplaires" : "Ajouter à ma collection"}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-left break-words">
             {isAlreadyInCollection
               ? "Cet article est déjà dans votre collection. Ajoutez des exemplaires supplémentaires."
               : "Ajoutez cet article à votre collection personnelle."}
@@ -149,8 +153,12 @@ export function AddToCollectionDialog({
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate">{item.type} {item.name}</p>
-              <p className="text-sm text-muted-foreground">{item.bloc}</p>
+              <p className="font-semibold leading-snug break-words sm:truncate">
+                {item.type} {item.name}
+              </p>
+              <p className="text-sm text-muted-foreground break-words sm:truncate">
+                {item.bloc}
+              </p>
             </div>
           </div>
 
@@ -228,11 +236,11 @@ export function AddToCollectionDialog({
           <Button
             type="button"
             variant="ghost"
-            className="w-full justify-start text-muted-foreground"
+            className="w-full justify-start items-start text-left whitespace-normal h-auto py-2 text-muted-foreground"
             onClick={() => setShowPurchaseFields(!showPurchaseFields)}
           >
             <Icons.chevronDown
-              className={`w-4 h-4 mr-2 transition-transform ${showPurchaseFields ? "rotate-180" : ""}`}
+              className={`w-4 h-4 mr-2 mt-0.5 transition-transform ${showPurchaseFields ? "rotate-180" : ""}`}
             />
             {showPurchaseFields ? "Masquer" : "Ajouter"} les informations d'achat (optionnel)
           </Button>
