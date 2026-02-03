@@ -5,6 +5,7 @@ export const SET_MAPPING: Record<string, string> = {
   "phantasmal-flames": "me02",
   "mega-evolution": "me01",
   "ascended-heroes": "me02.5",
+  "heroes-ascendants": "me02.5",
   "black-bolt": "sv10.5b",
   "white-flare": "sv10.5w",
 

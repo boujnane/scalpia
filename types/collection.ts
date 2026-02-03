@@ -31,6 +31,8 @@ export type CollectionCard = {
   category: "card";
   cardId: string;
   cardmarketId?: number;
+  cardmarketUrl?: string | null;
+  tcggoUrl?: string | null;
   cardName: string;
   cardImage: string;
   cardNumber?: string;

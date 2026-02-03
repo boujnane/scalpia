@@ -1,12 +1,13 @@
 // hooks/useCollection.ts
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/context/AuthContext";
 import {
   getCollectionEntries,
   addToCollection,
   addCardToCollection,
+  updateCollectionEntry,
   updateCollectionItem,
   removeFromCollection,
   getCollectionSnapshots,
@@ -45,6 +46,12 @@ type UseCollectionReturn = {
   refresh: () => Promise<void>;
   isInCollection: (item: Item) => boolean;
   isCardInCollection: (card: CMCard) => boolean;
+};
+
+const ensureCardmarketLanguage = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  if (url.includes("language=2")) return url;
+  return url.includes("?") ? `${url}&language=2` : `${url}?language=2`;
 };
 
 /**
@@ -127,6 +134,8 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [cardPrices, setCardPrices] = useState<Record<number, number | null>>({});
+  const [cardLinks, setCardLinks] = useState<Record<number, string | null>>({});
+  const scrapedCardsRef = useRef<Set<string>>(new Set());
 
   // Create a map of itemId to Item for quick lookup
   const itemsMap = useMemo(() => {
@@ -248,10 +257,12 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
   useEffect(() => {
     if (!user) {
       setCardPrices({});
+      setCardLinks({});
       return;
     }
     if (cardmarketIds.length === 0) {
       setCardPrices({});
+      setCardLinks({});
       return;
     }
 
@@ -260,6 +271,7 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
     const fetchCardPrices = async () => {
       try {
         const nextPrices: Record<number, number | null> = {};
+        const nextLinks: Record<number, string | null> = {};
         const chunks: number[][] = [];
         for (let i = 0; i < cardmarketIds.length; i += 50) {
           chunks.push(cardmarketIds.slice(i, i + 50));
@@ -282,12 +294,17 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
             const id = Number(rawId);
             if (Number.isNaN(id)) continue;
             const price = card?.prices?.fr ?? card?.prices?.avg7 ?? null;
+            const link = card?.cardmarket_url ?? card?.cardmarketUrl ?? null;
             nextPrices[id] = typeof price === "number" ? price : null;
+            nextLinks[id] = typeof link === "string"
+              ? (link.includes("?") ? `${link}&language=2` : `${link}?language=2`)
+              : null;
           }
         }
 
         if (!cancelled) {
           setCardPrices(nextPrices);
+          setCardLinks(nextLinks);
         }
       } catch (err) {
         console.error("Error fetching card prices:", err);
@@ -301,10 +318,86 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
     };
   }, [user, cardmarketIdsKey, cardmarketIds]);
 
+  useEffect(() => {
+    if (!user || collectionCards.length === 0) return;
+
+    const candidates = collectionCards.filter((card) => {
+      const id = extractCardmarketId(card);
+      if (id === null) return false;
+      if (scrapedCardsRef.current.has(card.cardId)) return false;
+      return !card.cardmarketUrl || !card.tcggoUrl;
+    });
+
+    if (candidates.length === 0) return;
+
+    let cancelled = false;
+
+    const run = async () => {
+      const queue = [...candidates];
+      const updated: string[] = [];
+      const concurrency = Math.min(4, queue.length);
+
+      const worker = async () => {
+        while (queue.length > 0) {
+          const card = queue.shift();
+          if (!card) return;
+          if (scrapedCardsRef.current.has(card.cardId)) continue;
+          scrapedCardsRef.current.add(card.cardId);
+
+          const cardmarketId = extractCardmarketId(card);
+          if (cardmarketId === null) continue;
+
+          try {
+            const res = await fetch(`/api/cardmarket/cards/${cardmarketId}?scrape=1`, {
+              cache: "no-store",
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok || !data) continue;
+
+            const rawUrl = data?.cardmarket_url ?? data?.cardmarketUrl ?? null;
+            const nextUrl = typeof rawUrl === "string"
+              ? (rawUrl.includes("?") ? `${rawUrl}&language=2` : `${rawUrl}?language=2`)
+              : null;
+            const nextTcggo = data?.tcggo_url ?? data?.tcggoUrl ?? null;
+            const updates: Record<string, unknown> = {};
+
+            if (nextUrl && !card.cardmarketUrl) updates.cardmarketUrl = nextUrl;
+            if (nextTcggo && !card.tcggoUrl) updates.tcggoUrl = nextTcggo;
+
+            if (Object.keys(updates).length > 0) {
+              await updateCollectionEntry(user.uid, card.cardId, updates);
+              updated.push(card.cardId);
+            }
+          } catch {
+          }
+        }
+      };
+
+      await Promise.all(Array.from({ length: concurrency }, worker));
+
+      if (!cancelled && updated.length > 0) {
+        await fetchCollection();
+      }
+    };
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, collectionCards, fetchCollection]);
+
   const cardsWithPrices = useMemo((): CollectionCardWithPrice[] => {
     return collectionCards.map((card) => {
       const cardmarketId = extractCardmarketId(card);
       const currentPrice = cardmarketId !== null ? cardPrices[cardmarketId] ?? null : null;
+      const rawUrl = cardmarketId !== null
+        ? cardLinks[cardmarketId] ?? card.cardmarketUrl ?? null
+        : card.cardmarketUrl ?? null;
+      const cardmarketUrl = ensureCardmarketLanguage(rawUrl);
+      const tcggoUrl = card.cardmarketUrl && card.tcggoUrl
+        ? card.tcggoUrl
+        : card.tcggoUrl ?? null;
       const currentValue = currentPrice !== null ? currentPrice * card.quantity : null;
       const costBasis = getCardCostBasis(card);
       const profitLoss = currentValue !== null && costBasis !== null
@@ -316,13 +409,15 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
 
       return {
         ...card,
+        cardmarketUrl,
+        tcggoUrl,
         currentPrice,
         currentValue,
         profitLoss,
         profitLossPercent,
       };
     });
-  }, [collectionCards, cardPrices]);
+  }, [collectionCards, cardPrices, cardLinks]);
 
   const entriesWithPrices = useMemo(
     () => [...itemsWithPrices, ...cardsWithPrices],

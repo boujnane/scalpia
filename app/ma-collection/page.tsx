@@ -113,11 +113,13 @@ export default function MaCollectionPage() {
   const [deletingEntry, setDeletingEntry] = useState<CollectionEntryWithPrice | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [setLogosByName, setSetLogosByName] = useState<Record<string, string>>({});
+  const [seriesBySetName, setSeriesBySetName] = useState<Record<string, string>>({});
 
   // UI State
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [filterCategory, setFilterCategory] = useState<CategoryFilter>("all");
   const [filterBloc, setFilterBloc] = useState<string>("all");
+  const [filterSeries, setFilterSeries] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("addedAt");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
   const [searchQuery, setSearchQuery] = useState("");
@@ -138,53 +140,117 @@ export default function MaCollectionPage() {
 
   useEffect(() => {
     if (cards.length === 0) return;
-    if (Object.keys(setLogosByName).length > 0) return;
+    if (
+      Object.keys(setLogosByName).length > 0 &&
+      Object.keys(seriesBySetName).length > 0
+    ) return;
     let cancelled = false;
 
-    const fetchSetLogos = async () => {
+    const fetchSetMeta = async () => {
       try {
         const res = await fetch("/api/cardmarket/sets/available");
         const data = await res.json().catch(() => null);
         const sets: CMSet[] = Array.isArray(data) ? data : data?.data || [];
-        const next: Record<string, string> = {};
+        const nextSetLogos: Record<string, string> = {};
+        const nextSeriesBySet: Record<string, string> = {};
 
         for (const set of sets) {
           const frName = mapSetNameToFR(set.name);
-          if (!set.logo) continue;
-          if (!next[set.name]) {
-            next[set.name] = set.logo;
-          }
-          if (!next[frName]) {
-            next[frName] = set.logo;
+          const seriesName = set.series?.name ?? "Other";
+          nextSeriesBySet[set.name] = seriesName;
+          nextSeriesBySet[frName] = seriesName;
+          if (set.logo) {
+            if (!nextSetLogos[set.name]) nextSetLogos[set.name] = set.logo;
+            if (!nextSetLogos[frName]) nextSetLogos[frName] = set.logo;
           }
         }
 
         if (!cancelled) {
-          setSetLogosByName(next);
+          setSetLogosByName(nextSetLogos);
+          setSeriesBySetName(nextSeriesBySet);
         }
       } catch (err) {
         console.error("Erreur chargement logos séries:", err);
       }
     };
 
-    fetchSetLogos();
+    fetchSetMeta();
 
     return () => {
       cancelled = true;
     };
-  }, [cards.length, setLogosByName]);
+  }, [cards.length, setLogosByName, seriesBySetName]);
 
-  // Get unique blocs for filter
-  const blocs = useMemo(() => {
+  const normalizeKey = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const SERIES_TO_BLOC_RAW: Record<string, string> = {
+    "Scarlet & Violet": "EV",
+    "Sword & Shield": "EB",
+    "Sun & Moon": "SL",
+    "Mega Evolution": "MEG",
+    "Ascended Heroes": "MEG",
+  };
+
+  const SERIES_TO_BLOC: Record<string, string> = Object.fromEntries(
+    Object.entries(SERIES_TO_BLOC_RAW).map(([key, value]) => [normalizeKey(key), value])
+  );
+
+  const mapSeriesToBloc = (seriesName?: string | null): string | null => {
+    if (!seriesName) return null;
+    const key = normalizeKey(seriesName);
+    return SERIES_TO_BLOC[key] ?? null;
+  };
+
+  const getCardSetLabel = (card: CollectionCardWithPrice) => {
+    const rawSet = card.setName ?? "";
+    return mapSetNameToFR(rawSet);
+  };
+
+  const getCardBloc = (card: CollectionCardWithPrice) => {
+    const rawSet = card.setName ?? "";
+    const frSet = mapSetNameToFR(rawSet);
+    const seriesName = seriesBySetName[rawSet] ?? seriesBySetName[frSet];
+    return mapSeriesToBloc(seriesName);
+  };
+
+  const blocOptions = useMemo(() => {
     const uniqueBlocs = new Set<string>();
     for (const item of items) {
-      uniqueBlocs.add(item.itemBloc);
+      if (item.itemBloc) uniqueBlocs.add(item.itemBloc);
     }
     for (const card of cards) {
-      uniqueBlocs.add(mapSetNameToFR(card.setName));
+      const bloc = getCardBloc(card);
+      if (bloc) uniqueBlocs.add(bloc);
     }
-    return Array.from(uniqueBlocs).sort();
-  }, [items, cards]);
+    const order = ["SL", "EB", "EV", "MEG"];
+    const inOrder = order.filter((b) => uniqueBlocs.has(b));
+    const rest = Array.from(uniqueBlocs).filter((b) => !order.includes(b)).sort();
+    return [...inOrder, ...rest];
+  }, [items, cards, seriesBySetName]);
+
+  const cardSeries = useMemo(() => {
+    const uniqueSeries = new Set<string>();
+    for (const card of cards) {
+      uniqueSeries.add(getCardSetLabel(card));
+    }
+    return Array.from(uniqueSeries).sort();
+  }, [cards]);
+
+  const normalizeText = (value: string) =>
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
 
   // Filter and sort items
   const filteredItems = useMemo(() => {
@@ -208,6 +274,15 @@ export default function MaCollectionPage() {
       result = result.filter((i) => i.itemBloc === filterBloc);
     }
 
+    // Série filter (match sur le nom/type qui contient la série)
+    if (filterSeries !== "all") {
+      const seriesQuery = normalizeText(filterSeries);
+      result = result.filter((i) => {
+        const haystack = normalizeText(`${i.itemType} ${i.itemName}`);
+        return haystack.includes(seriesQuery);
+      });
+    }
+
     // Sort
     result.sort((a, b) => {
       let comparison = 0;
@@ -228,7 +303,7 @@ export default function MaCollectionPage() {
     });
 
     return result;
-  }, [items, filterCategory, filterBloc, sortKey, sortDirection, searchQuery]);
+  }, [items, filterCategory, filterBloc, filterSeries, sortKey, sortDirection, searchQuery]);
 
   const filteredCards = useMemo(() => {
     if (filterCategory === "item") return [];
@@ -252,7 +327,11 @@ export default function MaCollectionPage() {
     }
 
     if (filterBloc !== "all") {
-      result = result.filter((c) => mapSetNameToFR(c.setName) === filterBloc);
+      result = result.filter((c) => getCardBloc(c) === filterBloc);
+    }
+
+    if (filterSeries !== "all") {
+      result = result.filter((c) => getCardSetLabel(c) === filterSeries);
     }
 
     result.sort((a, b) => {
@@ -274,12 +353,12 @@ export default function MaCollectionPage() {
     });
 
     return result;
-  }, [cards, filterCategory, filterBloc, sortKey, sortDirection, searchQuery]);
+  }, [cards, filterCategory, filterBloc, filterSeries, sortKey, sortDirection, searchQuery, seriesBySetName]);
 
   const groupedCards = useMemo(() => {
     const groups = new Map<string, CollectionCardWithPrice[]>();
     for (const card of filteredCards) {
-      const key = mapSetNameToFR(card.setName);
+      const key = getCardSetLabel(card);
       const existing = groups.get(key);
       if (existing) {
         existing.push(card);
@@ -384,6 +463,7 @@ export default function MaCollectionPage() {
 
   const hasSearch = searchQuery.trim().length > 0;
   const hasBlocFilter = filterBloc !== "all";
+  const hasSeriesFilter = filterSeries !== "all";
   const hasCategoryFilter = filterCategory !== "all";
   const hasCustomSort = sortKey !== "addedAt" || sortDirection !== "desc";
   const showItemsSection = filterCategory !== "card";
@@ -526,6 +606,7 @@ export default function MaCollectionPage() {
     setSearchQuery("");
     setFilterCategory("all");
     setFilterBloc("all");
+    setFilterSeries("all");
     setSortKey("addedAt");
     setSortDirection("desc");
   };
@@ -657,7 +738,7 @@ export default function MaCollectionPage() {
             {/* KPI Cards */}
             {totalEntries > 0 && (
               <div className="space-y-2">
-                {(hasSearch || hasBlocFilter || hasCategoryFilter) && (
+                {(hasSearch || hasBlocFilter || hasSeriesFilter || hasCategoryFilter) && (
                   <p className="text-xs text-muted-foreground">
                     Valeurs filtrées ({filteredSummary.totalItems} élément{filteredSummary.totalItems > 1 ? "s" : ""} • {filteredSummary.totalQuantity} exemplaire{filteredSummary.totalQuantity > 1 ? "s" : ""})
                   </p>
@@ -879,21 +960,37 @@ export default function MaCollectionPage() {
                   </ToggleGroup>
                 </div>
 
-                {/* Row 2: Bloc filter + Sort + View */}
-                <div className="flex gap-2 items-center justify-between">
-                  <Select value={filterBloc} onValueChange={setFilterBloc}>
-                    <SelectTrigger className="w-auto max-w-[180px] sm:max-w-[200px] h-8 text-xs sm:text-sm">
-                      <SelectValue placeholder="Série / Bloc" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Tous les blocs</SelectItem>
-                      {blocs.map((bloc) => (
-                        <SelectItem key={bloc} value={bloc} className="text-sm truncate">
-                          {bloc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                {/* Row 2: Bloc + Série + Sort + View */}
+                <div className="flex gap-2 items-center justify-between flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Select value={filterBloc} onValueChange={setFilterBloc}>
+                      <SelectTrigger className="w-auto max-w-[160px] sm:max-w-[180px] h-8 text-xs sm:text-sm">
+                        <SelectValue placeholder="Bloc" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les blocs</SelectItem>
+                        {blocOptions.map((bloc) => (
+                          <SelectItem key={bloc} value={bloc} className="text-sm truncate">
+                            {bloc}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={filterSeries} onValueChange={setFilterSeries}>
+                      <SelectTrigger className="w-auto max-w-[180px] sm:max-w-[220px] h-8 text-xs sm:text-sm">
+                        <SelectValue placeholder="Série" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Toutes les séries</SelectItem>
+                        {cardSeries.map((series) => (
+                          <SelectItem key={series} value={series} className="text-sm truncate">
+                            {series}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
                   <div className="flex items-center gap-1.5">
                     <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
@@ -947,6 +1044,7 @@ export default function MaCollectionPage() {
                       {filteredCount} résultat{filteredCount > 1 ? "s" : ""}
                       {hasCategoryFilter && ` • ${categoryLabels[filterCategory]}`}
                       {hasBlocFilter && ` • ${filterBloc}`}
+                      {hasSeriesFilter && ` • ${filterSeries}`}
                     </Badge>
                     {hasSearch && (
                       <Button
@@ -982,6 +1080,17 @@ export default function MaCollectionPage() {
                         <Icons.close className="w-3 h-3" />
                       </Button>
                     )}
+                    {hasSeriesFilter && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 px-2 gap-1"
+                        onClick={() => setFilterSeries("all")}
+                      >
+                        {filterSeries}
+                        <Icons.close className="w-3 h-3" />
+                      </Button>
+                    )}
                     {hasCustomSort && (
                       <Button
                         variant="secondary"
@@ -997,7 +1106,7 @@ export default function MaCollectionPage() {
                       </Button>
                     )}
                   </div>
-                  {(hasSearch || hasBlocFilter || hasCategoryFilter || hasCustomSort) && (
+                  {(hasSearch || hasBlocFilter || hasSeriesFilter || hasCategoryFilter || hasCustomSort) && (
                     <Button variant="ghost" size="sm" className="h-7" onClick={handleResetFilters}>
                       Réinitialiser
                     </Button>

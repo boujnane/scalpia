@@ -167,15 +167,27 @@ const SETS_FR: Record<string, string> = {
 ======================= */
 
 function norm(s: string) {
-  return s.trim().toLowerCase().replace(/\s+/g, " ");
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const SETS_FR_NORM = Object.fromEntries(
   Object.entries(SETS_FR).map(([k, v]) => [norm(k), v])
 );
 
+const SETS_EN_FROM_FR_NORM = Object.fromEntries(
+  Object.entries(SETS_FR).map(([en, fr]) => [norm(fr), en])
+);
+
 // Set pour éviter de logger plusieurs fois le même nom manquant
 const loggedMissingSets = new Set<string>();
+const loggedMissingSetsFR = new Set<string>();
 
 export function mapSetNameToFR(name?: string | null) {
   if (!name) return "Set inconnu";
@@ -187,4 +199,16 @@ export function mapSetNameToFR(name?: string | null) {
   }
 
   return hit ?? name; // fallback EN safe
+}
+
+export function mapSetNameToEN(name?: string | null) {
+  if (!name) return "Unknown Set";
+  const hit = SETS_EN_FROM_FR_NORM[norm(name)];
+
+  if (!hit && !loggedMissingSetsFR.has(name)) {
+    loggedMissingSetsFR.add(name);
+    console.warn(`[SET FR MANQUANT] "${name}" → pas de traduction EN`);
+  }
+
+  return hit ?? name;
 }

@@ -96,91 +96,134 @@ export function SeriesGrid({
     [seriesData]
   );
 
+  const gridVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.06, delayChildren: 0.05 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 18, scale: 0.98 },
+    show: { opacity: 1, y: 0, scale: 1 },
+  };
+
   const handleToggle = (setName: string) => {
     setExpandedSeries((prev) => (prev === setName ? null : setName));
   };
 
   return (
     <div className="space-y-6">
-      {/* Series Grid */}
-      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
-        {seriesData.map((series, index) => (
-          <motion.button
-            key={series.setName}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.03, duration: 0.25 }}
-            onClick={() => handleToggle(series.setName)}
-            className={cn(
-              "group relative flex flex-col items-center p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border transition-all duration-300",
-              "bg-card hover:bg-card/80",
-              expandedSeries === series.setName
-                ? "border-primary ring-2 ring-primary/20 shadow-lg shadow-primary/10"
-                : "border-border hover:border-primary/40 hover:shadow-md"
-            )}
-          >
-            {/* Series Logo */}
-            <div className="relative w-10 h-10 sm:w-16 sm:h-16 mb-2 sm:mb-3 flex items-center justify-center">
-              {series.setImage ? (
-                <Image
-                  src={series.setImage}
-                  alt={series.setName}
-                  fill
-                  sizes="(max-width: 640px) 40px, 64px"
-                  className="object-contain group-hover:scale-110 transition-transform duration-300"
-                />
-              ) : (
-                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center">
-                  <Layers className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
-                </div>
-              )}
-            </div>
-
-            {/* Series Name */}
-            <h4 className="text-[10px] sm:text-xs font-semibold text-center line-clamp-2 mb-1.5 sm:mb-2 group-hover:text-primary transition-colors leading-tight">
-              {series.setName}
-            </h4>
-
-            {/* Card Count */}
-            <Badge
-              variant="secondary"
-              className="mb-1.5 sm:mb-2 text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0"
-            >
-              {series.cards.length} carte{series.cards.length > 1 ? "s" : ""}
-            </Badge>
-
-            {/* Value */}
-            <p className="text-xs sm:text-sm font-bold text-primary tabular-nums">
-              {series.totalValue.toFixed(0)} €
+      <div className="rounded-3xl border border-border/60 bg-gradient-to-br from-background via-background to-primary/5 p-4 sm:p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <h3 className="text-base sm:text-lg font-semibold">Galerie des séries</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Explore tes cartes par extension avec une vue immersive.
             </p>
+          </div>
+          <Badge variant="secondary" className="text-[10px] sm:text-xs">
+            {seriesData.length} séries • {totalCards} cartes
+          </Badge>
+        </div>
 
-            {/* Profit/Loss indicator */}
-            {series.totalCost > 0 && (
-              <div
-                className={cn(
-                  "flex items-center gap-0.5 text-[9px] sm:text-[10px] font-semibold mt-0.5 sm:mt-1",
-                  series.profitLoss >= 0 ? "text-success" : "text-destructive"
-                )}
-              >
-                {series.profitLoss >= 0 ? (
-                  <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                ) : (
-                  <TrendingDown className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                )}
-                {series.profitLoss >= 0 ? "+" : ""}
-                {series.profitLossPercent.toFixed(0)}%
-              </div>
-            )}
-
-            {/* Expand indicator */}
-            <ChevronDown
+        <motion.div
+          variants={gridVariants}
+          initial="hidden"
+          animate="show"
+          className="mt-4 grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3"
+        >
+          {seriesData.map((series) => (
+            <motion.button
+              key={series.setName}
+              variants={itemVariants}
+              onClick={() => handleToggle(series.setName)}
               className={cn(
-                "absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 w-3 h-3 sm:w-4 sm:h-4 text-muted-foreground transition-transform duration-300",
-                expandedSeries === series.setName && "rotate-180 text-primary"
+                "group relative flex h-full flex-col rounded-2xl border p-3 text-left transition-all duration-300",
+                "bg-card/80 hover:bg-card shadow-sm",
+                expandedSeries === series.setName
+                  ? "border-primary/60 ring-2 ring-primary/20 shadow-lg shadow-primary/10"
+                  : "border-border/60 hover:border-primary/40 hover:shadow-md"
               )}
-            />
-          </motion.button>
-        ))}
+            >
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+              <div className="relative z-10 flex items-start justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="relative h-10 w-10 rounded-xl bg-muted/40 border border-border/60 flex items-center justify-center overflow-hidden">
+                    {series.setImage ? (
+                      <Image
+                        src={series.setImage}
+                        alt={series.setName}
+                        fill
+                        sizes="40px"
+                        className="object-contain"
+                      />
+                    ) : (
+                      <Layers className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold leading-tight line-clamp-2">
+                      {series.setName}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {series.cards.length} carte{series.cards.length > 1 ? "s" : ""}
+                    </p>
+                  </div>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    "w-4 h-4 text-muted-foreground transition-transform duration-300",
+                    expandedSeries === series.setName && "rotate-180 text-primary"
+                  )}
+                />
+              </div>
+
+              <div className="relative z-10 mt-3 flex items-center gap-2">
+                <div className="flex -space-x-2">
+                  {series.cards.slice(0, 3).map((card) => (
+                    <div
+                      key={card.cardId}
+                      className="relative h-10 w-7 rounded-md border border-border/60 bg-muted/50 overflow-hidden"
+                    >
+                      {card.cardImage ? (
+                        <Image
+                          src={card.cardImage}
+                          alt={card.cardName}
+                          fill
+                          sizes="28px"
+                          className="object-contain"
+                        />
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                {series.cards.length > 3 && (
+                  <span className="text-[10px] text-muted-foreground">
+                    +{series.cards.length - 3}
+                  </span>
+                )}
+              </div>
+
+              <div className="relative z-10 mt-3 grid grid-cols-2 gap-2 text-[10px]">
+                <div className="space-y-0.5">
+                  <p className="text-muted-foreground">Valeur</p>
+                  <p className="font-semibold text-primary tabular-nums">
+                    {series.totalValue.toFixed(0)} €
+                  </p>
+                </div>
+                <div className="space-y-0.5 text-right">
+                  <p className="text-muted-foreground">ROI</p>
+                  <p className={cn("font-semibold tabular-nums", series.profitLoss >= 0 ? "text-success" : "text-destructive")}>
+                    {series.totalCost > 0 ? `${series.profitLossPercent.toFixed(0)}%` : "—"}
+                  </p>
+                </div>
+              </div>
+            </motion.button>
+          ))}
+        </motion.div>
       </div>
 
       {/* Expanded Cards View */}
@@ -194,21 +237,27 @@ export function SeriesGrid({
             transition={{ duration: 0.3 }}
             className="overflow-hidden scroll-mt-20"
           >
-            <div className="bg-card border border-border rounded-2xl p-4 sm:p-6">
+            <div className="bg-card border border-border rounded-3xl p-4 sm:p-6 shadow-lg shadow-primary/5">
               {/* Header */}
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-3">
-                  {setLogosByName[expandedSeries] && (
+                  {setLogosByName[expandedSeries] ? (
                     <img
                       src={setLogosByName[expandedSeries]}
                       alt={expandedSeries}
-                      className="h-8 w-auto object-contain"
+                      className="h-9 w-auto object-contain"
                     />
+                  ) : (
+                    <div className="h-9 w-9 rounded-xl bg-muted/50 border border-border/60 flex items-center justify-center">
+                      <Layers className="w-5 h-5 text-muted-foreground" />
+                    </div>
                   )}
                   <div>
                     <h3 className="font-semibold text-lg">{expandedSeries}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {seriesData.find((s) => s.setName === expandedSeries)?.cards.length} cartes
+                    <p className="text-xs text-muted-foreground">
+                      {seriesData.find((s) => s.setName === expandedSeries)?.cards.length} cartes •
+                      {" "}
+                      {seriesData.find((s) => s.setName === expandedSeries)?.totalValue.toFixed(0)} €
                     </p>
                   </div>
                 </div>
@@ -221,7 +270,7 @@ export function SeriesGrid({
                 </Button>
               </div>
 
-              {/* Cards Grid - Binder Style */}
+              {/* Cards Grid - Motion Gallery */}
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
                 {seriesData
                   .find((s) => s.setName === expandedSeries)
@@ -255,8 +304,6 @@ function CardTile({
   onEdit?: (card: CollectionCardWithPrice) => void;
   onDelete?: (card: CollectionCardWithPrice) => void;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   const hasProfitLoss =
     card.purchase?.totalCost ||
     card.purchase?.price ||
@@ -267,17 +314,15 @@ function CardTile({
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ delay: index * 0.02, duration: 0.2 }}
+      whileHover={{ y: -6, scale: 1.02 }}
       className="group relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       <div
         className={cn(
-          "relative aspect-[2.5/3.5] rounded-xl overflow-hidden border-2 transition-all duration-300 cursor-pointer",
-          "bg-gradient-to-br from-muted/50 to-muted/30",
-          isHovered
-            ? "border-primary shadow-xl shadow-primary/20 -translate-y-2 scale-105 z-10"
-            : "border-border/60"
+          "relative aspect-[2.5/3.5] rounded-2xl overflow-hidden border transition-all duration-300 cursor-pointer",
+          "bg-gradient-to-br from-muted/60 via-muted/40 to-muted/30",
+          "border-border/60",
+          "group-hover:border-primary/60 group-hover:shadow-xl group-hover:shadow-primary/20 group-hover:-translate-y-1 group-hover:z-10"
         )}
       >
         {/* Card Image */}
@@ -287,13 +332,16 @@ function CardTile({
             alt={card.cardName}
             fill
             sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 12vw"
-            className="object-contain p-1"
+            className="object-contain p-1.5"
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
             N/A
           </div>
         )}
+
+        {/* Gloss */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/15 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
         {/* Quantity Badge */}
         {card.quantity > 1 && (
@@ -311,7 +359,7 @@ function CardTile({
         {hasProfitLoss && card.profitLoss !== null && (
           <div
             className={cn(
-              "absolute top-1 left-1 flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold",
+              "absolute top-1 left-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-bold backdrop-blur",
               card.profitLoss >= 0
                 ? "bg-success/90 text-success-foreground"
                 : "bg-destructive/90 text-destructive-foreground"
@@ -328,73 +376,70 @@ function CardTile({
           </div>
         )}
 
-        {/* Hover Overlay */}
-        <AnimatePresence>
-          {isHovered && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col justify-end p-2"
+        {/* Action Rail */}
+        <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
+          {card.cardmarketUrl && (
+            <a
+              href={card.cardmarketUrl}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center justify-center rounded-md bg-black/70 text-white/90 p-1.5 backdrop-blur-sm transition hover:bg-black/90"
+              aria-label="Ouvrir sur Cardmarket"
             >
-              <p className="text-white text-[10px] font-semibold line-clamp-1">
-                {card.cardName}
-              </p>
-              {card.cardNumber && (
-                <p className="text-white/70 text-[8px]">#{card.cardNumber}</p>
-              )}
-              <p className="text-primary-foreground text-xs font-bold mt-1">
-                {card.currentPrice !== null
-                  ? `${card.currentPrice.toFixed(2)} €`
-                  : "N/A"}
-              </p>
-
-              {/* Action Buttons */}
-              <div className="flex gap-1 mt-2">
-                {onEdit && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="h-6 px-2 text-[10px] flex-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit(card);
-                    }}
-                  >
-                    <Icons.edit className="w-3 h-3 mr-1" />
-                    Modifier
-                  </Button>
-                )}
-                {onDelete && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="h-6 w-6 p-0"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(card);
-                    }}
-                  >
-                    <Icons.delete className="w-3 h-3" />
-                  </Button>
-                )}
-              </div>
-            </motion.div>
+              <Icons.external className="w-3 h-3" />
+            </a>
           )}
-        </AnimatePresence>
+          {onEdit && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit(card);
+              }}
+              className="inline-flex items-center justify-center rounded-md bg-black/70 text-white/90 p-1.5 backdrop-blur-sm transition hover:bg-black/90"
+              aria-label="Modifier la carte"
+            >
+              <Icons.edit className="w-3 h-3" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(card);
+              }}
+              className="inline-flex items-center justify-center rounded-md bg-destructive/80 text-white p-1.5 backdrop-blur-sm transition hover:bg-destructive"
+              aria-label="Supprimer la carte"
+            >
+              <Icons.delete className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
       </div>
 
-      {/* Card Name below (visible when not hovered) */}
-      <div
-        className={cn(
-          "mt-1.5 text-center transition-opacity duration-200",
-          isHovered && "opacity-0"
+      <div className="mt-2 space-y-0.5 text-center">
+        <p className="text-[10px] font-semibold truncate">{card.cardName}</p>
+        <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
+          <span className="tabular-nums">
+            {card.currentPrice !== null ? `${card.currentPrice.toFixed(2)} €` : "Prix indispo"}
+          </span>
+          {card.cardNumber && <span>· #{card.cardNumber}</span>}
+        </div>
+        {card.cardmarketUrl && (
+          <a
+            href={card.cardmarketUrl}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center justify-center gap-1 text-[9px] text-primary hover:text-primary/80 transition"
+          >
+            <Icons.external className="w-3 h-3" />
+            Cardmarket
+          </a>
         )}
-      >
-        <p className="text-[10px] font-medium truncate">{card.cardName}</p>
-        <p className="text-[9px] text-muted-foreground tabular-nums">
-          {card.currentPrice !== null ? `${card.currentPrice.toFixed(2)} €` : "—"}
-        </p>
       </div>
     </motion.div>
   );

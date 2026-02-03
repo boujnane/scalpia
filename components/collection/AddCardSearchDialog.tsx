@@ -35,6 +35,17 @@ export default function AddCardSearchDialog({
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const { isCardInCollection } = useCollection();
 
+  const getCardKey = (card: CMCard) => {
+    if (typeof card.cardmarketId === "number" && !Number.isNaN(card.cardmarketId)) {
+      return `cm-${card.cardmarketId}`;
+    }
+    const episodeName = card.episode?.name ?? "set-inconnu";
+    const cardNumber = card.card_number ?? "no-number";
+    return `tcg-${card.name}-${episodeName}-${cardNumber}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-");
+  };
+
   const handleSearch = async () => {
     if (!query.trim()) return;
 
@@ -43,14 +54,16 @@ export default function AddCardSearchDialog({
     setSearched(true);
 
     try {
-      const response = await fetch(`/api/cardmarket/search?q=${encodeURIComponent(query.trim())}`);
+      // API hybride : Cardmarket (IDs + prix) + TCGdex (noms FR)
+      const response = await fetch(`/api/cards/search?q=${encodeURIComponent(query.trim())}`);
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API error: ${response.status}`);
       }
       const data = await response.json();
 
-      // Map API response to CMCard format
-      const mappedCards: CMCard[] = (data.cards || data.data || []).map((card: Record<string, unknown>) => ({
+      // Map API response to CMCard format (structure déjà correcte depuis l'API)
+      const mappedCards: CMCard[] = (data.results || []).map((card: Record<string, unknown>) => ({
         id: card.id as number,
         cardmarketId: card.cardmarketId as number | undefined,
         name: card.name as string,
@@ -58,11 +71,20 @@ export default function AddCardSearchDialog({
         card_number: card.card_number as string | undefined,
         image: card.image as string | undefined,
         prices: card.prices as CMCard["prices"],
-        episode: card.episode as { name: string } || { name: "Unknown" },
+        episode: card.episode as { name: string } || { name: "Set inconnu" },
         cardmarket_url: card.cardmarket_url as string | null,
+        tcggo_url: card.tcggo_url as string | null,
       }));
 
-      setCards(mappedCards);
+      const uniqueCardsMap = new Map<string, CMCard>();
+      for (const card of mappedCards) {
+        const key = getCardKey(card);
+        if (!uniqueCardsMap.has(key)) {
+          uniqueCardsMap.set(key, card);
+        }
+      }
+
+      setCards(Array.from(uniqueCardsMap.values()));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur lors de la recherche");
       setCards([]);
@@ -143,7 +165,7 @@ export default function AddCardSearchDialog({
               </Button>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              Recherche via Cardmarket. Le prix affiché est le meilleur prix FR.
+              Recherche en français. Les cartes avec prix Cardmarket sont affichées en premier.
             </p>
           </div>
 
@@ -177,10 +199,11 @@ export default function AddCardSearchDialog({
                 cards.map((card) => {
                   const priceFR = getPriceFR(card);
                   const alreadyInCollection = isCardInCollection(card);
+                  const uniqueKey = getCardKey(card);
 
                   return (
                     <div
-                      key={card.id || `${card.name}-${card.episode?.name}`}
+                      key={uniqueKey}
                       className="flex flex-col sm:flex-row sm:items-center gap-2"
                     >
                       <button

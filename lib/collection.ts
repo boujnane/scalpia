@@ -167,6 +167,22 @@ export async function updateCollectionItem(
 }
 
 /**
+ * Update any collection entry (item or card) with arbitrary fields
+ */
+export async function updateCollectionEntry(
+  userId: string,
+  entryId: string,
+  updates: Record<string, unknown>
+): Promise<void> {
+  const docRef = doc(getUserCollectionRef(userId), entryId);
+
+  await setDoc(docRef, {
+    ...updates,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+/**
  * Remove an item from the collection
  */
 export async function removeFromCollection(
@@ -405,6 +421,15 @@ export async function addCardToCollection(
       updatedAt: now,
     };
 
+    if (card.cardmarket_url && !existingData.cardmarketUrl) {
+      const raw = card.cardmarket_url;
+      const withLang = raw.includes("?") ? `${raw}&language=2` : `${raw}?language=2`;
+      updateData.cardmarketUrl = withLang;
+    }
+    if (card.tcggo_url && !existingData.tcggoUrl) {
+      updateData.tcggoUrl = card.tcggo_url;
+    }
+
     if (mergedPurchase) {
       updateData.purchase = mergedPurchase;
     }
@@ -422,6 +447,12 @@ export async function addCardToCollection(
       category: "card",
       cardId,
       cardmarketId: card.cardmarketId ?? card.id ?? null,
+      cardmarketUrl: card.cardmarket_url
+        ? (card.cardmarket_url.includes("?")
+          ? `${card.cardmarket_url}&language=2`
+          : `${card.cardmarket_url}?language=2`)
+        : null,
+      tcggoUrl: card.tcggo_url ?? null,
       cardName: card.name,
       cardImage: card.image ?? "",
       cardNumber: card.card_number ?? null,
@@ -473,6 +504,8 @@ export async function getCollectionEntries(userId: string): Promise<CollectionEn
         category: "card",
         cardId: data.cardId,
         cardmarketId: data.cardmarketId ?? undefined,
+        cardmarketUrl: data.cardmarketUrl ?? null,
+        tcggoUrl: data.tcggoUrl ?? null,
         cardName: data.cardName,
         cardImage: data.cardImage,
         cardNumber: data.cardNumber ?? undefined,

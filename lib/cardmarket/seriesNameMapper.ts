@@ -23,15 +23,27 @@ const SERIES_FR: Record<string, string> = {
 
 // 2) Normalisation (évite les mismatch sur espaces/casse)
 export function normSeriesKey(s: string) {
-  return s.trim().replace(/\s+/g, " ").toLowerCase();
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const SERIES_FR_NORM = Object.fromEntries(
   Object.entries(SERIES_FR).map(([k, v]) => [normSeriesKey(k), v])
 );
 
+const SERIES_EN_FROM_FR_NORM = Object.fromEntries(
+  Object.entries(SERIES_FR).map(([en, fr]) => [normSeriesKey(fr), en])
+);
+
 // Set pour éviter de logger plusieurs fois le même nom manquant
 const loggedMissingSeries = new Set<string>();
+const loggedMissingSeriesFR = new Set<string>();
 
 export function mapSeriesNameToFR(seriesName?: string | null) {
   if (!seriesName) return "Autres";
@@ -43,4 +55,16 @@ export function mapSeriesNameToFR(seriesName?: string | null) {
   }
 
   return hit ?? seriesName; // fallback = anglais si inconnu
+}
+
+export function mapSeriesNameToEN(seriesName?: string | null) {
+  if (!seriesName) return "Other";
+  const hit = SERIES_EN_FROM_FR_NORM[normSeriesKey(seriesName)];
+
+  if (!hit && !loggedMissingSeriesFR.has(seriesName)) {
+    loggedMissingSeriesFR.add(seriesName);
+    console.warn(`[SERIES FR MANQUANTE] "${seriesName}" → pas de traduction EN`);
+  }
+
+  return hit ?? seriesName;
 }
