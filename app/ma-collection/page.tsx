@@ -242,7 +242,7 @@ export default function MaCollectionPage() {
           const setLabel = mapSetNameToFR(c.setName).toLowerCase();
           return (
             c.cardName.toLowerCase().includes(q) ||
-            (c.cardNumber ?? "").toLowerCase().includes(q) ||
+            String(c.cardNumber ?? "").toLowerCase().includes(q) ||
             c.setName.toLowerCase().includes(q) ||
             setLabel.includes(q) ||
             (c.rarity ?? "").toLowerCase().includes(q)
