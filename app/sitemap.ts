@@ -71,18 +71,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.6,
     },
     {
-      url: `${BASE_URL}/prix-booster-pokemon-aujourdhui`,
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.75,
-    },
-    {
-      url: `${BASE_URL}/investir-cartes-pokemon-scellees`,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 0.65,
-    },
-    {
       url: `${BASE_URL}/investir-pokemon`,
       lastModified: now,
       changeFrequency: "weekly",
