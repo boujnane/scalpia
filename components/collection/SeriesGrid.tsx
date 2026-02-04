@@ -61,23 +61,35 @@ export function SeriesGrid({
       let totalValue = 0;
       let totalCost = 0;
 
+      let hasPurchaseData = false;
+
       for (const card of cards) {
         if (card.currentValue !== null) {
           totalValue += card.currentValue;
         }
+        // Check if we have any purchase data (including 0€)
+        const hasTotalCost = card.purchase?.totalCost !== undefined && card.purchase.totalCost !== null;
+        const hasPrice = card.purchase?.price !== undefined && card.purchase.price !== null;
+        const hasPriceAtPurchase = card.priceAtPurchase !== undefined && card.priceAtPurchase !== null;
+
+        if (hasTotalCost || hasPrice || hasPriceAtPurchase) {
+          hasPurchaseData = true;
+        }
+
         const costBasis =
-          card.purchase?.totalCost && card.purchase.totalCost > 0
-            ? card.purchase.totalCost
-            : card.purchase?.price && card.purchase.price > 0
-              ? card.purchase.price * card.quantity
-              : card.priceAtPurchase && card.priceAtPurchase > 0
-                ? card.priceAtPurchase * card.quantity
+          hasTotalCost
+            ? card.purchase!.totalCost!
+            : hasPrice
+              ? card.purchase!.price! * card.quantity
+              : hasPriceAtPurchase
+                ? card.priceAtPurchase! * card.quantity
                 : 0;
         totalCost += costBasis;
       }
 
-      const profitLoss = totalCost > 0 ? totalValue - totalCost : 0;
-      const profitLossPercent = totalCost > 0 ? (profitLoss / totalCost) * 100 : 0;
+      // Calculate profit/loss only if we have purchase data (even if cost is 0€)
+      const profitLoss = hasPurchaseData ? totalValue - totalCost : 0;
+      const profitLossPercent = hasPurchaseData && totalCost > 0 ? (profitLoss / totalCost) * 100 : (hasPurchaseData && totalCost === 0 && totalValue > 0 ? 100 : 0);
 
       return {
         setName,
@@ -292,7 +304,7 @@ export function SeriesGrid({
   );
 }
 
-// Individual Card Tile Component
+// Individual Card Tile Component - Elegant & Subtle
 function CardTile({
   card,
   index,
@@ -304,143 +316,277 @@ function CardTile({
   onEdit?: (card: CollectionCardWithPrice) => void;
   onDelete?: (card: CollectionCardWithPrice) => void;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+
   const hasProfitLoss =
-    card.purchase?.totalCost ||
-    card.purchase?.price ||
-    (card.priceAtPurchase && card.priceAtPurchase > 0);
+    card.purchase?.totalCost !== undefined ||
+    card.purchase?.price !== undefined ||
+    (card.priceAtPurchase !== undefined && card.priceAtPurchase !== null);
+
+  // Subtle tilt effect (max 4 degrees - barely noticeable but feels premium)
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    const tiltX = ((y - centerY) / centerY) * -4;
+    const tiltY = ((x - centerX) / centerX) * 4;
+
+    setTilt({ x: tiltX, y: tiltY });
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setTilt({ x: 0, y: 0 });
+  };
+
+  // Long press for mobile
+  const handleTouchStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      setShowActions(true);
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, 400);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const actionItems = [
+    card.cardmarketUrl && {
+      type: "link" as const,
+      href: card.cardmarketUrl,
+      icon: <Icons.external className="w-3 h-3" />,
+      label: "Cardmarket",
+    },
+    onEdit && {
+      type: "button" as const,
+      onClick: () => onEdit(card),
+      icon: <Icons.edit className="w-3 h-3" />,
+      label: "Modifier",
+    },
+    onDelete && {
+      type: "button" as const,
+      onClick: () => onDelete(card),
+      icon: <Icons.delete className="w-3 h-3" />,
+      label: "Supprimer",
+      variant: "destructive" as const,
+    },
+  ].filter(Boolean);
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ delay: index * 0.02, duration: 0.2 }}
-      whileHover={{ y: -6, scale: 1.02 }}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{
+        delay: index * 0.02,
+        duration: 0.3,
+        ease: [0.25, 0.1, 0.25, 1],
+      }}
       className="group relative"
+      style={{ perspective: "800px" }}
     >
-      <div
+      <motion.div
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        animate={{
+          rotateX: tilt.x,
+          rotateY: tilt.y,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className={cn(
-          "relative aspect-[2.5/3.5] rounded-2xl overflow-hidden border transition-all duration-300 cursor-pointer",
-          "bg-gradient-to-br from-muted/60 via-muted/40 to-muted/30",
-          "border-border/60",
-          "group-hover:border-primary/60 group-hover:shadow-xl group-hover:shadow-primary/20 group-hover:-translate-y-1 group-hover:z-10"
+          "relative aspect-[2.5/3.5] rounded-xl overflow-hidden cursor-pointer",
+          "bg-muted/40",
+          "border border-border/50",
+          "transition-all duration-300 ease-out",
+          isHovered && "shadow-lg shadow-black/8 -translate-y-1 border-border"
         )}
+        style={{ transformStyle: "preserve-3d" }}
       >
         {/* Card Image */}
-        {card.cardImage ? (
-          <Image
-            src={card.cardImage}
-            alt={card.cardName}
-            fill
-            sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 12vw"
-            className="object-contain p-1.5"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-            N/A
-          </div>
-        )}
+        <div className="absolute inset-0">
+          {card.cardImage ? (
+            <Image
+              src={card.cardImage}
+              alt={card.cardName}
+              fill
+              sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 12vw"
+              className={cn(
+                "object-contain p-1.5 transition-transform duration-500 ease-out",
+                isHovered && "scale-[1.03]"
+              )}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground/40 text-xs">
+              N/A
+            </div>
+          )}
+        </div>
 
-        {/* Gloss */}
-        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/15 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        {/* Subtle light reflection - very faint */}
+        <div
+          className={cn(
+            "absolute inset-0 pointer-events-none transition-opacity duration-500",
+            isHovered ? "opacity-100" : "opacity-0"
+          )}
+          style={{
+            backgroundImage: `linear-gradient(
+              135deg,
+              rgba(255,255,255,0.08) 0%,
+              transparent 50%
+            )`,
+          }}
+        />
 
-        {/* Quantity Badge */}
+        {/* Quantity Badge - clean & minimal */}
         {card.quantity > 1 && (
-          <div className="absolute top-1 right-1">
+          <div className="absolute bottom-1.5 right-1.5 z-20">
             <Badge
               variant="secondary"
-              className="text-[9px] px-1.5 py-0 font-bold shadow-sm"
+              className="text-[9px] px-1.5 py-0.5 font-semibold bg-background/95 backdrop-blur-sm border-border/80 shadow-sm"
             >
               x{card.quantity}
             </Badge>
           </div>
         )}
 
-        {/* Profit/Loss Badge */}
+        {/* Profit/Loss Badge - subtle colors */}
         {hasProfitLoss && card.profitLoss !== null && (
-          <div
-            className={cn(
-              "absolute top-1 left-1 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-bold backdrop-blur",
-              card.profitLoss >= 0
-                ? "bg-success/90 text-success-foreground"
-                : "bg-destructive/90 text-destructive-foreground"
-            )}
-          >
-            {card.profitLoss >= 0 ? (
-              <TrendingUp className="w-2 h-2" />
-            ) : (
-              <TrendingDown className="w-2 h-2" />
-            )}
-            {card.profitLossPercent !== null
-              ? `${card.profitLossPercent >= 0 ? "+" : ""}${card.profitLossPercent.toFixed(0)}%`
-              : ""}
+          <div className="absolute top-1.5 left-1.5 z-20">
+            <div
+              className={cn(
+                "flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-semibold",
+                "backdrop-blur-sm border shadow-sm",
+                card.profitLoss >= 0
+                  ? "bg-success/10 text-success border-success/20"
+                  : "bg-destructive/10 text-destructive border-destructive/20"
+              )}
+            >
+              {card.profitLoss >= 0 ? (
+                <TrendingUp className="w-2.5 h-2.5" />
+              ) : (
+                <TrendingDown className="w-2.5 h-2.5" />
+              )}
+              <span>
+                {card.profitLossPercent !== null
+                  ? `${card.profitLossPercent >= 0 ? "+" : ""}${card.profitLossPercent.toFixed(0)}%`
+                  : ""}
+              </span>
+            </div>
           </div>
         )}
 
-        {/* Action Rail */}
-        <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0">
-          {card.cardmarketUrl && (
-            <a
-              href={card.cardmarketUrl}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center justify-center rounded-md bg-black/70 text-white/90 p-1.5 backdrop-blur-sm transition hover:bg-black/90"
-              aria-label="Ouvrir sur Cardmarket"
+        {/* Action buttons - appear on hover with elegant fade */}
+        <AnimatePresence>
+          {(isHovered || showActions) && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="absolute top-1.5 right-1.5 flex flex-col gap-1 z-30"
             >
-              <Icons.external className="w-3 h-3" />
-            </a>
+              {actionItems.map((action, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ delay: i * 0.03, duration: 0.15 }}
+                >
+                  {action && action.type === "link" ? (
+                    <a
+                      href={action.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center justify-center rounded-md p-1.5 bg-background/90 backdrop-blur-sm border border-border/60 text-foreground/70 hover:text-foreground hover:bg-background transition-colors duration-150"
+                      aria-label={action.label}
+                    >
+                      {action.icon}
+                    </a>
+                  ) : action ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        action.onClick?.();
+                      }}
+                      className={cn(
+                        "inline-flex items-center justify-center rounded-md p-1.5 backdrop-blur-sm border transition-colors duration-150",
+                        action.variant === "destructive"
+                          ? "bg-destructive/10 border-destructive/20 text-destructive hover:bg-destructive/20"
+                          : "bg-background/90 border-border/60 text-foreground/70 hover:text-foreground hover:bg-background"
+                      )}
+                      aria-label={action.label}
+                    >
+                      {action.icon}
+                    </button>
+                  ) : null}
+                </motion.div>
+              ))}
+            </motion.div>
           )}
-          {onEdit && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(card);
-              }}
-              className="inline-flex items-center justify-center rounded-md bg-black/70 text-white/90 p-1.5 backdrop-blur-sm transition hover:bg-black/90"
-              aria-label="Modifier la carte"
-            >
-              <Icons.edit className="w-3 h-3" />
-            </button>
-          )}
-          {onDelete && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(card);
-              }}
-              className="inline-flex items-center justify-center rounded-md bg-destructive/80 text-white p-1.5 backdrop-blur-sm transition hover:bg-destructive"
-              aria-label="Supprimer la carte"
-            >
-              <Icons.delete className="w-3 h-3" />
-            </button>
-          )}
-        </div>
+        </AnimatePresence>
+      </motion.div>
 
-      </div>
-
+      {/* Card Info Footer - clean typography */}
       <div className="mt-2 space-y-0.5 text-center">
-        <p className="text-[10px] font-semibold truncate">{card.cardName}</p>
+        <p
+          className="text-[10px] font-medium text-foreground/90 truncate px-0.5"
+          title={card.cardName}
+        >
+          {card.cardName}
+        </p>
         <div className="flex items-center justify-center gap-1 text-[10px] text-muted-foreground">
-          <span className="tabular-nums">
-            {card.currentPrice !== null ? `${card.currentPrice.toFixed(2)} €` : "Prix indispo"}
+          <span className="tabular-nums font-medium">
+            {card.currentPrice !== null
+              ? `${card.currentPrice.toFixed(2)} €`
+              : "—"}
           </span>
-          {card.cardNumber && <span>· #{card.cardNumber}</span>}
+          {card.cardNumber && (
+            <>
+              <span className="text-border">·</span>
+              <span>#{card.cardNumber}</span>
+            </>
+          )}
         </div>
-        {card.cardmarketUrl && (
-          <a
-            href={card.cardmarketUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center justify-center gap-1 text-[9px] text-primary hover:text-primary/80 transition"
-          >
-            <Icons.external className="w-3 h-3" />
-            Cardmarket
-          </a>
+        {/* Prix d'achat */}
+        {(card.purchase?.price !== undefined || (card.priceAtPurchase !== undefined && card.priceAtPurchase !== null)) && (
+          <div className="text-[9px] text-muted-foreground/70">
+            Achat : <span className="tabular-nums">
+              {(card.purchase?.price !== undefined ? card.purchase.price : card.priceAtPurchase)?.toFixed(2)} €
+            </span>
+          </div>
         )}
       </div>
+
+      {/* Mobile action overlay */}
+      <AnimatePresence>
+        {showActions && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
+            onClick={() => setShowActions(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

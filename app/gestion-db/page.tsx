@@ -73,14 +73,14 @@ export type Item = {
 export type PriceEntry = {
   id: string; // Firestore ID ou local
   date: string;
-  price: number;
+  price: number | null;
 };
 
 type PriceChange = {
   type: 'add' | 'update' | 'delete';
   id: string; // identifiant unique (date ou uuid)
   date: string;
-  price?: number;
+  price?: number | null;
 };
 
 // --- COMPONENT PRINCIPAL ---
@@ -98,6 +98,7 @@ export default function ItemsAdminPage() {
   const [actionLoading, setActionLoading] = useState(false);
   
   const [newPrice, setNewPrice] = useState<number | undefined>(undefined);
+  const [newPriceUnavailable, setNewPriceUnavailable] = useState(false);
   const [historicPrices, setHistoricPrices] = useState<PriceEntry[]>([]);
   const [pricesLoading, setPricesLoading] = useState(false);
   const [editingPriceEntry, setEditingPriceEntry] = useState<PriceEntry | null>(null);
@@ -157,6 +158,7 @@ export default function ItemsAdminPage() {
     if (!open) {
       setEditingItem(null);
       setNewPrice(undefined);
+      setNewPriceUnavailable(false);
       setHistoricPrices([]);
       setEditingPriceEntry(null);
       setPendingPriceChanges([]);
@@ -240,21 +242,26 @@ export default function ItemsAdminPage() {
   
   // --- HANDLERS PRIX ---
   const handleAddNewPrice = () => {
-    if (newPrice === undefined || Number.isNaN(newPrice) || newPrice <= 0) return;
+    // On peut ajouter un prix si: on a un prix valide OU si le prix est marqué non disponible
+    const hasValidPrice = newPrice !== undefined && !Number.isNaN(newPrice) && newPrice > 0;
+    if (!hasValidPrice && !newPriceUnavailable) return;
+
     const today = new Date().toISOString().slice(0, 10);
     const id = today; // utiliser la date comme id
+    const priceToSave = newPriceUnavailable ? null : newPrice!;
 
     const existingIndex = historicPrices.findIndex(p => p.date === today);
-    
+
     if (existingIndex !== -1) {
-      setHistoricPrices(prev => prev.map(p => p.date === today ? { ...p, price: newPrice } : p));
-      setPendingPriceChanges(prev => [...prev, { type: 'update', id, date: today, price: newPrice }]);
+      setHistoricPrices(prev => prev.map(p => p.date === today ? { ...p, price: priceToSave } : p));
+      setPendingPriceChanges(prev => [...prev, { type: 'update', id, date: today, price: priceToSave }]);
     } else {
-      setHistoricPrices(prev => [{ id, date: today, price: newPrice }, ...prev]);
-      setPendingPriceChanges(prev => [...prev, { type: 'add', id, date: today, price: newPrice }]);
+      setHistoricPrices(prev => [{ id, date: today, price: priceToSave }, ...prev]);
+      setPendingPriceChanges(prev => [...prev, { type: 'add', id, date: today, price: priceToSave }]);
     }
-    
+
     setNewPrice(undefined);
+    setNewPriceUnavailable(false);
     setHasUnsavedPriceChanges(true);
   };
 
@@ -290,7 +297,8 @@ export default function ItemsAdminPage() {
         if (change.type === 'delete') {
           await deleteDoc(priceDocRef);
         } else if (change.type === 'add' || change.type === 'update') {
-          await setDoc(priceDocRef, { date: change.date, price: Number(change.price) });
+          const priceValue = change.price === null ? null : Number(change.price);
+          await setDoc(priceDocRef, { date: change.date, price: priceValue });
         }
       }
 
@@ -544,19 +552,35 @@ export default function ItemsAdminPage() {
 
                 {/* Ajout d'un nouveau prix */}
                 <div className="grid grid-cols-4 gap-4">
-                    <div className="space-y-1 col-span-3">
+                    <div className="space-y-1 col-span-2">
                         <Label>Nouveau Prix (€) pour aujourd'hui ({new Date().toISOString().slice(0, 10)})</Label>
-                        <Input 
-                            type="number" 
+                        <Input
+                            type="number"
                             placeholder="Prix actuel du marché"
-                            value={newPrice ?? ""} 
-                            onChange={(e) => setNewPrice(Number(e.target.value))} 
+                            value={newPrice ?? ""}
+                            onChange={(e) => {
+                                setNewPrice(Number(e.target.value));
+                                setNewPriceUnavailable(false);
+                            }}
+                            disabled={newPriceUnavailable}
                         />
                     </div>
                     <div className="flex items-end">
-                        <Button 
-                            onClick={handleAddNewPrice} 
-                            disabled={newPrice === undefined || isNaN(newPrice) || newPrice <= 0}
+                        <Button
+                            onClick={() => {
+                                setNewPriceUnavailable(!newPriceUnavailable);
+                                if (!newPriceUnavailable) setNewPrice(undefined);
+                            }}
+                            variant={newPriceUnavailable ? "default" : "outline"}
+                            className={newPriceUnavailable ? "w-full bg-orange-500 hover:bg-orange-600" : "w-full border-orange-500 text-orange-600 hover:bg-orange-50"}
+                        >
+                            {newPriceUnavailable ? "Non dispo ✓" : "Non dispo"}
+                        </Button>
+                    </div>
+                    <div className="flex items-end">
+                        <Button
+                            onClick={handleAddNewPrice}
+                            disabled={!newPriceUnavailable && (newPrice === undefined || isNaN(newPrice) || newPrice <= 0)}
                             variant="outline"
                             className="w-full"
                         >
@@ -584,7 +608,13 @@ export default function ItemsAdminPage() {
                                 historicPrices.map((entry) => (
                                     <TableRow key={entry.id}>
                                         <TableCell className="font-medium">{entry.date}</TableCell>
-                                        <TableCell>{entry.price} €</TableCell>
+                                        <TableCell>
+                                            {entry.price === null ? (
+                                                <span className="text-orange-600 font-medium">Non disponible</span>
+                                            ) : (
+                                                `${entry.price} €`
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <Button variant="ghost" size="icon" onClick={() => setEditingPriceEntry(entry)}>
                                                 <Pencil className="h-4 w-4" />
@@ -633,15 +663,28 @@ export default function ItemsAdminPage() {
               <Label>Nouveau Prix (€)</Label>
               <Input
                 type="number"
-                value={editingPriceEntry?.price ?? 0}
+                value={editingPriceEntry?.price ?? ""}
                 onChange={(e) =>
                   setEditingPriceEntry({
                     ...editingPriceEntry!,
                     price: Number(e.target.value),
                   })
                 }
+                disabled={editingPriceEntry?.price === null}
               />
             </div>
+            <Button
+              onClick={() =>
+                setEditingPriceEntry({
+                  ...editingPriceEntry!,
+                  price: editingPriceEntry?.price === null ? 0 : null,
+                })
+              }
+              variant={editingPriceEntry?.price === null ? "default" : "outline"}
+              className={editingPriceEntry?.price === null ? "bg-orange-500 hover:bg-orange-600" : "border-orange-500 text-orange-600 hover:bg-orange-50"}
+            >
+              {editingPriceEntry?.price === null ? "Prix non disponible ✓" : "Marquer comme non disponible"}
+            </Button>
           </div>
           <DialogFooter className="flex justify-end gap-2">
             <Button
@@ -656,7 +699,7 @@ export default function ItemsAdminPage() {
               disabled={
                 actionLoading ||
                 !editingPriceEntry ||
-                isNaN(editingPriceEntry.price)
+                (editingPriceEntry.price !== null && isNaN(editingPriceEntry.price))
               }
             >
               {actionLoading && (

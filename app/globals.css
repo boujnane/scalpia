@@ -351,3 +351,30 @@
     display: none;
   }
 }
+
+/* --- CARD TILE ANIMATIONS --- */
+@keyframes holographic {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes gradient-x {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-holographic {
+  animation: holographic 3s ease infinite;
+}
+
+.animate-gradient-x {
+  animation: gradient-x 2s ease infinite;
+}

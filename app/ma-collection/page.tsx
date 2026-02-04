@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCollection } from "@/hooks/useCollection";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Icons } from "@/components/icons";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -745,14 +746,14 @@ export default function MaCollectionPage() {
                 )}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                   {/* Valeur totale */}
-                  <div className="col-span-2 sm:col-span-1 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20">
+                  <div className="col-span-2 sm:col-span-1 p-4 sm:p-5 rounded-xl bg-card border border-border/60 hover:border-border hover:shadow-md transition-all duration-300">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-primary/20">
+                      <div className="p-2 rounded-lg bg-primary/10">
                         <Wallet className="w-5 h-5 text-primary" />
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-muted-foreground">Valeur totale</p>
-                        <p className="text-xl sm:text-2xl font-bold text-primary tabular-nums">
+                        <p className="text-xl sm:text-2xl font-bold text-foreground tabular-nums">
                           {filteredSummary.totalValue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
                         </p>
                       </div>
@@ -760,9 +761,9 @@ export default function MaCollectionPage() {
                   </div>
 
                   {/* Coût total */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border">
+                  <div className="p-4 sm:p-5 rounded-xl bg-card border border-border/60 hover:border-border hover:shadow-md transition-all duration-300">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-muted">
+                      <div className="p-2 rounded-lg bg-muted">
                         <PiggyBank className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <div>
@@ -777,15 +778,17 @@ export default function MaCollectionPage() {
                   </div>
 
                   {/* Plus-value */}
-                  <div className={`p-4 sm:p-5 rounded-2xl border ${
+                  <div className={cn(
+                    "p-4 sm:p-5 rounded-xl border transition-all duration-300 hover:shadow-md",
                     filteredSummary.profitLoss >= 0
-                      ? "bg-success/5 border-success/20"
-                      : "bg-destructive/5 border-destructive/20"
-                  }`}>
+                      ? "bg-success/5 border-success/20 hover:border-success/30"
+                      : "bg-destructive/5 border-destructive/20 hover:border-destructive/30"
+                  )}>
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-xl ${
-                        filteredSummary.profitLoss >= 0 ? "bg-success/20" : "bg-destructive/20"
-                      }`}>
+                      <div className={cn(
+                        "p-2 rounded-lg",
+                        filteredSummary.profitLoss >= 0 ? "bg-success/10" : "bg-destructive/10"
+                      )}>
                         {filteredSummary.profitLoss >= 0 ? (
                           <TrendingUp className="w-5 h-5 text-success" />
                         ) : (
@@ -794,9 +797,10 @@ export default function MaCollectionPage() {
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-muted-foreground">Plus-value</p>
-                        <p className={`text-xl sm:text-2xl font-bold tabular-nums ${
+                        <p className={cn(
+                          "text-xl sm:text-2xl font-bold tabular-nums",
                           filteredSummary.profitLoss >= 0 ? "text-success" : "text-destructive"
-                        }`}>
+                        )}>
                           {filteredSummary.totalCost > 0 ? (
                             <>
                               {filteredSummary.profitLoss >= 0 ? "+" : ""}
@@ -809,16 +813,17 @@ export default function MaCollectionPage() {
                   </div>
 
                   {/* ROI */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-card border border-border">
+                  <div className="p-4 sm:p-5 rounded-xl bg-card border border-border/60 hover:border-border hover:shadow-md transition-all duration-300">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-xl bg-muted">
+                      <div className="p-2 rounded-lg bg-muted">
                         <Target className="w-5 h-5 text-muted-foreground" />
                       </div>
                       <div>
                         <p className="text-xs sm:text-sm text-muted-foreground">ROI</p>
-                        <p className={`text-xl sm:text-2xl font-bold tabular-nums ${
+                        <p className={cn(
+                          "text-xl sm:text-2xl font-bold tabular-nums",
                           filteredSummary.profitLossPercent >= 0 ? "text-success" : "text-destructive"
-                        }`}>
+                        )}>
                           {filteredSummary.totalCost > 0 ? (
                             <>
                               {filteredSummary.profitLossPercent >= 0 ? "+" : ""}
@@ -933,7 +938,7 @@ export default function MaCollectionPage() {
             {/* ─────────────────────────────────────────────────────────
                 TOOLBAR
             ───────────────────────────────────────────────────────── */}
-            <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/95 backdrop-blur-md border-b border-border/50">
+            <div className="sticky top-0 z-20 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-background/80 backdrop-blur-xl border-b border-border/30 shadow-sm shadow-background/50">
               <div className="flex flex-col gap-2 sm:gap-3">
                 {/* Row 1: Search + Category Toggle */}
                 <div className="flex gap-2 items-center">
@@ -955,8 +960,8 @@ export default function MaCollectionPage() {
                     className="shrink-0"
                   >
                     <ToggleGroupItem value="all" className="text-xs px-2">Tous</ToggleGroupItem>
-                    <ToggleGroupItem value="item" className="text-xs px-2 hidden xs:inline-flex">Produits</ToggleGroupItem>
-                    <ToggleGroupItem value="card" className="text-xs px-2 hidden xs:inline-flex">Cartes</ToggleGroupItem>
+                    <ToggleGroupItem value="item" className="text-xs px-2">Produits</ToggleGroupItem>
+                    <ToggleGroupItem value="card" className="text-xs px-2">Cartes</ToggleGroupItem>
                   </ToggleGroup>
                 </div>
 
@@ -1540,7 +1545,7 @@ export default function MaCollectionPage() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// COLLECTION CARD COMPONENT
+// COLLECTION CARD COMPONENT - Premium 3D Edition
 // ═══════════════════════════════════════════════════════════
 function CollectionItemCard({
   item,
@@ -1560,38 +1565,66 @@ function CollectionItemCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
-      className="group bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+      transition={{
+        delay: index * 0.03,
+        duration: 0.3,
+        ease: [0.25, 0.1, 0.25, 1],
+      }}
+      className="group bg-card border border-border/60 rounded-xl overflow-hidden transition-all duration-300 ease-out hover:border-border hover:shadow-lg hover:shadow-black/5 hover:-translate-y-0.5"
     >
       {/* Image Section */}
-      <div className="relative h-36 bg-gradient-to-br from-muted/50 to-muted/30 flex items-center justify-center">
+      <div className="relative h-36 bg-muted/30 flex items-center justify-center overflow-hidden">
         {item.itemImage ? (
           <Image
             src={item.itemImage}
             alt={item.itemName}
             fill
-            className="object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+            className="object-contain p-4 transition-transform duration-500 ease-out group-hover:scale-105"
           />
         ) : (
-          <Package className="w-16 h-16 text-muted-foreground/50" />
+          <Package className="w-14 h-14 text-muted-foreground/25" />
         )}
+
+        {/* Subtle light reflection */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{
+            backgroundImage: `linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%)`,
+          }}
+        />
+
         {/* Quantity badge */}
-        <div className="absolute top-3 right-3">
-          <Badge variant="secondary" className="font-bold shadow-sm">
+        <div className="absolute top-2.5 right-2.5">
+          <Badge
+            variant="secondary"
+            className="font-semibold bg-background/95 backdrop-blur-sm border-border/80 shadow-sm"
+          >
             x{item.quantity}
           </Badge>
         </div>
-        {/* Profit indicator */}
+
+        {/* Profit indicator - subtle */}
         {hasInvestmentBasis && item.profitLoss !== null && (
-          <div className={`absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
-            item.profitLoss >= 0
-              ? "bg-success/20 text-success"
-              : "bg-destructive/20 text-destructive"
-          }`}>
-            {item.profitLoss >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {item.profitLossPercent !== null ? `${item.profitLossPercent >= 0 ? "+" : ""}${item.profitLossPercent.toFixed(1)}%` : ""}
+          <div className="absolute top-2.5 left-2.5">
+            <div
+              className={cn(
+                "flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold backdrop-blur-sm border shadow-sm",
+                item.profitLoss >= 0
+                  ? "bg-success/10 text-success border-success/20"
+                  : "bg-destructive/10 text-destructive border-destructive/20"
+              )}
+            >
+              {item.profitLoss >= 0 ? (
+                <TrendingUp className="w-3 h-3" />
+              ) : (
+                <TrendingDown className="w-3 h-3" />
+              )}
+              {item.profitLossPercent !== null
+                ? `${item.profitLossPercent >= 0 ? "+" : ""}${item.profitLossPercent.toFixed(1)}%`
+                : ""}
+            </div>
           </div>
         )}
       </div>
@@ -1600,7 +1633,7 @@ function CollectionItemCard({
       <div className="p-4 space-y-3">
         {/* Title */}
         <div>
-          <h3 className="font-semibold truncate group-hover:text-primary transition-colors">
+          <h3 className="font-semibold text-foreground/90 truncate">
             {item.itemType} {item.itemName}
           </h3>
           <p className="text-xs text-muted-foreground truncate">{item.itemBloc}</p>
@@ -1609,37 +1642,41 @@ function CollectionItemCard({
         {/* Values */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-0.5">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Valeur</p>
-            <p className="text-lg font-bold text-primary tabular-nums">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Valeur</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">
               {item.currentValue !== null
                 ? `${item.currentValue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`
-                : "N/A"}
+                : "—"}
             </p>
           </div>
           <div className="space-y-0.5 text-right">
-            <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
               {hasInvestmentBasis ? "Plus-value" : "Prix unit."}
             </p>
             {hasInvestmentBasis ? (
-              <p className={`text-lg font-bold tabular-nums ${
-                (item.profitLoss ?? 0) >= 0 ? "text-success" : "text-destructive"
-              }`}>
+              <p
+                className={cn(
+                  "text-lg font-bold tabular-nums",
+                  (item.profitLoss ?? 0) >= 0 ? "text-success" : "text-destructive"
+                )}
+              >
                 {item.profitLoss !== null
                   ? `${item.profitLoss >= 0 ? "+" : ""}${item.profitLoss.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`
-                  : "N/A"}
+                  : "—"}
               </p>
             ) : (
               <p className="text-lg font-bold tabular-nums">
-                {item.currentPrice !== null ? `${item.currentPrice.toFixed(2)} €` : "N/A"}
+                {item.currentPrice !== null ? `${item.currentPrice.toFixed(2)} €` : "—"}
               </p>
             )}
           </div>
         </div>
 
+        {/* Details - always visible */}
         <div className="space-y-1 text-xs">
           <div className="flex items-center justify-between text-muted-foreground">
             <span>Prix retail</span>
-            <span className="font-medium tabular-nums text-foreground">
+            <span className="font-medium tabular-nums text-foreground/80">
               {item.retailPrice && item.retailPrice > 0
                 ? `${item.retailPrice.toFixed(2)} €`
                 : "—"}
@@ -1647,8 +1684,8 @@ function CollectionItemCard({
           </div>
           {item.purchase?.price && item.purchase.price > 0 && (
             <div className="flex items-center justify-between text-muted-foreground">
-              <span>Prix d'achat réel</span>
-              <span className="font-medium tabular-nums text-foreground">
+              <span>Prix d'achat</span>
+              <span className="font-medium tabular-nums text-foreground/80">
                 {item.purchase.price.toFixed(2)} €
               </span>
             </div>
@@ -1656,11 +1693,11 @@ function CollectionItemCard({
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 pt-3 border-t border-border/50">
+        <div className="flex gap-2 pt-3 border-t border-border/40">
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 hover:bg-primary/5 hover:text-primary hover:border-primary/30"
+            className="flex-1 text-foreground/70 hover:text-foreground hover:bg-muted/50"
             onClick={onEdit}
           >
             <Icons.edit className="w-4 h-4 mr-1.5" />
@@ -1672,7 +1709,7 @@ function CollectionItemCard({
                 variant="outline"
                 size="icon-sm"
                 onClick={onDelete}
-                className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                className="text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5"
               >
                 <Icons.delete className="w-4 h-4" />
               </Button>
