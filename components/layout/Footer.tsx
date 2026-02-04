@@ -37,6 +37,22 @@ export default function Footer() {
             {/* Navigation Links */}
             <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Navigation secondaire">
               <Link
+                href="/investir-pokemon"
+                prefetch={false}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                Investir (guide)
+              </Link>
+
+              <Link
+                href="/historique-prix-pokemon"
+                prefetch={false}
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                Historique des prix
+              </Link>
+
+              <Link
                 href="/a-propos"
                 prefetch={false}
                 className="text-xs text-muted-foreground hover:text-primary transition-colors"

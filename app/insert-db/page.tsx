@@ -108,6 +108,12 @@ export default function InsertDbPage() {
           cardmarketUrl: data.cardmarketUrl ?? null,
         };
       });
+      // Tri alphabétique par défaut (type + name)
+      list.sort((a, b) => {
+        const labelA = `${a.type} ${a.name}`.toLowerCase();
+        const labelB = `${b.type} ${b.name}`.toLowerCase();
+        return labelA.localeCompare(labelB, 'fr');
+      });
       setItems(list);
   
       // 2) Items traités aujourd’hui (1 requête via collectionGroup)

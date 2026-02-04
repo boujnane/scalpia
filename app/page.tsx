@@ -42,6 +42,10 @@ const HomeInsightsSection = dynamic(() => import("@/components/home/HomeInsights
   ),
 });
 
+const FloatingGuidesBadge = dynamic(() => import("@/components/home/FloatingGuidesBadge"), {
+  ssr: false,
+});
+
 export default function HomePage() {
   const prefersReducedMotion = useReducedMotion();
   const [mounted, setMounted] = useState(false);
@@ -527,6 +531,8 @@ export default function HomePage() {
           </motion.div>
         </section>
       </div>
+
+      <FloatingGuidesBadge />
     </>
   );
 }

@@ -31,7 +31,10 @@ import {
   ReferenceLine,
 } from "recharts";
 import type { Item } from "@/lib/analyse/types";
-import { computeISPFromItems, ISPIndexSummary } from "@/lib/analyse/finance/ispIndex";
+import { computeISPFromItems, ISPIndexSummary, debugVariationBetweenDates } from "@/lib/analyse/finance/ispIndex";
+import { ChevronDown, ChevronUp, Bug } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useAuth } from "@/context/AuthContext";
 
 interface ISPIndexCardProps {
   items: Item[];
@@ -113,10 +116,41 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 export default function ISPIndexCard({ items }: ISPIndexCardProps) {
   const [timeframe, setTimeframe] = useState<"30d" | "90d" | "1y" | "all">("90d");
+  const [debugOpen, setDebugOpen] = useState(false);
+  const { isAdmin } = useAuth();
 
   const ispSummary: ISPIndexSummary = useMemo(() => {
     return computeISPFromItems(items);
   }, [items]);
+
+  // Debug: trouver les items responsables de la variation du jour
+  const debugData = useMemo(() => {
+    if (ispSummary.history.length < 2) return null;
+
+    const sorted = [...ispSummary.history].sort((a, b) => a.date.localeCompare(b.date));
+    const lastPoint = sorted[sorted.length - 1];
+    const prevPoint = sorted[sorted.length - 2];
+
+    if (!lastPoint || !prevPoint) return null;
+
+    const itemsWithName = items.map(item => ({
+      name: item.name || "Unknown",
+      prices: item.prices,
+      retailPrice: item.retailPrice,
+    }));
+
+    const variations = debugVariationBetweenDates(itemsWithName, prevPoint.date, lastPoint.date);
+
+    return {
+      dateAfter: lastPoint.date,
+      dateBefore: prevPoint.date,
+      indexBefore: prevPoint.value,
+      indexAfter: lastPoint.value,
+      dailyChange: lastPoint.dailyChange,
+      itemCount: lastPoint.itemCount,
+      variations,
+    };
+  }, [items, ispSummary.history]);
 
   const chartData = useMemo(() => {
     const now = new Date();
@@ -368,6 +402,83 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
               </div>
             </div>
           </div>
+
+          {/* Debug Section - Items responsables de la variation (Admin only) */}
+          {isAdmin && debugData && (
+            <Collapsible open={debugOpen} onOpenChange={setDebugOpen}>
+              <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 transition-colors">
+                <Bug className="w-4 h-4 text-orange-500" />
+                <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                  Debug : Variation du jour ({(debugData.dailyChange * 100).toFixed(2)}%)
+                </span>
+                <span className="text-xs text-muted-foreground ml-auto mr-2">
+                  {debugData.itemCount} items · {debugData.dateBefore} → {debugData.dateAfter}
+                </span>
+                {debugOpen ? <ChevronUp className="w-4 h-4 text-orange-500" /> : <ChevronDown className="w-4 h-4 text-orange-500" />}
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-3">
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="bg-muted/50 px-3 py-2 border-b border-border">
+                    <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground">
+                      <div className="col-span-5">Produit</div>
+                      <div className="col-span-2 text-right">Avant</div>
+                      <div className="col-span-2 text-right">Après</div>
+                      <div className="col-span-3 text-right">Variation</div>
+                    </div>
+                  </div>
+                  <div className="max-h-[300px] overflow-y-auto divide-y divide-border">
+                    {debugData.variations.slice(0, 30).map((item, idx) => (
+                      <div
+                        key={idx}
+                        className={`grid grid-cols-12 gap-2 px-3 py-2 text-sm ${
+                          item.impact === "hausse"
+                            ? "bg-success/5"
+                            : item.impact === "baisse"
+                            ? "bg-destructive/5"
+                            : ""
+                        }`}
+                      >
+                        <div className="col-span-5 truncate font-medium text-foreground" title={item.name}>
+                          {item.name}
+                        </div>
+                        <div className="col-span-2 text-right text-muted-foreground tabular-nums">
+                          {item.priceBefore.toFixed(2)}€
+                        </div>
+                        <div className="col-span-2 text-right text-muted-foreground tabular-nums">
+                          {item.priceAfter.toFixed(2)}€
+                        </div>
+                        <div
+                          className={`col-span-3 text-right font-semibold tabular-nums ${
+                            item.impact === "hausse"
+                              ? "text-success"
+                              : item.impact === "baisse"
+                              ? "text-destructive"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {item.change > 0 ? "+" : ""}
+                          {(item.change * 100).toFixed(2)}%
+                        </div>
+                      </div>
+                    ))}
+                    {debugData.variations.length === 0 && (
+                      <div className="px-3 py-4 text-center text-sm text-muted-foreground">
+                        Aucun item avec des prix les deux jours
+                      </div>
+                    )}
+                  </div>
+                  {debugData.variations.length > 30 && (
+                    <div className="px-3 py-2 bg-muted/30 text-xs text-muted-foreground text-center border-t border-border">
+                      ... et {debugData.variations.length - 30} autres items
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  💡 Les items sont triés par impact absolu sur l'index (plus grande variation en premier).
+                </p>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </CardContent>
       </Card>
     </TooltipProvider>

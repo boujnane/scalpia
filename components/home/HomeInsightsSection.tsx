@@ -139,7 +139,42 @@ export default function HomeInsightsSection() {
                   </div>
                 ) : (
                   <>
-                    <div className="mt-4 grid grid-cols-2 gap-3 relative">
+                    {/* ISP-FR Index */}
+                    <div className="mt-4 rounded-xl bg-gradient-to-br from-primary/15 to-purple-500/10 p-3 border border-primary/20 relative">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[11px] text-muted-foreground font-medium">ISP-FR</p>
+                          <div className="mt-0.5 flex items-baseline gap-2">
+                            <p className="text-2xl font-bold tabular-nums text-primary">
+                              {ispSummary.current.toFixed(2)}
+                            </p>
+                            <span
+                              className={cn(
+                                "text-xs font-semibold tabular-nums",
+                                ispSummary.change7d == null
+                                  ? "text-muted-foreground"
+                                  : ispSummary.change7d >= 0
+                                    ? "text-success"
+                                    : "text-destructive"
+                              )}
+                            >
+                              {ispSummary.change7d == null
+                                ? "N/A"
+                                : `${ispSummary.change7d >= 0 ? "+" : ""}${(ispSummary.change7d * 100).toFixed(2)}%`}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">7j</span>
+                          </div>
+                        </div>
+                        <Link
+                          href="/analyse"
+                          className="text-[10px] font-medium text-primary hover:underline"
+                        >
+                          Voir détails →
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-3 relative">
                       <div className="rounded-xl bg-muted/35 p-3 border border-border/30">
                         <p className="text-[11px] text-muted-foreground">Séries analysées</p>
                         <div className="mt-1 flex items-end justify-between gap-2">
