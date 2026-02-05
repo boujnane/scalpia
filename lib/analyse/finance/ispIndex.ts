@@ -304,6 +304,7 @@ export function computeISPFromItems(
  */
 export type ItemVariationDebug = {
   name: string;
+  type: string;
   priceBefore: number;
   priceAfter: number;
   change: number; // en %
@@ -313,6 +314,7 @@ export type ItemVariationDebug = {
 export function debugVariationBetweenDates(
   items: Array<{
     name: string;
+    type?: string;
     prices?: Array<{ date: string; price: number }>;
     retailPrice?: number;
   }>,
@@ -344,6 +346,7 @@ export function debugVariationBetweenDates(
 
     results.push({
       name: item.name,
+      type: item.type || "",
       priceBefore,
       priceAfter,
       change,

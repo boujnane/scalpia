@@ -77,10 +77,15 @@ export function useAnalyseItems(): UseAnalyseItemsReturn {
         setLoading(false);
         return;
       }
+    } else {
+      // Forcer le refresh = vider aussi le cache client
+      sessionStorage.removeItem(CACHE_KEY);
     }
 
     try {
-      const response = await fetch("/api/analyse/items", {
+      // Ajouter le param refresh=true pour forcer le refresh côté serveur aussi
+      const url = forceRefresh ? "/api/analyse/items?refresh=true" : "/api/analyse/items";
+      const response = await fetch(url, {
         // Utiliser le cache HTTP pour les requêtes identiques
         cache: forceRefresh ? "no-store" : "default",
       });

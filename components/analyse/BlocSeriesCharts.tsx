@@ -26,7 +26,7 @@ import { Item } from "@/lib/analyse/types";
 // import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useIsMobile } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { computeISCPForSeriesByFixedWeights } from "@/lib/analyse/iscp";
 import { buildChartData } from "@/lib/analyse/buildChartData";
 

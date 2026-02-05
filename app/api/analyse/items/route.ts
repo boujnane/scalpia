@@ -1,19 +1,29 @@
 // app/api/analyse/items/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { clearAnalyseItemsServerCache, getAnalyseItemsServer } from "@/lib/analyse/getAnalyseItemsServer";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const { items, fromCache, cacheAgeSeconds, cacheTTLSeconds } = await getAnalyseItemsServer()
+    const { searchParams } = new URL(request.url);
+    const forceRefresh = searchParams.get("refresh") === "true";
+
+    if (forceRefresh) {
+      clearAnalyseItemsServerCache();
+    }
+
+    const { items, fromCache, cacheAgeSeconds, cacheTTLSeconds } = await getAnalyseItemsServer({
+      forceRefresh,
+    });
 
     return NextResponse.json({
       items,
       fromCache,
       cacheAge: cacheAgeSeconds,
       cacheTTL: cacheTTLSeconds,
-    })
+      forcedRefresh: forceRefresh,
+    });
   } catch (error) {
     console.error("[API Analyse Items] Error:", error);
     return NextResponse.json(

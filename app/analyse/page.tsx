@@ -378,7 +378,7 @@ export default function AnalysePage() {
 
             {/* ISP Index - Hero metric (Visual weight = most important) */}
             <section data-tutorial="isp-index">
-              <ISPIndexCard items={items} />
+              <ISPIndexCard items={items} onForceRefresh={refresh} />
             </section>
 
             {/* Top Movers - Accroche visuelle */}

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import BlocTabs from "@/components/analyse/BlocTabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useIsMobile } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import type { Item } from "@/lib/analyse/types";
 import { Badge } from "@/components/ui/badge";
 import {

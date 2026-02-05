@@ -18,7 +18,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { useIsMobile } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { buildChartData } from "@/lib/analyse/buildChartData";
 import { Icons } from "../icons";
 

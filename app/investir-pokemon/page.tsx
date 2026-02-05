@@ -1,10 +1,6 @@
-"use client";
-
-import { useMemo } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
-  TrendingDown,
   AlertTriangle,
   Shield,
   BarChart3,
@@ -17,14 +13,10 @@ import {
   CheckCircle,
   XCircle,
   HelpCircle,
-  ExternalLink,
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkline } from "@/components/ui/sparkline";
 import {
   Accordion,
   AccordionContent,
@@ -32,29 +24,15 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-import { useAnalyseItems } from "@/hooks/useAnalyseItems";
-import { computeISPFromItems } from "@/lib/analyse/finance/ispIndex";
-import { cn } from "@/lib/utils";
+import { ISPHeroWidget, ISPChartCard } from "@/components/investir/ISPWidget";
+import { TableOfContents } from "@/components/investir/TableOfContents";
+import { BentoGrid, BentoTile } from "@/components/investir/Bento";
+import { ProductsBento } from "@/components/investir/ProductsBento";
+import { RisksBento } from "@/components/investir/RisksBento";
+import { MarketsByLanguageBento } from "@/components/investir/MarketsByLanguageBento";
+import { GradingBento } from "@/components/investir/GradingBento";
 
 export default function InvestirPokemonPage() {
-  const { items, loading } = useAnalyseItems();
-
-  const ispSummary = useMemo(() => {
-    if (!items || items.length === 0) return null;
-    return computeISPFromItems(items);
-  }, [items]);
-
-  const sparkValues = useMemo(() => {
-    if (!ispSummary?.history || ispSummary.history.length === 0) return [];
-    return ispSummary.history.slice(-60).map((p) => p.value);
-  }, [ispSummary]);
-
-  const formatPercent = (value: number | null) => {
-    if (value === null) return "N/A";
-    const formatted = (value * 100).toFixed(1);
-    return value >= 0 ? `+${formatted}%` : `${formatted}%`;
-  };
-
   return (
     <>
       {/* JSON-LD Structured Data */}
@@ -101,7 +79,7 @@ export default function InvestirPokemonPage() {
                 name: "Est-ce légal d'investir dans les cartes Pokémon ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Oui, l'achat et la revente de cartes Pokémon sont parfaitement légaux. Il s'agit d'un marché de collection comme l'art ou les timbres. Cependant, les plus-values importantes peuvent être soumises à imposition selon votre pays de résidence.",
+                  text: "Oui, l'achat et la revente de cartes Pokémon sont légaux en France. En revanche, la fiscalité dépend de votre situation (vente occasionnelle vs activité habituelle) et des montants en jeu. En cas de doute, conservez vos preuves d'achat et renseignez-vous auprès des sources officielles (impots.gouv.fr) ou d'un conseiller fiscal.",
                 },
               },
               {
@@ -125,7 +103,7 @@ export default function InvestirPokemonPage() {
                 name: "À quelle fréquence les prix sont-ils mis à jour sur Pokéindex ?",
                 acceptedAnswer: {
                   "@type": "Answer",
-                  text: "Les prix sur Pokéindex sont mis à jour quotidiennement par nos agents. Nous agrégeons les données de plusieurs plateformes (Cardmarket, eBay, Vinted, LeBonCoin) pour fournir avec précision le prix plancher actuel.",
+                  text: "Les prix sur Pokéindex sont mis à jour quotidiennement. Nous agrégeons les données de plusieurs plateformes (Cardmarket, eBay, Vinted, LeBonCoin) pour fournir une estimation du prix plancher actuel du marché francophone.",
                 },
               },
               {
@@ -164,6 +142,9 @@ export default function InvestirPokemonPage() {
       />
 
       <div className="min-h-screen bg-background">
+        {/* Table of Contents */}
+        <TableOfContents />
+
         {/* Hero Section */}
         <header className="relative overflow-hidden border-b border-border/50">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5" />
@@ -185,7 +166,7 @@ export default function InvestirPokemonPage() {
               </span>
             </h1>
 
-            <p className="mt-4 sm:mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-3xl">
+            <p className="mt-4 sm:mt-6 text-base sm:text-lg text-muted-foreground leading-relaxed max-w-3xl sm:text-justify sm:hyphens-auto">
               L'investissement dans les cartes Pokémon attire de plus en plus de collectionneurs
               et d'investisseurs. Entre hausses spectaculaires et corrections brutales, il est
               parfois difficile de savoir si ce marché est réellement rentable. Cette page analyse
@@ -195,125 +176,92 @@ export default function InvestirPokemonPage() {
 
             {/* ISP-FR Mini Widget */}
             <div className="mt-6 sm:mt-8">
-              {loading ? (
-                <Skeleton className="h-24 w-full max-w-md rounded-xl" />
-              ) : ispSummary ? (
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-4 rounded-xl bg-card border border-border/50 shadow-sm">
-                  <div className="flex items-center gap-4 sm:gap-6">
-                    <div>
-                      <p className="text-xs text-muted-foreground font-medium">ISP-FR aujourd'hui</p>
-                      <p className="text-xl sm:text-2xl font-bold text-primary tabular-nums">
-                        {ispSummary.current.toFixed(2)}
-                      </p>
-                      <p
-                        className={cn(
-                          "text-sm font-semibold tabular-nums",
-                          (ispSummary.change7d ?? 0) >= 0 ? "text-success" : "text-destructive"
-                        )}
-                      >
-                        {formatPercent(ispSummary.change7d)} (7j)
-                      </p>
-                    </div>
-                    <div className="w-24 sm:w-32 h-14 sm:h-16">
-                      <Sparkline
-                        values={sparkValues}
-                        strokeClassName={
-                          (ispSummary.change7d ?? 0) >= 0 ? "text-success" : "text-destructive"
-                        }
-                        withFill
-                        height={56}
-                      />
-                    </div>
-                  </div>
-                  <Link
-                    href="/analyse"
-                    className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
-                  >
-                    Voir l'analyse complète
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              ) : null}
+              <ISPHeroWidget />
             </div>
           </div>
         </header>
 
         {/* Main Content */}
-        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-10 sm:space-y-16">
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-12 sm:space-y-20">
           {/* Section 1: Le marché aujourd'hui */}
-          <section>
+          <section id="marche">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" />
+              <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" aria-hidden="true" />
               Le marché des cartes Pokémon aujourd'hui
             </h2>
 
             <div className="prose prose-neutral dark:prose-invert max-w-none">
-              <p className="text-muted-foreground leading-relaxed">
-                Depuis 2020, le marché des cartes Pokémon a connu une croissance exceptionnelle.
-                L'effet nostalgie, combiné à l'arrivée de nouveaux investisseurs attirés par les
-                performances spectaculaires de certaines cartes, a transformé ce qui était un simple
-                hobby en un véritable marché d'investissement alternatif.
+              <p className="text-muted-foreground leading-relaxed sm:text-justify sm:hyphens-auto">
+                Entre 2020 et 2021, le marché des cartes Pokémon a connu une expansion sans précédent.
+                Les confinements successifs ont ravivé la nostalgie d'une génération ayant grandi avec
+                la licence, tandis que l'exposition médiatique apportée par des créateurs de contenu
+                français comme Michou a largement contribué à
+                populariser le hobby auprès du grand public. Les ouvertures de produits anciens et les
+                contenus spectaculaires ont joué un rôle clé dans cette mise en lumière, accélérant
+                l'arrivée d'une nouvelle génération de collectionneurs et de créateurs spécialisés.
               </p>
-              <p className="text-muted-foreground leading-relaxed mt-4">
-                Le marché secondaire s'est progressivement structuré avec l'émergence de plateformes
-                spécialisées comme Cardmarket, et d'outils d'analyse comme{" "}
-                <span className="font-semibold text-foreground">Pokéindex</span> qui permettent de
-                suivre l'évolution des prix en temps réel. Cette professionnalisation attire aussi
-                bien les collectionneurs passionnés que les investisseurs à la recherche de
-                diversification.
+
+              <p className="text-muted-foreground leading-relaxed mt-4 sm:text-justify sm:hyphens-auto">
+                Après cette phase d'euphorie, le marché a connu une correction progressive, notamment
+                avec l'arrivée du bloc Écarlate et Violet, marqué par une forte augmentation des volumes
+                imprimés. Néanmoins, une partie des produits emblématiques de la période 2020–2021
+                conserve une prime par rapport au prix retail d'origine, tandis que d'autres sont
+                revenus vers des niveaux plus proches du marché primaire, surtout après des vagues de
+                réassort. En parallèle, le marché secondaire s'est professionnalisé : des places de
+                marché établies comme Cardmarket (actif depuis bien avant 2020), historiquement
+                centrées sur les cartes à l'unité, ont vu le scellé prendre plus de place, et la
+                transparence des prix s'est améliorée (données publiques, comparateurs, historique).
+                Des outils d'analyse spécialisés comme
+                <span className="font-semibold text-foreground"> Pokéindex </span>
+                permettent désormais de suivre l'évolution des prix du marché français avec un niveau
+                de granularité inédit.
               </p>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6 sm:mt-8">
-              <Card className="bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
-                <CardContent className="pt-4 sm:pt-6 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10">
-                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xl sm:text-2xl font-bold text-foreground">2020</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Boom du marché</p>
-                    </div>
+            <BentoGrid className="grid-cols-1 sm:grid-cols-3 mt-6 sm:mt-8">
+              <BentoTile accent="primary">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10 border border-border/40">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-primary" aria-hidden="true" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground">2020-21</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Pic de la hype</p>
+                  </div>
+                </div>
+              </BentoTile>
 
-              <Card className="bg-gradient-to-br from-success/5 to-transparent border-success/20">
-                <CardContent className="pt-4 sm:pt-6 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-success/10">
-                      <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
-                    </div>
-                    <div>
-                      <p className="text-xl sm:text-2xl font-bold text-foreground">4+</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Plateformes agrégées</p>
-                    </div>
+              <BentoTile accent="success">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-success/10 border border-border/40">
+                    <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-success" aria-hidden="true" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground">4+</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Plateformes agrégées</p>
+                  </div>
+                </div>
+              </BentoTile>
 
-              <Card className="bg-gradient-to-br from-purple-500/5 to-transparent border-purple-500/20">
-                <CardContent className="pt-4 sm:pt-6 pb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-purple-500/10">
-                      <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-                    </div>
-                    <div>
-                      <p className="text-xl sm:text-2xl font-bold text-foreground">24h</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">Mise à jour des prix</p>
-                    </div>
+              <BentoTile accent="purple">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-500/10 border border-border/40">
+                    <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" aria-hidden="true" />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  <div>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground">24h</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Mise à jour des prix</p>
+                  </div>
+                </div>
+              </BentoTile>
+            </BentoGrid>
           </section>
 
           {/* Section 2: Produits les plus rentables */}
-          <section>
+          <section id="produits">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <Package className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" />
+              <Package className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" aria-hidden="true" />
               Quels produits Pokémon sont les plus rentables ?
             </h2>
 
@@ -322,123 +270,43 @@ export default function InvestirPokemonPage() {
               principales catégories et leur potentiel de valorisation.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              {/* Boosters */}
-              <Card>
-                <CardHeader className="pb-2 sm:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <span className="text-xl sm:text-2xl">📦</span>
-                    Boosters
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-                    Les blisters ou boosters scellés sont le format le plus accessible. Leur valeur augmente
-                    généralement avec le temps, surtout pour les séries populaires ou anciennes.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      Accessible
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      Liquidité élevée
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
+            <ProductsBento />
 
-              {/* Displays */}
-              <Card>
-                <CardHeader className="pb-2 sm:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <span className="text-xl sm:text-2xl">📚</span>
-                    Displays (Boîtes de 36)
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-                    Les displays offrent généralement le meilleur rapport coût/booster. Leur format
-                    scellé garantit l'authenticité et la conservation optimale.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      Meilleur ratio
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      Conservation
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Coffrets */}
-              <Card>
-                <CardHeader className="pb-2 sm:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <span className="text-xl sm:text-2xl">🎁</span>
-                    Coffrets & ETB
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-                    Les coffrets Elite Trainer Box (ETB) et coffrets collection sont très recherchés
-                    pour leur présentation premium et leur contenu exclusif (souvent carte promo).
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      Premium
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      Collectionneurs
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Éditions limitées */}
-              <Card>
-                <CardHeader className="pb-2 sm:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <span className="text-xl sm:text-2xl">✨</span>
-                    Éditions limitées
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-3">
-                    Les UPC (Ultra Premium Collection), coffrets anniversaire et produits exclusifs
-                    ont le plus fort potentiel de valorisation mais aussi le plus de volatilité.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className="text-xs">
-                      Haut potentiel
-                    </Badge>
-                    <Badge variant="secondary" className="text-xs">
-                      Volatile
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Encart dynamique des séries */}
+            <div className="mt-8 p-5 rounded-xl bg-muted/50 border border-border/50">
+              <h3 className="font-semibold text-foreground text-sm mb-2">
+                Comprendre la dynamique des séries
+              </h3>
+              <div className="space-y-2 text-xs sm:text-sm text-muted-foreground">
+                <p>
+                  <span className="font-medium text-foreground">Séries à taux de drop cohérent</span> —
+                  Les cartes recherchées sont relativement accessibles, ce qui encourage les ouvertures
+                  massives. Ces séries montent progressivement et de manière stable.
+                </p>
+                <p>
+                  <span className="font-medium text-foreground">Séries à taux de drop très bas</span> —
+                  Les cartes chase sont extrêmement rares, ce qui décourage l'ouverture. Les collectionneurs
+                  préfèrent stocker. Ces séries peuvent monter beaucoup plus vite, mais sont aussi plus
+                  volatiles et sujettes à des corrections.
+                </p>
+              </div>
             </div>
 
-            <div className="mt-8 p-4 rounded-xl bg-primary/5 border border-primary/20">
+            <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
               <p className="text-sm text-muted-foreground">
                 <span className="font-semibold text-foreground">💡 Conseil :</span> Consultez notre{" "}
                 <Link href="/historique-prix-pokemon" className="text-primary font-medium hover:underline">
                   historique des prix Pokémon scellés
                 </Link>{" "}
-                pour voir l'évolution des prix par type de produit, ou notre{" "}
-                <Link href="/analyse" className="text-primary font-medium hover:underline">
-                  page d'analyse du marché
-                </Link>{" "}
-                pour identifier les meilleures opportunités.
+                pour voir l'évolution des prix par type de produit.
               </p>
             </div>
           </section>
 
           {/* Section 3: Performances historiques */}
-          <section>
+          <section id="performances">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" />
+              <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" aria-hidden="true" />
               Analyse des performances historiques
             </h2>
 
@@ -448,89 +316,12 @@ export default function InvestirPokemonPage() {
               indice chaîné, similaire aux indices boursiers, permet de suivre la tendance générale.
             </p>
 
-            {/* ISP Chart Card */}
-            {loading ? (
-              <Skeleton className="h-64 w-full rounded-xl" />
-            ) : ispSummary ? (
-              <Card className="overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-primary/5 to-purple-500/5 pb-3 sm:pb-6">
-                  <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <span className="flex items-center gap-2 text-base sm:text-lg">
-                      <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-                      Évolution de l'ISP-FR
-                    </span>
-                    <Badge
-                      variant={
-                        (ispSummary.change30d ?? 0) >= 0 ? "success" : "destructive"
-                      }
-                      className="w-fit"
-                    >
-                      {formatPercent(ispSummary.change30d)} (30j)
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4 sm:pt-6">
-                  <div className="h-40 sm:h-48">
-                    <Sparkline
-                      values={ispSummary.history.map((p) => p.value)}
-                      strokeClassName="text-blue-500"
-                      withFill
-                      height={160}
-                    />
-                  </div>
-                  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center">
-                    <div>
-                      <p className="text-xs text-muted-foreground">7 jours</p>
-                      <p
-                        className={cn(
-                          "font-semibold tabular-nums",
-                          (ispSummary.change7d ?? 0) >= 0 ? "text-success" : "text-destructive"
-                        )}
-                      >
-                        {formatPercent(ispSummary.change7d)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">30 jours</p>
-                      <p
-                        className={cn(
-                          "font-semibold tabular-nums",
-                          (ispSummary.change30d ?? 0) >= 0 ? "text-success" : "text-destructive"
-                        )}
-                      >
-                        {formatPercent(ispSummary.change30d)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">90 jours</p>
-                      <p
-                        className={cn(
-                          "font-semibold tabular-nums",
-                          (ispSummary.change90d ?? 0) >= 0 ? "text-success" : "text-destructive"
-                        )}
-                      >
-                        {formatPercent(ispSummary.change90d)}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">YTD</p>
-                      <p
-                        className={cn(
-                          "font-semibold tabular-nums",
-                          (ispSummary.changeYTD ?? 0) >= 0 ? "text-success" : "text-destructive"
-                        )}
-                      >
-                        {formatPercent(ispSummary.changeYTD)}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : null}
+            {/* ISP Chart Card - Client Component */}
+            <ISPChartCard />
 
             <div className="mt-6 p-4 rounded-xl bg-warning/10 border border-warning/30">
               <p className="text-sm text-muted-foreground flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+                <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" aria-hidden="true" />
                 <span>
                   <span className="font-semibold text-foreground">Avertissement :</span> Les
                   performances passées ne préjugent pas des performances futures. Le marché des
@@ -541,89 +332,60 @@ export default function InvestirPokemonPage() {
           </section>
 
           {/* Section 4: Risques */}
-          <section>
+          <section id="risques">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <AlertTriangle className="w-5 h-5 sm:w-7 sm:h-7 text-destructive shrink-0" />
+              <AlertTriangle className="w-5 h-5 sm:w-7 sm:h-7 text-destructive shrink-0" aria-hidden="true" />
               Les risques à connaître avant d'investir
             </h2>
 
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8">
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8 sm:text-justify sm:hyphens-auto">
               Comme tout investissement, les cartes Pokémon comportent des risques qu'il est
               essentiel de comprendre avant de se lancer.
             </p>
 
-            <div className="space-y-3 sm:space-y-4">
-              {[
-                {
-                  icon: TrendingDown,
-                  title: "Volatilité",
-                  description:
-                    "Les prix peuvent fluctuer fortement en quelques semaines. Une série très demandée peut perdre 30% de sa valeur après un reprint ou un changement de tendance.",
-                  color: "text-destructive",
-                  bg: "bg-destructive/10",
-                },
-                {
-                  icon: Shield,
-                  title: "Contrefaçons",
-                  description:
-                    "Le marché est touché par les faux produits. Privilégiez les vendeurs réputés et apprenez à authentifier les produits scellés.",
-                  color: "text-orange-500",
-                  bg: "bg-orange-500/10",
-                },
-                {
-                  icon: Package,
-                  title: "Reprints",
-                  description:
-                    "The Pokémon Company peut réimprimer des séries populaires, ce qui fait chuter la valeur des produits en circulation.",
-                  color: "text-yellow-500",
-                  bg: "bg-yellow-500/10",
-                },
-                {
-                  icon: Clock,
-                  title: "Stockage & Conservation",
-                  description:
-                    "Un produit mal conservé (humidité, lumière, chocs) perd énormément de valeur. Le stockage a un coût qu'il faut intégrer.",
-                  color: "text-blue-500",
-                  bg: "bg-blue-500/10",
-                },
-                {
-                  icon: Coins,
-                  title: "Liquidité",
-                  description:
-                    "Vendre rapidement au prix souhaité n'est pas toujours possible. Certains produits peuvent mettre des semaines à trouver preneur.",
-                  color: "text-purple-500",
-                  bg: "bg-purple-500/10",
-                },
-                {
-                  icon: TrendingUp,
-                  title: "Effet de mode",
-                  description:
-                    "La hype autour de certaines séries peut créer des bulles spéculatives. Quand l'engouement retombe, les prix s'effondrent.",
-                  color: "text-pink-500",
-                  bg: "bg-pink-500/10",
-                },
-              ].map((risk, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl border border-border/50 bg-card"
-                >
-                  <div className={cn("p-2 rounded-lg shrink-0", risk.bg)}>
-                    <risk.icon className={cn("w-4 h-4 sm:w-5 sm:h-5", risk.color)} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground text-sm sm:text-base">{risk.title}</h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">{risk.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <RisksBento />
           </section>
 
-          {/* Section 5: Investissement vs Collection */}
-          <section>
+          {/* Section 5: Marché FR vs EN */}
+          <section id="fr-vs-en">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <Scale className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" />
-              Pokémon : investissement ou collection ?
+              <Scale className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" aria-hidden="true" />
+              Marchés par langue : FR, EN, JP, KR, CN
+            </h2>
+
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6 sm:text-justify sm:hyphens-auto">
+              En 2025-2026, une partie de la croissance se déplace aussi vers des marchés non-EN : JP
+              (premium/collection), KR (niche opportuniste) et CN (traction en hausse). Plutôt que de
+              chercher “la langue la plus rentable”, pense en{" "}
+              <span className="font-semibold text-foreground">liquidité</span>,{" "}
+              <span className="font-semibold text-foreground">prime scellé</span> et{" "}
+              <span className="font-semibold text-foreground">coût d'import</span>.
+            </p>
+
+            <MarketsByLanguageBento />
+          </section>
+
+          {/* Section 6: Le grading */}
+          <section id="grading">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <Shield className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" aria-hidden="true" />
+              Le grading : authentifier et valoriser
+            </h2>
+
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6 sm:text-justify sm:hyphens-auto">
+              Le grading (notation de l'état des cartes par des sociétés spécialisées) est devenu
+              incontournable. Une carte gradée en excellent état peut valoir plusieurs fois le prix
+              d'une carte non gradée.
+            </p>
+
+            <GradingBento />
+          </section>
+
+          {/* Section 7: Investissement vs Collection */}
+          <section id="collection-vs-invest">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
+              <Heart className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" aria-hidden="true" />
+              Collection ou investissement ?
             </h2>
 
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed mb-6 sm:mb-8">
@@ -636,31 +398,23 @@ export default function InvestirPokemonPage() {
               <Card className="border-2 border-primary/30">
                 <CardHeader className="pb-2 sm:pb-4">
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
+                    <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-primary" aria-hidden="true" />
                     Approche Collection
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 sm:space-y-3">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" />
-                    <span>Plaisir personnel avant tout</span>
-                  </div>
-                   <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" />
-                    <span>Privilégie l'ouverture et les cartes</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" />
-                    <span>Attachement émotionnel aux produits</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" />
-                    <span>Vision long terme (5-10+ ans)</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" />
-                    <span>Moins de stress sur les fluctuations</span>
-                  </div>
+                  {[
+                    "Plaisir personnel avant tout",
+                    "Privilégie l'ouverture et les cartes",
+                    "Attachement émotionnel aux produits",
+                    "Vision long terme (5-10+ ans)",
+                    "Moins de stress sur les fluctuations",
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs sm:text-sm">
+                      <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" aria-hidden="true" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
@@ -668,31 +422,27 @@ export default function InvestirPokemonPage() {
               <Card className="border-2 border-purple-500/30">
                 <CardHeader className="pb-2 sm:pb-4">
                   <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
+                    <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" aria-hidden="true" />
                     Approche Investissement
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 sm:space-y-3">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" />
-                    <span>Objectif de rendement financier</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" />
-                    <span>Aucune ouverture, n'achète que du 100% scellé</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" />
-                    <span>Analyse rationnelle des opportunités</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive shrink-0" />
-                    <span>Nécessite un suivi régulier</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive shrink-0" />
-                    <span>Plus exposé au stress du marché</span>
-                  </div>
+                  {[
+                    { text: "Objectif de rendement financier", positive: true },
+                    { text: "N'achète que du 100% scellé", positive: true },
+                    { text: "Analyse rationnelle des opportunités", positive: true },
+                    { text: "Nécessite un suivi régulier", positive: false },
+                    { text: "Plus exposé au stress du marché", positive: false },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs sm:text-sm">
+                      {item.positive ? (
+                        <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success shrink-0" aria-hidden="true" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-destructive shrink-0" aria-hidden="true" />
+                      )}
+                      <span>{item.text}</span>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             </div>
@@ -707,15 +457,15 @@ export default function InvestirPokemonPage() {
             </div>
           </section>
 
-          {/* Section 6: Conclusion */}
-          <section>
+          {/* Section 8: Conclusion */}
+          <section id="conclusion">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <CheckCircle className="w-5 h-5 sm:w-7 sm:h-7 text-success shrink-0" />
-              Conclusion : investir dans les cartes Pokémon, bonne idée ?
+              <CheckCircle className="w-5 h-5 sm:w-7 sm:h-7 text-success shrink-0" aria-hidden="true" />
+              Conclusion : bonne idée ?
             </h2>
 
             <div className="prose prose-neutral dark:prose-invert max-w-none">
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed sm:text-justify sm:hyphens-auto">
                 Investir dans les cartes Pokémon peut être rentable, mais ce n'est{" "}
                 <span className="font-semibold text-foreground">ni garanti, ni sans risque</span>.
                 Le marché a montré de belles performances ces dernières années, mais il reste
@@ -724,35 +474,20 @@ export default function InvestirPokemonPage() {
               <p className="text-muted-foreground leading-relaxed mt-4">
                 Pour maximiser vos chances de succès :
               </p>
-              <ul className="text-muted-foreground space-y-3 sm:space-y-2 mt-4">
-                <li className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success mt-0.5 shrink-0" />
-                  <span>
-                    <span className="font-semibold text-foreground">Informez-vous</span> — Suivez
-                    les tendances avec des outils comme Pokéindex
-                  </span>
-                </li>
-                <li className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success mt-0.5 shrink-0" />
-                  <span>
-                    <span className="font-semibold text-foreground">Diversifiez</span> — Ne mettez
-                    pas tous vos oeufs dans le même panier
-                  </span>
-                </li>
-                <li className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success mt-0.5 shrink-0" />
-                  <span>
-                    <span className="font-semibold text-foreground">Pensez long terme</span> — Les
-                    meilleurs gains se font sur 5-10 ans
-                  </span>
-                </li>
-                <li className="flex items-start gap-2 text-xs sm:text-sm">
-                  <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success mt-0.5 shrink-0" />
-                  <span>
-                    <span className="font-semibold text-foreground">Restez prudent</span> —
-                    N'investissez que ce que vous pouvez perdre
-                  </span>
-                </li>
+              <ul className="text-muted-foreground space-y-3 sm:space-y-2 mt-4 list-none pl-0">
+                {[
+                  { title: "Informez-vous", desc: "Suivez les tendances avec des outils comme Pokéindex" },
+                  { title: "Diversifiez", desc: "Ne mettez pas tous vos oeufs dans le même panier" },
+                  { title: "Pensez long terme", desc: "Les meilleurs gains se font sur 5-10 ans" },
+                  { title: "Restez prudent", desc: "N'investissez que ce que vous pouvez perdre" },
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs sm:text-sm">
+                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-success mt-0.5 shrink-0" aria-hidden="true" />
+                    <span>
+                      <span className="font-semibold text-foreground">{item.title}</span> — {item.desc}
+                    </span>
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -768,7 +503,7 @@ export default function InvestirPokemonPage() {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button asChild className="w-full sm:w-auto">
                   <Link href="/analyse">
-                    <BarChart3 className="w-4 h-4 mr-2" />
+                    <BarChart3 className="w-4 h-4 mr-2" aria-hidden="true" />
                     Voir l'analyse du marché
                   </Link>
                 </Button>
@@ -780,9 +515,9 @@ export default function InvestirPokemonPage() {
           </section>
 
           {/* FAQ Section */}
-          <section>
+          <section id="faq">
             <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <HelpCircle className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" />
+              <HelpCircle className="w-5 h-5 sm:w-7 sm:h-7 text-primary shrink-0" aria-hidden="true" />
               Questions fréquentes
             </h2>
 
@@ -792,10 +527,11 @@ export default function InvestirPokemonPage() {
                   Est-ce légal d'investir dans les cartes Pokémon ?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
-                  Oui, l'achat et la revente de cartes Pokémon sont parfaitement légaux. Il s'agit
-                  d'un marché de collection comme l'art ou les timbres. Cependant, les plus-values
-                  importantes peuvent être soumises à imposition selon votre pays de résidence.
-                  Consultez un conseiller fiscal si nécessaire.
+                  Oui, l'achat et la revente de cartes Pokémon sont légaux en France.{" "}
+                  <span className="font-semibold text-foreground">Fiscalité :</span> elle dépend de
+                  votre situation (vente occasionnelle vs activité habituelle) et des montants en
+                  jeu. Par prudence, conservez vos preuves d'achat/vente et renseignez-vous auprès
+                  des sources officielles (impots.gouv.fr) ou d'un conseiller fiscal.
                 </AccordionContent>
               </AccordionItem>
 
@@ -825,7 +561,7 @@ export default function InvestirPokemonPage() {
 
               <AccordionItem value="update">
                 <AccordionTrigger className="text-left">
-                  À quelle fréquence les prix sont-ils mis à jour sur Pokéindex ?
+                  À quelle fréquence les prix sont-ils mis à jour ?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   Les prix sur Pokéindex sont mis à jour quotidiennement. Nous agrégeons les données
@@ -836,7 +572,7 @@ export default function InvestirPokemonPage() {
 
               <AccordionItem value="track">
                 <AccordionTrigger className="text-left">
-                  Comment suivre les prix des cartes Pokémon en temps réel ?
+                  Comment suivre les prix en temps réel ?
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   Pokéindex propose un{" "}
@@ -845,8 +581,7 @@ export default function InvestirPokemonPage() {
                   </Link>{" "}
                   avec l'ISP-FR (Index du Scellé Pokémon FR) qui mesure l'évolution globale du
                   marché. Vous pouvez consulter les tendances, les top performers et les analyses
-                  détaillées. Les membres Pro ont accès à des indicateurs avancés comme le sentiment
-                  et la volatilité.
+                  détaillées.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -859,18 +594,18 @@ export default function InvestirPokemonPage() {
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
               <div>
                 <p className="font-semibold text-foreground text-sm sm:text-base">
-                  Prêt à suivre le marché Pokémon ?
+                  Prêt à analyser le marché ?
                 </p>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Créez un compte gratuit pour accéder à toutes les fonctionnalités.
+                  Explorez gratuitement nos outils d'analyse et de suivi des prix.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Button variant="outline" asChild className="w-full sm:w-auto">
-                  <Link href="/analyse">Explorer gratuitement</Link>
+                  <Link href="/analyse">Explorer les données</Link>
                 </Button>
                 <Button asChild className="w-full sm:w-auto">
-                  <Link href="/pricing">Voir les plans</Link>
+                  <Link href="/pricing">Voir les plans Pro</Link>
                 </Button>
               </div>
             </div>

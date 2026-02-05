@@ -38,6 +38,7 @@ import { useAuth } from "@/context/AuthContext";
 
 interface ISPIndexCardProps {
   items: Item[];
+  onForceRefresh?: () => Promise<void>;
 }
 
 const formatPercent = (value: number | null, withSign: boolean = true): string => {
@@ -114,14 +115,46 @@ const CustomTooltip = ({ active, payload }: any) => {
   );
 };
 
-export default function ISPIndexCard({ items }: ISPIndexCardProps) {
+export default function ISPIndexCard({ items, onForceRefresh }: ISPIndexCardProps) {
   const [timeframe, setTimeframe] = useState<"30d" | "90d" | "1y" | "all">("90d");
   const [debugOpen, setDebugOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchItem, setSearchItem] = useState("");
   const { isAdmin } = useAuth();
+
+  const handleForceRefresh = async () => {
+    if (!onForceRefresh) return;
+    setIsRefreshing(true);
+    try {
+      await onForceRefresh();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const ispSummary: ISPIndexSummary = useMemo(() => {
     return computeISPFromItems(items);
   }, [items]);
+
+  // Debug: recherche d'un item spécifique
+  const searchedItemData = useMemo(() => {
+    if (!searchItem.trim()) return null;
+    const found = items.find(i =>
+      i.name?.toLowerCase().includes(searchItem.toLowerCase())
+    );
+    if (!found) return null;
+
+    const recentPrices = found.prices
+      ?.sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 10) || [];
+
+    return {
+      name: found.name,
+      retailPrice: found.retailPrice,
+      totalPrices: found.prices?.length || 0,
+      recentPrices,
+    };
+  }, [items, searchItem]);
 
   // Debug: trouver les items responsables de la variation du jour
   const debugData = useMemo(() => {
@@ -135,11 +168,22 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
 
     const itemsWithName = items.map(item => ({
       name: item.name || "Unknown",
+      type: item.type || "",
       prices: item.prices,
       retailPrice: item.retailPrice,
     }));
 
     const variations = debugVariationBetweenDates(itemsWithName, prevPoint.date, lastPoint.date);
+
+    // Debug supplémentaire: collecter toutes les dates uniques présentes dans les données
+    const allDates = new Set<string>();
+    items.forEach(item => {
+      item.prices?.forEach(p => {
+        const dateKey = p.date.split("T")[0]; // YYYY-MM-DD
+        allDates.add(dateKey);
+      });
+    });
+    const sortedDates = Array.from(allDates).sort().slice(-10); // 10 dernières dates
 
     return {
       dateAfter: lastPoint.date,
@@ -149,6 +193,10 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
       dailyChange: lastPoint.dailyChange,
       itemCount: lastPoint.itemCount,
       variations,
+      recentDates: sortedDates,
+      totalItems: items.length,
+      itemsWithPrices: items.filter(i => i.prices && i.prices.length > 0).length,
+      itemsWithRetail: items.filter(i => i.retailPrice && i.retailPrice > 0).length,
     };
   }, [items, ispSummary.history]);
 
@@ -406,16 +454,35 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
           {/* Debug Section - Items responsables de la variation (Admin only) */}
           {isAdmin && debugData && (
             <Collapsible open={debugOpen} onOpenChange={setDebugOpen}>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 transition-colors">
-                <Bug className="w-4 h-4 text-orange-500" />
-                <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
-                  Debug : Variation du jour ({(debugData.dailyChange * 100).toFixed(2)}%)
-                </span>
-                <span className="text-xs text-muted-foreground ml-auto mr-2">
-                  {debugData.itemCount} items · {debugData.dateBefore} → {debugData.dateAfter}
-                </span>
-                {debugOpen ? <ChevronUp className="w-4 h-4 text-orange-500" /> : <ChevronDown className="w-4 h-4 text-orange-500" />}
-              </CollapsibleTrigger>
+              <div className="flex items-center gap-2">
+                <CollapsibleTrigger className="flex items-center gap-2 flex-1 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30 hover:bg-orange-500/20 transition-colors">
+                  <Bug className="w-4 h-4 text-orange-500" />
+                  <span className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                    Debug : Variation du jour ({(debugData.dailyChange * 100).toFixed(2)}%)
+                  </span>
+                  <span className="text-xs text-muted-foreground ml-auto mr-2">
+                    {debugData.itemCount} items · {debugData.dateBefore} → {debugData.dateAfter}
+                  </span>
+                  {debugOpen ? <ChevronUp className="w-4 h-4 text-orange-500" /> : <ChevronDown className="w-4 h-4 text-orange-500" />}
+                </CollapsibleTrigger>
+                {onForceRefresh && (
+                  <button
+                    onClick={handleForceRefresh}
+                    disabled={isRefreshing}
+                    className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:bg-blue-500/20 transition-colors disabled:opacity-50"
+                    title="Force refresh (vide tous les caches)"
+                  >
+                    <svg
+                      className={`w-4 h-4 text-blue-500 ${isRefreshing ? "animate-spin" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                )}
+              </div>
               <CollapsibleContent className="mt-3">
                 <div className="rounded-lg border border-border overflow-hidden">
                   <div className="bg-muted/50 px-3 py-2 border-b border-border">
@@ -439,6 +506,9 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
                         }`}
                       >
                         <div className="col-span-5 truncate font-medium text-foreground" title={item.name}>
+                          {item.type && (
+                            <span className="text-xs text-muted-foreground mr-1">[{item.type}]</span>
+                          )}
                           {item.name}
                         </div>
                         <div className="col-span-2 text-right text-muted-foreground tabular-nums">
@@ -476,6 +546,62 @@ export default function ISPIndexCard({ items }: ISPIndexCardProps) {
                 <p className="mt-2 text-xs text-muted-foreground">
                   💡 Les items sont triés par impact absolu sur l'index (plus grande variation en premier).
                 </p>
+
+                {/* Recherche item */}
+                <div className="mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-xs space-y-2">
+                  <p className="font-semibold text-blue-600 dark:text-blue-400">🔎 Rechercher un item:</p>
+                  <input
+                    type="text"
+                    value={searchItem}
+                    onChange={(e) => setSearchItem(e.target.value)}
+                    placeholder="Ex: mentali, pikachu, etb..."
+                    className="w-full px-3 py-2 rounded border border-border bg-background text-foreground text-sm"
+                  />
+                  {searchedItemData && (
+                    <div className="mt-2 p-2 bg-background/50 rounded space-y-1">
+                      <p className="font-semibold text-foreground">{searchedItemData.name}</p>
+                      <p className="text-muted-foreground">
+                        RetailPrice: <span className="font-mono text-foreground">{searchedItemData.retailPrice ?? "N/A"}€</span>
+                        {" · "}Total prices: <span className="font-mono text-foreground">{searchedItemData.totalPrices}</span>
+                      </p>
+                      <p className="text-muted-foreground mt-1">10 derniers prix:</p>
+                      <div className="font-mono text-foreground bg-muted/30 p-2 rounded max-h-32 overflow-auto">
+                        {searchedItemData.recentPrices.map((p, i) => (
+                          <div key={i} className="flex justify-between">
+                            <span>{p.date.split("T")[0]}</span>
+                            <span className="text-primary">{p.price.toFixed(2)}€</span>
+                          </div>
+                        ))}
+                        {searchedItemData.recentPrices.length === 0 && (
+                          <p className="text-muted-foreground">Aucun prix</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {searchItem && !searchedItemData && (
+                    <p className="text-orange-500">Aucun item trouvé pour "{searchItem}"</p>
+                  )}
+                </div>
+
+                {/* Debug détaillé */}
+                <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border text-xs space-y-2">
+                  <p className="font-semibold text-foreground">📊 Données brutes:</p>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>• Total items: <span className="text-foreground font-mono">{debugData.totalItems}</span></li>
+                    <li>• Avec prices[]: <span className="text-foreground font-mono">{debugData.itemsWithPrices}</span></li>
+                    <li>• Avec retailPrice: <span className="text-foreground font-mono">{debugData.itemsWithRetail}</span></li>
+                    <li>• Index history points: <span className="text-foreground font-mono">{ispSummary.history.length}</span></li>
+                  </ul>
+                  <p className="font-semibold text-foreground mt-3">📅 10 dernières dates présentes dans prices[]:</p>
+                  <p className="font-mono text-foreground bg-background/50 p-2 rounded break-all">
+                    {debugData.recentDates?.join(", ") || "Aucune"}
+                  </p>
+                  <p className="font-semibold text-foreground mt-3">🔍 Comparaison ISP:</p>
+                  <ul className="space-y-1 text-muted-foreground">
+                    <li>• Date avant: <span className="text-foreground font-mono">{debugData.dateBefore}</span> (index: {debugData.indexBefore?.toFixed(2)})</li>
+                    <li>• Date après: <span className="text-foreground font-mono">{debugData.dateAfter}</span> (index: {debugData.indexAfter?.toFixed(2)})</li>
+                  </ul>
+                </div>
               </CollapsibleContent>
             </Collapsible>
           )}
