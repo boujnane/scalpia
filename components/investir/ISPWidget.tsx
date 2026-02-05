@@ -60,16 +60,16 @@ export function ISPHeroWidget() {
             {formatPercent(ispSummary.change7d)} (7j)
           </p>
         </div>
-        <div className="w-20 sm:w-24 h-14 sm:h-16">
-          <Sparkline
-            values={sparkValues}
-            strokeClassName={
-              (ispSummary.change7d ?? 0) >= 0 ? "text-success" : "text-destructive"
-            }
-            withFill
-            height={56}
-          />
-        </div>
+<div className="-ml-1 w-52 h-20 sm:w-24 sm:h-16">
+  <Sparkline
+    values={sparkValues}
+    strokeClassName={
+      (ispSummary.change7d ?? 0) >= 0 ? "text-success" : "text-destructive"
+    }
+    withFill
+    height={80}
+  />
+</div>
       </div>
       <Link
         href="/analyse"

@@ -41,7 +41,7 @@ export default function Footer() {
                 prefetch={false}
                 className="text-xs text-muted-foreground hover:text-primary transition-colors"
               >
-                Investir (guide)
+                Le guide
               </Link>
 
               <Link

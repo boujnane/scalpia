@@ -9,7 +9,7 @@ export function GradingBento() {
         <p className="text-xs font-medium text-muted-foreground">Objectif</p>
         <h3 className="mt-1 text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
           <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-sky-500" aria-hidden="true" />
-          Le grading, sans jargon : un process en 5 étapes
+          Le grading : un process en 5 étapes
         </h3>
 
         <ol className="mt-4 space-y-3">
@@ -20,7 +20,7 @@ export function GradingBento() {
             },
             {
               title: "Prépa & protections",
-              desc: "Sleeve + semi-rigide, photos/scan, noter les défauts visibles.",
+              desc: "Sleeve + Top-Loader semi-rigide, photos/scan, noter les défauts visibles.",
             },
             {
               title: "Choix de la société / service",

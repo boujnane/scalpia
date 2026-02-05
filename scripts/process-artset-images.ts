@@ -13,8 +13,9 @@ import * as path from "path";
 const ARTSET_DIR = path.join(process.cwd(), "public/Artset");
 const OUTPUT_DIR = path.join(process.cwd(), "public/Artset-processed");
 
-// Taille cible (optionnel) - mettre null pour garder la taille après trim
-const TARGET_SIZE = null; // ou { width: 600, height: 600 }
+// Taille cible (optionnel) - mettre `null` pour garder la taille après trim.
+// `let` (pas `const`) pour éviter que TypeScript ne considère le bloc `if (TARGET_SIZE)` comme unreachable.
+let TARGET_SIZE: { width: number; height: number } | null = null; // ex: { width: 600, height: 600 }
 
 async function processImage(inputPath: string, outputPath: string) {
   const filename = path.basename(inputPath);
