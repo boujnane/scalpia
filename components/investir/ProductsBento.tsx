@@ -18,7 +18,7 @@ export function ProductsBento() {
               <p className="text-xs font-medium text-muted-foreground">Format le plus “market-fit”</p>
               <h3 className="mt-1 text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
                 <Package className="w-4 h-4 sm:w-5 sm:h-5 text-primary" aria-hidden="true" />
-                Elite Trainer Box (ETB)
+                ETB (Coffret Dresseur d'Elite ou Elite Trainer Box)
               </h3>
             </div>
             <Badge variant="secondary" className="text-xs">
@@ -26,10 +26,7 @@ export function ProductsBento() {
             </Badge>
           </div>
           <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Sur le long terme, les ETB tendent à bien fonctionner grâce au packaging premium, au mix
-            boosters + accessoires et aux éditions “spéciales” (Pokémon Center, séries marquantes,
-            promos). La demande “collection” soutient souvent mieux le prix que les formats purement
-            utilitaires.
+            Sur le long terme, les ETB sont historiquement les formats les plus performants : elles partent plus vite en rupture que les autres produits et conservent mieux la demande. Leur packaging distinctif, les accessoires inclus et certaines éditions marquantes (Pokémon Center, promos, séries fortes) en font un format privilégié par les collectionneurs, au-delà des usages purement utilitaires.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant="secondary" className="text-xs">
@@ -58,8 +55,7 @@ export function ProductsBento() {
             Éditions limitées & anniversaires
           </div>
           <p className="mt-3 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            UPC, coffrets “anniversaire” et produits exclusifs peuvent porter une prime forte… mais
-            ils sont aussi les plus sensibles à la hype, aux réassorts et aux arbitrages rapides.
+            UPC, coffrets “anniversaire” et produits exclusifs portent souvent une prime élevée car ils sont plus difficiles à obtenir et très rapidement absorbés par une forte demande. Leur disponibilité limitée et l’attrait des éditions spéciales expliquent l’essentiel de leur valorisation.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Badge variant="secondary" className="text-xs">
@@ -85,11 +81,10 @@ export function ProductsBento() {
         <div className="relative z-10 group-hover:blur-[1.5px] group-hover:opacity-40 group-focus-within:blur-[1.5px] group-focus-within:opacity-40 sm:transition-all sm:duration-200">
           <div className="flex items-center gap-2 text-base font-semibold text-foreground">
             <Gift className="w-4 h-4 text-sky-500" aria-hidden="true" />
-            Coffrets collection
+            Coffrets
           </div>
           <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Très “retail-friendly” (promos, figurines, goodies). Performance plus variable : dépend
-            surtout de la promo, du thème et du timing.
+            Format très hétérogène : parfois exclusif magasin, parfois multi-séries, parfois centré sur un seul set. Les coffrets sont un véritable fourre-tout, ce qui rend leur performance très variable et fortement dépendante du contenu, du thème et du timing.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge variant="secondary" className="text-xs">
@@ -118,8 +113,7 @@ export function ProductsBento() {
             Displays (36 boosters)
           </div>
           <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Bon ratio coût/booster et liquidité correcte. Souvent moins “prime” que les ETB, mais
-            intéressant sur les séries très ouvertes (streamers / compétitif).
+            Bon ratio coût/booster et liquidité correcte, mais une croissance plus lente que les ETB. Les displays restent souvent disponibles plus longtemps après la sortie, car largement distribués (kiosques, tabacs), ce qui limite la rareté perçue.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge variant="secondary" className="text-xs">
@@ -145,8 +139,7 @@ export function ProductsBento() {
             Boosters / blisters
           </div>
           <p className="mt-2 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            Ticket d’entrée faible et liquidité élevée. Le spread (frais + temps) mange plus vite la
-            marge : mieux quand la série est très demandée ou sur du vintage.
+            Les blisters constituent un segment à part : historiquement en plastique, désormais exclusivement en carton, une différence de prix notable. Les artsets complets se valorisent bien côté collection. À l’inverse, les boosters à l’unité sont surtout destinés à l’ouverture car risque de rescellés.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge variant="secondary" className="text-xs">
@@ -158,7 +151,7 @@ export function ProductsBento() {
           </div>
         </div>
 
-        <HoverPhoto src="/Blister/illu_blister.png" className="-right-3 bottom-2 sm:-bottom-4 h-32 w-32 sm:h-48 sm:w-48" />
+        <HoverPhoto src="/Blister/illu_blister.png" className="-right-3 bottom-2 sm: h-32 w-32 sm:h-48 sm:w-48" />
       </BentoTile>
     </BentoGrid>
   );

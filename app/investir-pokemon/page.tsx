@@ -272,25 +272,148 @@ export default function InvestirPokemonPage() {
 
             <ProductsBento />
 
-            {/* Encart dynamique des séries */}
-            <div className="mt-8 p-5 rounded-xl bg-muted/50 border border-border/50">
-              <h3 className="font-semibold text-foreground text-sm mb-2">
-                Comprendre la dynamique des séries
+            {/* Encart dynamique des séries - Forme en Y */}
+            <div className="mt-8 p-5 sm:p-6 rounded-xl bg-muted/30 border border-border/50 overflow-hidden">
+              <h3 className="font-semibold text-foreground text-sm mb-2 text-center">
+                Deux dynamiques, deux trajectoires
               </h3>
-              <div className="space-y-2 text-xs sm:text-sm text-muted-foreground">
-                <p>
-                  <span className="font-medium text-foreground">Séries à taux de drop cohérent</span> —
-                  Les cartes recherchées sont relativement accessibles, ce qui encourage les ouvertures
-                  massives. Ces séries montent progressivement et de manière stable.
-                </p>
-                <p>
-                  <span className="font-medium text-foreground">Séries à taux de drop très bas</span> —
-                  Les cartes chase sont extrêmement rares, ce qui décourage l'ouverture. Les collectionneurs
-                  préfèrent stocker. Ces séries peuvent monter beaucoup plus vite, mais sont aussi plus
-                  volatiles et sujettes à des corrections.
-                </p>
+              <p className="text-xs text-muted-foreground text-center mb-8">
+                Le taux de drop influence le comportement des collectionneurs et la trajectoire des prix.
+              </p>
+
+              {/* Structure en Y */}
+              <div className="relative min-h-[220px] sm:min-h-[240px]">
+                {/* Le Y en "route" */}
+                <svg
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  viewBox="0 0 400 240"
+                  preserveAspectRatio="xMidYMid meet"
+                  aria-hidden="true"
+                >
+                  {/* ROUTE = sous-couche "asphalte" */}
+                  <path
+                    d="M 200 210 C 200 160, 150 120, 90 78"
+                    fill="none"
+                    stroke="hsl(var(--background))"
+                    strokeWidth="22"
+                    strokeLinecap="round"
+                    opacity="0.9"
+                  />
+                  <path
+                    d="M 200 210 C 200 160, 250 120, 310 78"
+                    fill="none"
+                    stroke="hsl(var(--background))"
+                    strokeWidth="22"
+                    strokeLinecap="round"
+                    opacity="0.9"
+                  />
+
+                  {/* BORDS/COULEUR = couche colorée par-dessus (un peu plus fine) */}
+                  <path
+                    d="M 200 210 C 200 160, 150 120, 90 78"
+                    fill="none"
+                    stroke="url(#gradientEmerald)"
+                    strokeWidth="16"
+                    strokeLinecap="round"
+                    opacity="0.95"
+                  />
+                  <path
+                    d="M 200 210 C 200 160, 250 120, 310 78"
+                    fill="none"
+                    stroke="url(#gradientAmber)"
+                    strokeWidth="16"
+                    strokeLinecap="round"
+                    opacity="0.95"
+                  />
+
+                  {/* MARQUAGE CENTRAL = ligne pointillée au milieu (route) */}
+                  <path
+                    d="M 200 210 C 200 160, 150 120, 90 78"
+                    fill="none"
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeOpacity="0.25"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeDasharray="6 10"
+                  />
+                  <path
+                    d="M 200 210 C 200 160, 250 120, 310 78"
+                    fill="none"
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeOpacity="0.25"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeDasharray="6 10"
+                  />
+
+                  {/* Point central */}
+                  <circle cx="200" cy="210" r="9" fill="hsl(var(--muted-foreground))" opacity="0.14" />
+                  <circle cx="200" cy="210" r="4.5" fill="hsl(var(--muted-foreground))" opacity="0.35" />
+
+                  {/* Gradients */}
+                  <defs>
+                    <linearGradient id="gradientEmerald" x1="50%" y1="100%" x2="0%" y2="0%">
+                      <stop offset="0%" stopColor="rgb(16 185 129)" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="rgb(16 185 129)" stopOpacity="0.85" />
+                    </linearGradient>
+                    <linearGradient id="gradientAmber" x1="50%" y1="100%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="rgb(245 158 11)" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="rgb(245 158 11)" stopOpacity="0.85" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+
+                {/* Conteneur des séries */}
+                <div className="relative flex justify-between items-start px-1 sm:px-8">
+                  {/* Série gauche - Zénith Suprême */}
+                  <div className="flex flex-col items-center text-center w-[120px] sm:w-[170px] sm:translate-x-6">
+                    <div className="relative mb-2 sm:mb-3">
+                      <div className="absolute inset-0 rounded-xl bg-emerald-500/25 blur-xl" />
+                      <img
+                        src="/series/CRZ.webp"
+                        alt="Zénith Suprême"
+                        className="relative w-12 h-12 sm:w-20 sm:h-20 object-contain"
+                      />
+                    </div>
+                    <p className="text-xs sm:text-sm font-semibold text-foreground">Zénith Suprême</p>
+                    <p className="text-[9px] sm:text-[10px] text-emerald-500 font-medium mt-0.5 mb-1 hidden sm:block">Drop généreux et accessible donc ouvertures massives</p>
+                    <p className="text-[9px] sm:text-[10px] text-emerald-500 font-medium mt-0.5 mb-1 sm:hidden">Drop généreux</p>
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-relaxed">
+                      <span className="hidden sm:inline">Croissance</span> <span className="text-foreground font-medium">Lente mais stable</span>
+                    </p>
+                  </div>
+
+                  {/* Série droite - Évolution Céleste */}
+                  <div className="flex flex-col items-center text-center w-[120px] sm:w-[170px] sm:-translate-x-6">
+                    <div className="relative mb-2 sm:mb-3">
+                      <div className="absolute inset-0 rounded-xl bg-amber-500/25 blur-xl" />
+                      <img
+                        src="/series/EVS.webp"
+                        alt="Évolution Céleste"
+                        className="relative w-12 h-12 sm:w-20 sm:h-20 object-contain"
+                      />
+                    </div>
+                    <p className="text-xs sm:text-sm font-semibold text-foreground">Évolution Céleste</p>
+                    <p className="text-[9px] sm:text-[10px] text-amber-500 font-medium mt-0.5 mb-1 hidden sm:block">Drop rare donc stockage massif</p>
+                    <p className="text-[9px] sm:text-[10px] text-amber-500 font-medium mt-0.5 mb-1 sm:hidden">Drop rare</p>
+                    <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-relaxed hidden sm:block">
+                      Montée rapide mais subis souvent de fortes corrections. <span className="text-foreground font-medium">Fort potentiel à long terme</span>, plus volatile
+                    </p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed sm:hidden">
+                      <span className="text-foreground font-medium">Fort potentiel</span>, volatile
+                    </p>
+                  </div>
+                </div>
+
+                {/* Label point de départ */}
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-center">
+                  <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+                    Sortie
+                  </span>
+                </div>
               </div>
             </div>
+
 
             <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/20">
               <p className="text-sm text-muted-foreground">

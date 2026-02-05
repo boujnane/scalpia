@@ -6,7 +6,7 @@ import {
   Clock,
   Coins,
   Sparkles,
-  CheckCircle2,
+  ShieldCheck,
 } from "lucide-react";
 
 import { BentoGrid, BentoTile } from "@/components/investir/Bento";
@@ -16,88 +16,157 @@ const risks = [
   {
     icon: TrendingDown,
     title: "Volatilité",
-    desc: "Corrections rapides possibles (hype, rotation d’attention, annonces, réassorts).",
-    accent: "warning",
+    desc: "Corrections rapides possibles (hype, rotation d’attention, annonces officielles, réassorts).",
   },
   {
     icon: Package,
     title: "Réassorts / reprints",
-    desc: "Peuvent comprimer les prix, surtout sur le scellé moderne et les produits “mass market”.",
-    accent: "warning",
+    desc: "Peuvent comprimer durablement les prix, surtout sur le scellé moderne et les produits « mass market ».",
   },
   {
     icon: Shield,
-    title: "Contrefaçons & re-scells",
-    desc: "Risque plus élevé hors circuits connus : photos, vendeur, scellage, poids, provenance.",
-    accent: "warning",
+    title: "Contrefaçons & rescellés",
+    desc: "Risque accru hors circuits établis : qualité du film, plis suspects, traces de chauffe et provenance.",
   },
   {
     icon: Coins,
     title: "Liquidité réelle",
-    desc: "Prix affiché ≠ prix vendu : délais, négociation, frais et retours impactent le net.",
-    accent: "warning",
+    desc: "Prix affiché ≠ prix vendu : délais, négociation, frais, litiges et retours impactent fortement le net.",
+  },
+  {
+    icon: Shield,
+    title: "Condition à la revente",
+    desc: "Le scellé est sensible : micro-chocs, coins écrasés ou film détendu entraînent une décote immédiate.",
   },
   {
     icon: Clock,
     title: "Stockage & coût du temps",
-    desc: "Espace, conditions (UV/humidité/chocs) et temps de gestion : ça compte dans le rendement.",
-    accent: "warning",
+    desc: "Espace, conditions (UV, humidité, chocs) et temps de gestion doivent être intégrés au rendement réel.",
   },
   {
     icon: Sparkles,
     title: "Effet de mode",
-    desc: "Les séries “à la mode” montent vite… et peuvent dégonfler tout aussi vite.",
-    accent: "warning",
+    desc: "Les séries « à la mode » montent vite… mais la demande peut se déplacer tout aussi rapidement.",
+  },
+] as const;
+
+const checklist = [
+  {
+    title: "Comparer le net",
+    desc: "Prix − (frais, port, assurance, retours, litiges potentiels)",
+  },
+  {
+    title: "Exiger des photos claires",
+    desc: "Coins, scellage, angles, code produit et cohérence générale",
+  },
+  {
+    title: "Vérifier le vendeur",
+    desc: "Ancienneté, historique, réputation et cohérence des ventes",
+  },
+  {
+    title: "Se méfier des « trop bonnes affaires »",
+    desc: "Un prix anormalement bas cache souvent un risque non visible",
+  },
+  {
+    title: "Mode de paiement",
+    desc: "Méfiez vous des demandes de paiements paypal entre proches et virement bancaire",
+  },
+  {
+    title: "Anticiper le stockage",
+    desc: "Protection contre UV, humidité et chocs dès l’achat",
+  },
+  {
+    title: "Préserver sa marge de manœuvre",
+    desc: "Un achat ne doit pas bloquer tout ton budget ou ta flexibilité.",
+  },
+  {
+    title: "Remise en mains propres",
+    desc: "Une vraie RMP implique un lieu précis et public. La mention « RMP 64 / Pyrénées Atlantique » est parfois utilisée car la distance avec les principales métropoles française décourage la rencontre et pousse l’acheteur à accepter un envoi.",
   },
 ] as const;
 
 export function RisksBento() {
   return (
     <BentoGrid className="grid-cols-1 lg:grid-cols-12">
+      {/* Risques - Carte principale */}
       <BentoTile accent="warning" className="lg:col-span-7">
-        <div className="flex items-start justify-between gap-4">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2.5 rounded-xl bg-amber-500/10">
+            <AlertTriangle className="w-5 h-5 text-amber-500" aria-hidden="true" />
+          </div>
           <div>
-            <p className="text-xs font-medium text-muted-foreground">À intégrer avant d’acheter</p>
-            <h3 className="mt-1 text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" aria-hidden="true" />
-              Les risques clés (version courte)
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              À intégrer avant d’acheter
+            </p>
+            <h3 className="text-base sm:text-lg font-semibold text-foreground">
+              Les risques clés
             </h3>
           </div>
         </div>
 
-        <ul className="mt-4 space-y-3">
+        {/* Liste des risques */}
+        <ul className="space-y-4">
           {risks.map((risk) => (
-            <li key={risk.title} className="flex gap-3">
-              <div className="mt-0.5 rounded-lg border border-border/50 bg-background/50 p-2 shrink-0">
-                <risk.icon className="w-4 h-4 text-foreground/80" aria-hidden="true" />
+            <li key={risk.title} className="flex items-start gap-3">
+              <div className="p-2 rounded-lg shrink-0 mt-0.5 bg-muted/80">
+                <risk.icon
+                  className="w-4 h-4 text-amber-500/80"
+                  aria-hidden="true"
+                />
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-foreground">{risk.title}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">{risk.desc}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {risk.title}
+                </p>
+                <p className="text-[13px] text-muted-foreground leading-relaxed mt-0.5">
+                  {risk.desc}
+                </p>
               </div>
             </li>
           ))}
         </ul>
       </BentoTile>
 
-      <BentoTile accent="neutral" className="lg:col-span-5">
-        <p className="text-xs font-medium text-muted-foreground">Anti-bad buys</p>
-        <h3 className="mt-1 text-base sm:text-lg font-semibold text-foreground">
-          Checklist scellé (rapide)
-        </h3>
+      {/* Checklist - Carte secondaire */}
+      <BentoTile accent="success" className="lg:col-span-5">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="p-2.5 rounded-xl bg-emerald-500/10">
+            <ShieldCheck className="w-5 h-5 text-emerald-500" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">
+              Anti-bad buys
+            </p>
+            <h3 className="text-base sm:text-lg font-semibold text-foreground">
+              Checklist scellé
+            </h3>
+          </div>
+        </div>
 
-        <ul className="mt-4 space-y-2">
-          {[
-            "Comparer le net vendeur : frais, port, assurance, retours",
-            "Exiger photos HD (coins, scellage, angles, code produit)",
-            "Vérifier provenance + historique du vendeur",
-            "Éviter les “bonnes affaires” trop belles",
-            "Stockage : UV, humidité, chocs (boîtes qui s’écrasent)",
-            "Penser à la revente : plateforme + audience cible",
-          ].map((item) => (
-            <li key={item} className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
-              <CheckCircle2 className="w-4 h-4 text-success mt-0.5 shrink-0" aria-hidden="true" />
-              <span className={cn("leading-relaxed")}>{item}</span>
+        {/* Liste checklist */}
+        <ul className="space-y-3">
+          {checklist.map((item, index) => (
+            <li key={item.title} className="flex items-start gap-3">
+              <div
+                className={cn(
+                  "flex items-center justify-center",
+                  "w-6 h-6 rounded-full shrink-0",
+                  "bg-emerald-500/10",
+                  "text-xs font-semibold text-emerald-500"
+                )}
+              >
+                {index + 1}
+              </div>
+              <div className="min-w-0 flex-1 pt-0.5">
+                <p className="text-sm font-medium text-foreground leading-tight">
+                  {item.title}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {item.desc}
+                </p>
+              </div>
             </li>
           ))}
         </ul>
@@ -105,4 +174,3 @@ export function RisksBento() {
     </BentoGrid>
   );
 }
-

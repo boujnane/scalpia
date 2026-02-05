@@ -8,6 +8,10 @@ import { BentoGrid, BentoTile } from "@/components/investir/Bento";
 
 type MarketKey = "fr" | "en" | "jp" | "kr" | "cn";
 
+/**
+ * Angle : perception & comportement SUR le marché français
+ * (langue de la carte/produit → demande FR, liquidité, prime, contraintes)
+ */
 const markets: Record<
   MarketKey,
   {
@@ -21,86 +25,102 @@ const markets: Record<
 > = {
   fr: {
     label: "FR",
-    title: "Francophone",
+    title: "Cartes FR (marché français)",
     sealed: [
-      "Prime fréquente sur certains scellés (offre locale plus contrainte, demande FR).",
-      "Écarts importants selon série : tout ne surperforme pas.",
-      "Revente souvent via audience “collection” (ETB, coffrets, vintage).",
+      "Demande locale forte sur certains scellés FR : rupture rapide quand la série est attendue.",
+      "Prime possible sur des références “collection” (ETB/UPC/produits marquants), mais très dépendante du set.",
+      "Les promos FR spécifiques peuvent créer des poches de rareté, surtout quand elles sont identifiables.",
     ],
     singles: [
-      "Marché plus petit : prix parfois plus hauts, mais moins de profondeur d’acheteurs.",
-      "Les cartes “globales” (ultra recherchées) restent très tirées par l’anglais.",
-      "Les promos FR spécifiques peuvent créer des poches de rareté.",
+      "Liquidité souvent inférieure à l’anglais : moins d’acheteurs “globaux”, surtout sur les grosses chase.",
+      "Certaines cartes se vendent très bien en FR (nostalgie/collection locale), mais le prix n’est pas toujours la référence mondiale.",
+      "La condition et la confiance (photos, authenticité) pèsent davantage sur la décision d’achat.",
     ],
-    platforms: ["Cardmarket", "eBay", "Vinted", "Leboncoin", "Salons/boutiques"],
+    platforms: ["Cardmarket", "Vinted", "Leboncoin", "eBay", "Salons/boutiques"],
     watch: [
-      "Frais + port : impacte beaucoup le net sur les petits tickets.",
-      "Photos/scellage : re-scells et “retours” existent aussi sur le scellé.",
+      "Sur petits tickets : frais/ports pèsent lourd → comparer le net.",
+      "Scellé : attention aux retours, re-scells et photos “trop propres”.",
     ],
   },
+
   en: {
     label: "EN/US",
-    title: "Anglophone",
+    title: "Cartes EN (référence internationale)",
     sealed: [
-      "Très grande liquidité sur certaines références, surtout US.",
-      "Diffusion plus large : parfois moins de prime, mais plus de volume.",
-      "Arbitrage facilité (comparables, historiques, ventes réalisées).",
+      "Souvent plus simple à comparer : historique de ventes et volume global plus élevé.",
+      "Sur certains produits, moins de “prime locale” que le FR, mais une demande plus large.",
+      "Le scellé EN/US est très recherché sur les références iconiques, surtout en vintage.",
     ],
     singles: [
-      "Langue la plus “globale” : demande internationale, revente plus facile.",
-      "Le grading a souvent plus d’impact sur la liquidité (PSA/CGC/BGS).",
-      "Sur les cartes phare, l’EN peut être la référence de prix.",
+      "Langue la plus liquide : c’est souvent la référence de prix sur les chase majeures.",
+      "Le grading influence fortement la demande (PSA/CGC/BGS) et la facilité de revente.",
+      "Pour les cartes “globales”, l’EN domine généralement en profondeur d’acheteurs.",
     ],
-    platforms: ["eBay", "TCGplayer (US)", "Cardmarket (EU)", "Whatnot/streams"],
-    watch: ["Import, TVA/douanes selon provenance.", "Risque de surpayer la hype à l’international."],
+    platforms: ["Cardmarket (EU)", "eBay", "TCGplayer (US)", "Whatnot/streams"],
+    watch: [
+      "Import, TVA/douanes selon provenance : ça change le net.",
+      "Hype internationale : risque de surpayer quand le volume s’emballe.",
+    ],
   },
+
   jp: {
     label: "JP",
-    title: "Japonais",
+    title: "Cartes JP (premium collection)",
     sealed: [
-      "Sorties parfois plus tôt : la dynamique peut précéder l’Occident.",
-      "Produits JP très collectionnés (qualité perçue, exclusivités).",
-      "Le scellé JP se comporte souvent comme un marché “premium” (mais cyclique).",
+      "Le scellé JP est très collectionné : perception premium, séries et promos souvent spécifiques.",
+      "Certaines sorties prennent de l’avance en dynamique : le mouvement peut précéder l’Occident.",
+      "Quand ça part, ça part vite — mais l’intérêt peut être cyclique selon les sets.",
     ],
     singles: [
-      "Cartes JP iconiques très demandées, parfois avec prime d’état.",
-      "Liquidité variable hors des “hits” : attention aux séries moins suivies.",
-      "La revente dépend fortement de l’audience (FR/EN/JP).",
+      "Forte demande sur les cartes iconiques et les full arts : prime possible sur l’état/qualité d’impression.",
+      "Très bon marché sur les “hits”, plus irrégulier sur le reste : attention aux séries peu suivies en FR.",
+      "La liquidité dépend beaucoup de l’audience (acheteurs JP/EN vs acheteurs FR).",
     ],
-    platforms: ["Yahoo! Auctions (via proxy)", "Mercari (via proxy)", "eBay", "Boutiques import"],
-    watch: ["Frais proxy + port + douanes peuvent annihiler le rendement.", "S’assurer de l’authenticité des scellés importés."],
+    platforms: ["eBay", "Boutiques import", "Yahoo! Auctions (via proxy)", "Mercari (via proxy)"],
+    watch: [
+      "Frais proxy + port + douanes : peuvent coûter très cher.",
+      "Authenticité & versions : documenter précisément, surtout sur promos/éditions.",
+    ],
   },
+
   kr: {
     label: "KR",
-    title: "Coréen",
+    title: "Cartes KR (niche en France)",
     sealed: [
-      "Ticket d’entrée souvent plus bas (selon produit) mais audience plus étroite.",
-      "Opportunités ponctuelles quand la demande se déplace vers des langues alternatives.",
-      "Marché plus “niche” : la liquidité est le point clé.",
+      "Souvent plus accessible en prix, mais audience plus étroite en France.",
+      "Peut performer ponctuellement quand la demande se déplace vers des alternatives (curiosité / rareté perçue).",
+      "À traiter comme un segment opportuniste, pas comme un standard.",
     ],
     singles: [
-      "Certaines cartes deviennent recherchées par effet de rareté perçue + curiosité.",
-      "Mais beaucoup de références restent difficiles à écouler au bon prix.",
-      "À traiter comme une position opportuniste, pas un socle.",
+      "Certaines cartes deviennent recherchées (effet niche), mais beaucoup restent difficiles à écouler au bon prix.",
+      "La demande dépend énormément de la communauté : la liquidité est le point clé.",
+      "Plus tu es “hors hit”, plus la revente devient incertaine.",
     ],
-    platforms: ["eBay", "Groupes/communautés", "Import boutiques"],
-    watch: ["Spreads élevés : achat/revente peut coûter cher.", "Privilégier des cibles claires (promos, hits, séries cultes)."],
+    platforms: ["eBay", "Communautés", "Boutiques import"],
+    watch: [
+      "Spreads élevés : achat/revente peut coûter cher, surtout sur petites ventes.",
+      "Privilégier des cibles claires (hits, promos, séries cultes) plutôt que du “random”.",
+    ],
   },
+
   cn: {
     label: "CN",
-    title: "Chinois (en forte traction)",
+    title: "Cartes CN (très segmenté)",
     sealed: [
-      "Marché en expansion : hausse d’attention sur certaines sorties et promos.",
-      "Segmentation à comprendre (produits, régions, versions) avant de se positionner.",
-      "Potentiel, mais volatilité plus élevée (effet nouveauté).",
+      "Beaucoup de variantes/versions : comprendre le produit avant d’acheter (édition, région, packaging).",
+      "Certaines exclusivités et promos attirent une demande croissante, mais le marché FR reste de niche.",
+      "Potentiel sur des pièces identifiables, mais l’historique de prix est souvent moins lisible.",
     ],
     singles: [
-      "Certaines exclusivités/promos peuvent créer des poches de rareté.",
-      "Liquidité très hétérogène selon la communauté ciblée.",
-      "Le prix “juste” est plus dur à ancrer sans historique solide.",
+      "Exclusivités/promos peuvent créer de vraies raretés, mais la liquidité est très hétérogène en France.",
+      "Le “prix juste” est plus dur à ancrer sans comparables solides.",
+      "Segment pour collectionneurs avertis : documentation et provenance sont clés.",
     ],
-    platforms: ["eBay", "Import boutiques", "Communautés spécialisées"],
-    watch: ["Risque de confusion versions/éditions : documenter précisément.", "Frais et délais d’import : calculer le net avant d’acheter."],
+    platforms: ["Communautés spécialisées", "Boutiques import", "eBay"],
+    watch: [
+      "Confusion versions/éditions : archiver preuves, références et photos détaillées.",
+      "Frais et délais d’import : calculer le net avant d’acheter.",
+    ],
   },
 };
 
@@ -114,17 +134,18 @@ function MarketPanel({ marketKey }: { marketKey: MarketKey }) {
           <div>
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
               <Globe className="w-3.5 h-3.5" aria-hidden="true" />
-              Marché {market.title}
+              {market.title}
             </p>
             <h3 className="mt-1 text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
               <Package className="w-4 h-4 sm:w-5 sm:h-5 text-primary" aria-hidden="true" />
-              Scellé : comment ça bouge
+              Scellé : comportement en France
             </h3>
           </div>
           <Badge variant="secondary" className="text-xs">
             {market.label}
           </Badge>
         </div>
+
         <ul className="mt-4 space-y-2 text-xs sm:text-sm text-muted-foreground">
           {market.sealed.map((item) => (
             <li key={item} className="leading-relaxed">
@@ -137,7 +158,7 @@ function MarketPanel({ marketKey }: { marketKey: MarketKey }) {
       <BentoTile accent="neutral" className="md:col-span-5">
         <div className="flex items-center gap-2 text-base sm:text-lg font-semibold text-foreground">
           <Coins className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" aria-hidden="true" />
-          Cartes à l’unité : la réalité
+          Cartes à l’unité : perception FR
         </div>
         <ul className="mt-4 space-y-2 text-xs sm:text-sm text-muted-foreground">
           {market.singles.map((item) => (
@@ -165,7 +186,7 @@ function MarketPanel({ marketKey }: { marketKey: MarketKey }) {
       <BentoTile accent="warning" className="md:col-span-8">
         <div className="flex items-center gap-2 text-base font-semibold text-foreground">
           <AlertTriangle className="w-4 h-4 text-amber-500" aria-hidden="true" />
-          À surveiller avant d’investir
+          Points d’attention (marché FR)
         </div>
         <ul className="mt-3 space-y-2 text-xs sm:text-sm text-muted-foreground">
           {market.watch.map((item) => (
