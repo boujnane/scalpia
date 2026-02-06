@@ -506,6 +506,35 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
         let hasChanges = false;
         const today = new Date().toISOString().slice(0, 10);
 
+        // Calculate cards value for historical snapshots (using current price as approximation)
+        // This is not perfect but better than ignoring cards completely
+        const getCardsValueAtDate = (date: string): { value: number; count: number } => {
+          let cardsValue = 0;
+          let cardsCount = 0;
+
+          for (const card of cardsWithPrices) {
+            // Determine when card was owned
+            let ownedSinceStr: string;
+            if (card.ownedSince) {
+              ownedSinceStr = card.ownedSince;
+            } else {
+              const addedAt = card.addedAt instanceof Date ? card.addedAt : new Date(card.addedAt);
+              ownedSinceStr = addedAt.toISOString().slice(0, 10);
+            }
+
+            // Skip if card wasn't owned at this date
+            if (date < ownedSinceStr) continue;
+
+            // Use current price as approximation for historical dates
+            if (card.currentPrice !== null) {
+              cardsValue += card.currentPrice * card.quantity;
+              cardsCount++;
+            }
+          }
+
+          return { value: cardsValue, count: cardsCount };
+        };
+
         // For each indexed date, calculate collection value (except today - handled separately)
         for (const date of indexedDates) {
           // Skip dates before the collection was created
@@ -513,8 +542,8 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
           // Skip today - we'll handle it separately to include cards
           if (date === today) continue;
 
-          // Calculate value for this date
-          let totalValue = 0;
+          // Calculate items value for this date
+          let itemsValue = 0;
           let itemsWithPriceCount = 0;
 
           for (const collectionItem of collectionItems) {
@@ -536,7 +565,7 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
 
             const priceAtDate = getPriceAtDate(sourceItem, date);
             if (priceAtDate !== null) {
-              totalValue += priceAtDate * collectionItem.quantity;
+              itemsValue += priceAtDate * collectionItem.quantity;
               itemsWithPriceCount++;
             }
           }
@@ -544,18 +573,49 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
           // Only create snapshot if at least one item has a price for this date
           if (itemsWithPriceCount === 0) continue;
 
-          // Check if we need to update
+          // Check if snapshot already exists
           const existing = existingByDate.get(date);
+
+          // If snapshot exists AND already has cardsValue, don't recalculate
+          // This preserves historical card prices
+          if (existing && existing.cardsValue !== undefined) {
+            // Only update if items value changed significantly
+            const existingItemsValue = existing.itemsValue ?? existing.totalValue;
+            if (Math.abs(existingItemsValue - itemsValue) < 0.01) {
+              continue; // No change needed
+            }
+            // Update only items value, keep historical cards value
+            await saveCollectionSnapshot(user.uid, {
+              date,
+              totalValue: itemsValue + existing.cardsValue,
+              totalCost,
+              itemCount: collectionItems.length + (existing.cardsCount ?? 0),
+              itemsValue,
+              cardsValue: existing.cardsValue,
+              cardsCount: existing.cardsCount,
+            });
+            hasChanges = true;
+            continue;
+          }
+
+          // Snapshot doesn't exist or doesn't have cardsValue - create/update with current card prices
+          const cardsData = getCardsValueAtDate(date);
+          const totalValue = itemsValue + cardsData.value;
+
+          // Check if we need to update (for snapshots without cardsValue)
           if (existing && Math.abs(existing.totalValue - totalValue) < 0.01) {
             continue; // No change needed
           }
 
-          // Save or update snapshot
+          // Save or update snapshot with items + cards
           await saveCollectionSnapshot(user.uid, {
             date,
             totalValue,
             totalCost,
-            itemCount: collectionItems.length,
+            itemCount: collectionItems.length + cardsData.count,
+            itemsValue,
+            cardsValue: cardsData.value,
+            cardsCount: cardsData.count,
           });
           hasChanges = true;
         }
@@ -564,6 +624,12 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
         const todayItemsValue = itemsWithPrices.reduce((sum, item) => sum + (item.currentValue ?? 0), 0);
         const todayCardsValue = cardsWithPrices.reduce((sum, card) => sum + (card.currentValue ?? 0), 0);
         const todayTotalValue = todayItemsValue + todayCardsValue;
+
+        // Skip saving if cards prices are not loaded yet (to avoid saving incomplete data)
+        const cardsWithLoadedPrice = cardsWithPrices.filter(c => c.currentPrice !== null).length;
+        if (collectionCards.length > 0 && cardsWithLoadedPrice === 0) {
+          return; // Don't save yet, wait for card prices
+        }
 
         // Calculate cards cost for today's snapshot
         let cardsCost = 0;
@@ -582,6 +648,9 @@ export function useCollection(allItems: Item[] = []): UseCollectionReturn {
             totalValue: todayTotalValue,
             totalCost: todayTotalCost,
             itemCount: collectionItems.length + collectionCards.length,
+            itemsValue: todayItemsValue,
+            cardsValue: todayCardsValue,
+            cardsCount: collectionCards.length,
           });
           hasChanges = true;
         }
