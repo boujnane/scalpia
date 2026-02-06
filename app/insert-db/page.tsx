@@ -71,6 +71,7 @@ export default function InsertDbPage() {
   const [editingPrice, setEditingPrice] = useState(false);
   const [cardmarketUrl, setCardmarketUrl] = useState<string | null>(null);
   const [priceUnavailable, setPriceUnavailable] = useState(false);
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
 
   const [openVinted, setOpenVinted] = useState(true);
   const [openCardmarket, setOpenCardmarket] = useState(true);
@@ -80,6 +81,7 @@ export default function InsertDbPage() {
 
   const [yesterdayPrice, setYesterdayPrice] = useState<number | null>(null);
   const [yesterdayDate, setYesterdayDate] = useState<string | null>(null);
+  const [yesterdaySourceUrl, setYesterdaySourceUrl] = useState<string | null>(null);
 
   // Cache et prefetch
   const prefetchCache = useRef<Map<string, PrefetchData>>(new Map());
@@ -153,6 +155,7 @@ export default function InsertDbPage() {
 
       setYesterdayPrice(null);
       setYesterdayDate(null);
+      setYesterdaySourceUrl(null);
 
       const pricesSnap = await getDocs(collection(db, `items/${currentItem.id}/prices`));
       if (pricesSnap.empty) return;
@@ -168,11 +171,13 @@ export default function InsertDbPage() {
       if (priceYesterday) {
         setYesterdayPrice(priceYesterday.price);
         setYesterdayDate(priceYesterday.date);
+        setYesterdaySourceUrl(priceYesterday.sourceUrl || null);
         return;
       }
 
       setYesterdayPrice(prices[0].price);
       setYesterdayDate(prices[0].date);
+      setYesterdaySourceUrl(prices[0].sourceUrl || null);
     };
 
     fetchYesterdayPrice();
@@ -500,7 +505,10 @@ export default function InsertDbPage() {
   };
 
   const handleUseYesterdayPrice = () => {
-    if (yesterdayPrice !== null) setCurrentMinPrice(yesterdayPrice);
+    if (yesterdayPrice !== null) {
+      setCurrentMinPrice(yesterdayPrice);
+      setSourceUrl(yesterdaySourceUrl);
+    }
   };
 
   const handleSearchVinted = async () => {
@@ -693,7 +701,11 @@ export default function InsertDbPage() {
 
     setSaving(true);
     try {
-      await insertPriceInDB(currentItem.id, { date: today, price: priceToSave });
+      await insertPriceInDB(currentItem.id, {
+        date: today,
+        price: priceToSave,
+        sourceUrl: priceUnavailable ? null : sourceUrl,
+      });
       setItemsWithPriceToday((prev) => new Set(prev).add(currentItem.id));
     } catch {
       alert("Erreur lors de l'ajout");
@@ -720,7 +732,11 @@ export default function InsertDbPage() {
 
     setSaving(true);
     try {
-      await insertPriceInDB(currentItem.id, { date: today, price: priceToSave });
+      await insertPriceInDB(currentItem.id, {
+        date: today,
+        price: priceToSave,
+        sourceUrl: priceUnavailable ? null : sourceUrl,
+      });
       setItemsWithPriceToday((prev) => new Set(prev).add(currentItem.id));
       handleNext();
     } catch {
@@ -759,6 +775,7 @@ export default function InsertDbPage() {
     setEditingPrice(false);
     setCardmarketUrl(null);
     setPriceUnavailable(false);
+    setSourceUrl(null);
     window.scrollTo(0, 0);
   };
 
@@ -824,7 +841,8 @@ export default function InsertDbPage() {
     setVintedResults(null);
     setLbcResults([]);
     setEbayResults(null);
-  
+    setSourceUrl(null);
+
     await prefetchItem(currentItem);
   };
 
@@ -1043,13 +1061,17 @@ export default function InsertDbPage() {
                       <a
                         href={cardmarketUrl}
                         target="_blank"
+                        onClick={() => setSourceUrl(cardmarketUrl)}
                         className="underline break-all text-primary hover:text-primary/80 transition"
                       >
                         {cardmarketUrl}
                       </a>
                       <CardmarketButton
                         url={cardmarketUrl}
-                        onSelectPrice={(price) => setCurrentMinPrice(price)}
+                        onSelectPrice={(price) => {
+                          setCurrentMinPrice(price);
+                          setSourceUrl(cardmarketUrl);
+                        }}
                       />
                     </CollapsibleContent>
                   </Collapsible>
@@ -1067,6 +1089,20 @@ export default function InsertDbPage() {
                       <span className="text-primary font-bold">{yesterdayPrice} €</span>
                       {yesterdayDate && <span className="text-sm text-muted-foreground ml-2">(date : {yesterdayDate})</span>}
                     </div>
+                    {yesterdaySourceUrl && (
+                      <div className="mt-1 text-xs">
+                        <span className="text-muted-foreground">Source : </span>
+                        <a
+                          href={yesterdaySourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-primary hover:underline"
+                        >
+                          {yesterdaySourceUrl.length > 50 ? `${yesterdaySourceUrl.slice(0, 50)}...` : yesterdaySourceUrl}
+                        </a>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1127,6 +1163,7 @@ export default function InsertDbPage() {
                                 onClick={() => {
                                   if (item.url) window.open(item.url, "_blank");
                                   setCurrentMinPrice(item.price);
+                                  setSourceUrl(item.url || null);
                                 }}
                               >
                                 {item.thumbnail && (
@@ -1182,6 +1219,7 @@ export default function InsertDbPage() {
                                     if (item.url) window.open(item.url, "_blank");
                                     if (!Number.isNaN(parsedPrice)) {
                                       setCurrentMinPrice(parsedPrice);
+                                      setSourceUrl(item.url || null);
                                     }
                                   }}
                                 >
@@ -1236,6 +1274,7 @@ export default function InsertDbPage() {
                                 onClick={() => {
                                   const price = parseLBCPrice(offer.price);
                                   setCurrentMinPrice(price);
+                                  setSourceUrl(offer.link || null);
                                 }}
                               />
                             </div>
@@ -1279,20 +1318,58 @@ export default function InsertDbPage() {
                 )}
 
                 {currentMinPrice !== null && !currentError && !priceUnavailable && (
-                  <div className="flex items-center gap-3 text-base font-semibold bg-success-light border-l-4 border-success p-3 rounded-md shadow-md">
-                    <span className="text-success">Prix minimal trouvé :</span>
-                    {editingPrice ? (
-                      <input
-                        type="number"
-                        value={currentMinPrice}
-                        onChange={(e) => setCurrentMinPrice(Number(e.target.value))}
-                        className="border border-input bg-background rounded px-2 py-1 w-28 text-center font-medium text-foreground focus:ring-primary focus:border-primary"
-                      />
-                    ) : (
-                     <span className="text-success font-bold text-lg">
-                        {currentMinPrice} €
-                      </span>
-                    )}
+                  <div className="bg-success-light border-l-4 border-success p-3 rounded-md shadow-md space-y-2">
+                    <div className="flex items-center gap-3 text-base font-semibold">
+                      <span className="text-success">Prix minimal trouvé :</span>
+                      {editingPrice ? (
+                        <input
+                          type="number"
+                          value={currentMinPrice}
+                          onChange={(e) => setCurrentMinPrice(Number(e.target.value))}
+                          className="border border-input bg-background rounded px-2 py-1 w-28 text-center font-medium text-foreground focus:ring-primary focus:border-primary"
+                        />
+                      ) : (
+                       <span className="text-success font-bold text-lg">
+                          {currentMinPrice} €
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-muted-foreground">Source :</span>
+                      {sourceUrl ? (
+                        <a
+                          href={sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline truncate max-w-md"
+                        >
+                          {sourceUrl.length > 60 ? `${sourceUrl.slice(0, 60)}...` : sourceUrl}
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground italic">Aucune</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = prompt("Entrez le lien source :", sourceUrl || "");
+                          if (url !== null) {
+                            setSourceUrl(url.trim() || null);
+                          }
+                        }}
+                        className="text-primary hover:underline ml-1"
+                      >
+                        {sourceUrl ? "Modifier" : "Ajouter"}
+                      </button>
+                      {sourceUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setSourceUrl(null)}
+                          className="text-destructive hover:underline"
+                        >
+                          Supprimer
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
