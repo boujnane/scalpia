@@ -68,6 +68,12 @@ export type CollectionSnapshot = {
   totalCost: number;
   itemCount: number;
   createdAt: Date;
+  /** Valeur des items (scellés) seulement - pour historique */
+  itemsValue?: number;
+  /** Valeur des cartes seulement - disponible à partir du moment où on stocke */
+  cardsValue?: number;
+  /** Nombre de cartes */
+  cardsCount?: number;
 };
 
 /**

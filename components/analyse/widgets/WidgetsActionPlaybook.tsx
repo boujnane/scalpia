@@ -553,6 +553,9 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
     const premiums = series
       .map((s) => s.metrics.premiumNow)
       .filter((x): x is number => x != null);
+    const scores = series
+      .map((s) => s.metrics.score)
+      .filter((x): x is number => x != null);
 
     const freshSeries = series.filter(
       (s) => s.metrics.freshnessDays != null && s.metrics.freshnessDays <= 7
@@ -566,15 +569,32 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
     const avgVaR95 = average(vars95) ?? 0;
     const avgDrawdown = average(drawdowns) ?? 0;
     const avgSlope30d = average(slopes30d) ?? 0;
+    const avgScore = average(scores) ?? 50;
     const marketMedianPremium = median(premiums) ?? 0.3;
     const medianVol30d = median(vols30d) ?? avgVol30d;
+    const premiumPositiveRatio =
+      premiums.length > 0 ? premiums.filter((p) => p > 0).length / premiums.length : 0.5;
+    const medianPremiumNow = median(premiums) ?? 0;
+    const premiumStrength = clamp((medianPremiumNow / 0.6) * 100, 0, 100);
+
+    const longTermStructuralScore = clamp(
+      30 +
+        premiumPositiveRatio * 35 +
+        premiumStrength * 0.25 +
+        (avgScore - 50) * 0.2 +
+        avgSlope30d * 8000 +
+        avgSharpe * 6 -
+        avgDrawdown * 70,
+      0,
+      100
+    );
 
     const horizonScore =
       horizon === "court_terme"
         ? clamp(50 + avgReturn7d * 220 - avgVol30d * 180 + (dataFreshness - 60) * 0.6, 0, 100)
         : horizon === "moyen_terme"
           ? clamp(50 + avgReturn30d * 180 + avgSharpe * 10 - avgVol30d * 140, 0, 100)
-          : clamp(50 + avgSlope30d * 12000 + avgSharpe * 8 - avgDrawdown * 120, 0, 100);
+          : longTermStructuralScore;
 
     const directionProfiles: Record<AnalysisDirection, DirectionProfile> = {
       momentum: evaluateDirection("momentum", series, marketMedianPremium),
@@ -595,7 +615,16 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
       100
     );
 
-    const regimeScore = clamp(baseRegime + (horizonScore - 50) * 0.25, 0, 100);
+    const longTermRegimeBoost =
+      horizon === "long_terme_5_10_ans"
+        ? (premiumPositiveRatio - 0.5) * 16 + (premiumStrength - 50) * 0.12
+        : 0;
+
+    const regimeScore = clamp(
+      baseRegime + (horizonScore - 50) * 0.25 + longTermRegimeBoost,
+      0,
+      100
+    );
 
     let regimeLabel = "Neutre";
     let regimeTone = "text-slate-500";
@@ -662,6 +691,8 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
       avgDrawdown,
       avgSlope30d,
       marketMedianPremium,
+      premiumPositiveRatio,
+      medianPremiumNow,
       dataFreshness,
       horizonScore,
       regimeScore,
@@ -823,7 +854,7 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
     }
   };
 
-  const simplifiedInsight = useMemo(() => getSimplifiedInsight(playbook), [playbook]);
+  const simplifiedInsight = getSimplifiedInsight(playbook);
 
   return (
     <Card
@@ -1165,7 +1196,9 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
               {((horizon === "court_terme" ? playbook.avgReturn7d : playbook.avgReturn30d) * 100).toFixed(1)}%
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Long terme: lecture proxy basée sur stabilité et pente 30j.
+              {horizon === "long_terme_5_10_ans"
+                ? `Couverture retail: ${(playbook.premiumPositiveRatio * 100).toFixed(0)}% des séries au-dessus du retail (premium médian ${(playbook.medianPremiumNow * 100).toFixed(0)}%).`
+                : "Long terme: lecture proxy basée sur stabilité et pente 30j."}
             </p>
           </div>
         </div>
