@@ -21,6 +21,14 @@ export type SeriesFinanceSummary = {
   maxItemPrice: number | null;
   itemsCount: number;
 
+  // proxies long terme (estimés à partir de retail + date de sortie + dernier prix)
+  longTermRefReturn5y: number | null;   // estimation cumulée sur 5 ans
+  longTermRefReturn10y: number | null;  // estimation cumulée sur 10 ans
+  longTermAnnualLinear: number | null;  // croissance linéaire annuelle estimée
+  aboveRetailRatio: number | null;      // part d'items au-dessus du retail (0..1)
+  medianItemAgeYears: number | null;    // ancienneté médiane des items
+  hypeAdjustedRatio: number | null;     // facteur moyen d'ajustement hype (0..1)
+
 };
 
 export type SeriesFinanceKPIs = {

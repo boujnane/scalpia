@@ -21,8 +21,95 @@ function getLastItemPrice(
   return last?.price ?? null;
 }
 
+function parseReleaseDate(value: string | undefined): Date | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function yearsSince(date: Date, now: Date): number {
+  const diffMs = now.getTime() - date.getTime();
+  const years = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+  return Math.max(0, years);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Ajustement simple du régime "hype globalisée" observé sur 2020-2021.
+ * 1.0 = pas d'ajustement ; <1 = on neutralise une part du boost de hype.
+ */
+function hypeAdjustmentFactor(releaseDate: Date): number {
+  const year = releaseDate.getUTCFullYear();
+  if (year === 2020) return 0.72;
+  if (year === 2021) return 0.78;
+  if (year === 2022) return 0.88;
+  if (year >= 2023) return 0.93;
+  return 1;
+}
+
+function computeLongTermProxy(group: Item[], now: Date) {
+  const annualLinearReturns: number[] = [];
+  const ref5yReturns: number[] = [];
+  const ref10yReturns: number[] = [];
+  const ageYears: number[] = [];
+  const hypeRatios: number[] = [];
+  let aboveRetailCount = 0;
+  let validCount = 0;
+
+  for (const item of group) {
+    const retail = typeof item.retailPrice === "number" && item.retailPrice > 0 ? item.retailPrice : null;
+    const lastPrice = getLastItemPrice(item.prices);
+    const releaseDate = parseReleaseDate(item.releaseDate);
+    if (retail == null || lastPrice == null || releaseDate == null) continue;
+
+    const rawAgeYears = yearsSince(releaseDate, now);
+    if (!Number.isFinite(rawAgeYears) || rawAgeYears <= 0) continue;
+
+    const effectiveAgeYears = clamp(rawAgeYears, 0.25, 20);
+    const cumulativeReturn = lastPrice / retail - 1;
+    const baseAnnualLinear = cumulativeReturn / effectiveAgeYears;
+
+    const hypeFactor = hypeAdjustmentFactor(releaseDate);
+    const adjustedAnnualLinear = clamp(baseAnnualLinear * hypeFactor, -0.35, 0.9);
+
+    const ref5y = clamp(adjustedAnnualLinear * 5, -0.8, 3.5);
+    const ref10y = clamp(adjustedAnnualLinear * 10, -1, 6);
+
+    annualLinearReturns.push(adjustedAnnualLinear);
+    ref5yReturns.push(ref5y);
+    ref10yReturns.push(ref10y);
+    ageYears.push(rawAgeYears);
+    hypeRatios.push(hypeFactor);
+
+    if (cumulativeReturn > 0) aboveRetailCount += 1;
+    validCount += 1;
+  }
+
+  const aboveRetailRatio = validCount > 0 ? aboveRetailCount / validCount : null;
+
+  return {
+    longTermAnnualLinear: median(annualLinearReturns),
+    longTermRefReturn5y: median(ref5yReturns),
+    longTermRefReturn10y: median(ref10yReturns),
+    aboveRetailRatio,
+    medianItemAgeYears: median(ageYears),
+    hypeAdjustedRatio: median(hypeRatios),
+  };
+}
+
 export function useSeriesFinance(items: Item[], selectedBloc: string) {
   return useMemo(() => {
+    const now = new Date();
     // 1) filter bloc + exclude items sans prix
     const filtered = items.filter(i => {
       if (selectedBloc !== "all" && i.bloc !== selectedBloc) return false;
@@ -84,6 +171,8 @@ export function useSeriesFinance(items: Item[], selectedBloc: string) {
         retailPrice: retail,
       });
 
+      const longTermProxy = computeLongTermProxy(group, now);
+
       // Debug: log fable nebuleuse data
       if (seriesName.includes("fable") || seriesName.includes("nebuleuse")) {
         console.log(`[DEBUG] ${seriesName}:`, {
@@ -110,6 +199,12 @@ export function useSeriesFinance(items: Item[], selectedBloc: string) {
         minItemPrice,
         maxItemPrice,
         itemsCount: group.length,
+        longTermRefReturn5y: longTermProxy.longTermRefReturn5y,
+        longTermRefReturn10y: longTermProxy.longTermRefReturn10y,
+        longTermAnnualLinear: longTermProxy.longTermAnnualLinear,
+        aboveRetailRatio: longTermProxy.aboveRetailRatio,
+        medianItemAgeYears: longTermProxy.medianItemAgeYears,
+        hypeAdjustedRatio: longTermProxy.hypeAdjustedRatio,
       });
     }
 

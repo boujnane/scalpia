@@ -556,6 +556,24 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
     const scores = series
       .map((s) => s.metrics.score)
       .filter((x): x is number => x != null);
+    const longTermRef5y = series
+      .map((s) => s.longTermRefReturn5y)
+      .filter((x): x is number => x != null);
+    const longTermRef10y = series
+      .map((s) => s.longTermRefReturn10y)
+      .filter((x): x is number => x != null);
+    const longTermAnnual = series
+      .map((s) => s.longTermAnnualLinear)
+      .filter((x): x is number => x != null);
+    const aboveRetailRatios = series
+      .map((s) => s.aboveRetailRatio)
+      .filter((x): x is number => x != null);
+    const itemAgesYears = series
+      .map((s) => s.medianItemAgeYears)
+      .filter((x): x is number => x != null);
+    const hypeAdjustedRatios = series
+      .map((s) => s.hypeAdjustedRatio)
+      .filter((x): x is number => x != null);
 
     const freshSeries = series.filter(
       (s) => s.metrics.freshnessDays != null && s.metrics.freshnessDays <= 7
@@ -570,10 +588,20 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
     const avgDrawdown = average(drawdowns) ?? 0;
     const avgSlope30d = average(slopes30d) ?? 0;
     const avgScore = average(scores) ?? 50;
+    const avgLongTermRef5y = average(longTermRef5y) ?? 0;
+    const avgLongTermRef10y = average(longTermRef10y) ?? 0;
+    const avgLongTermAnnual = average(longTermAnnual) ?? 0;
+    const avgItemAgeYears = average(itemAgesYears) ?? 0;
+    const avgHypeAdjustedRatio = average(hypeAdjustedRatios) ?? 1;
+    const longTermProxyCoverage = series.length > 0 ? longTermAnnual.length / series.length : 0;
     const marketMedianPremium = median(premiums) ?? 0.3;
     const medianVol30d = median(vols30d) ?? avgVol30d;
     const premiumPositiveRatio =
-      premiums.length > 0 ? premiums.filter((p) => p > 0).length / premiums.length : 0.5;
+      aboveRetailRatios.length > 0
+        ? average(aboveRetailRatios) ?? 0.5
+        : premiums.length > 0
+          ? premiums.filter((p) => p > 0).length / premiums.length
+          : 0.5;
     const medianPremiumNow = median(premiums) ?? 0;
     const premiumStrength = clamp((medianPremiumNow / 0.6) * 100, 0, 100);
 
@@ -582,9 +610,13 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
         premiumPositiveRatio * 35 +
         premiumStrength * 0.25 +
         (avgScore - 50) * 0.2 +
-        avgSlope30d * 8000 +
+        avgLongTermRef5y * 12 +
+        avgLongTermRef10y * 6 +
+        avgLongTermAnnual * 20 +
+        avgSlope30d * 6000 +
         avgSharpe * 6 -
-        avgDrawdown * 70,
+        avgDrawdown * 60 -
+        (1 - avgHypeAdjustedRatio) * 25,
       0,
       100
     );
@@ -693,6 +725,12 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
       marketMedianPremium,
       premiumPositiveRatio,
       medianPremiumNow,
+      avgLongTermRef5y,
+      avgLongTermRef10y,
+      avgLongTermAnnual,
+      avgItemAgeYears,
+      avgHypeAdjustedRatio,
+      longTermProxyCoverage,
       dataFreshness,
       horizonScore,
       regimeScore,
@@ -1192,12 +1230,31 @@ export function WidgetsActionPlaybook({ series, className }: WidgetsActionPlaybo
               {HORIZON_CONFIG[horizon].label} ({playbook.horizonScore.toFixed(0)}/100)
             </p>
             <p className="text-xs text-muted-foreground">
-              Réf retours: {(horizon === "court_terme" ? playbook.avgReturn7d : playbook.avgReturn30d) * 100 >= 0 ? "+" : ""}
-              {((horizon === "court_terme" ? playbook.avgReturn7d : playbook.avgReturn30d) * 100).toFixed(1)}%
+              {horizon === "court_terme" && (
+                <>
+                  Réf retours: {playbook.avgReturn7d * 100 >= 0 ? "+" : ""}
+                  {(playbook.avgReturn7d * 100).toFixed(1)}% (7j)
+                </>
+              )}
+              {horizon === "moyen_terme" && (
+                <>
+                  Réf retours: {playbook.avgReturn30d * 100 >= 0 ? "+" : ""}
+                  {(playbook.avgReturn30d * 100).toFixed(1)}% (30j)
+                </>
+              )}
+              {horizon === "long_terme_5_10_ans" && (
+                <>
+                  Réf 5-10 ans (proxy): {playbook.avgLongTermRef5y * 100 >= 0 ? "+" : ""}
+                  {(playbook.avgLongTermRef5y * 100).toFixed(1)}% /{" "}
+                  {playbook.avgLongTermRef10y * 100 >= 0 ? "+" : ""}
+                  {(playbook.avgLongTermRef10y * 100).toFixed(1)}%{" "}
+                  (couverture {(playbook.longTermProxyCoverage * 100).toFixed(0)}%)
+                </>
+              )}
             </p>
             <p className="text-[11px] text-muted-foreground">
               {horizon === "long_terme_5_10_ans"
-                ? `Couverture retail: ${(playbook.premiumPositiveRatio * 100).toFixed(0)}% des séries au-dessus du retail (premium médian ${(playbook.medianPremiumNow * 100).toFixed(0)}%).`
+                ? `Méthode: croissance linéaire annualisée retail→prix actuel, ajustée hype 2020-2021 (facteur moyen ${playbook.avgHypeAdjustedRatio.toFixed(2)}), âge médian ${playbook.avgItemAgeYears.toFixed(1)} an(s).`
                 : "Long terme: lecture proxy basée sur stabilité et pente 30j."}
             </p>
           </div>
