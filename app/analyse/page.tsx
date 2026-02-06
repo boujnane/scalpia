@@ -106,6 +106,7 @@ import {
   SignalsWidget,
   RiskReturnScatter
 } from "@/components/analyse/widgets";
+import { WidgetsActionPlaybook } from "@/components/analyse/widgets/WidgetsActionPlaybook";
 import { MarketSentimentWidgetPreview, RiskReturnScatterPreview, SignalsWidgetPreview, VolatilityGaugeWidgetPreview } from "@/components/analyse/widgets/ProPreviews";
 
 export default function AnalysePage() {
@@ -399,6 +400,8 @@ export default function AnalysePage() {
               <p className="text-sm text-muted-foreground mt-0.5">
                 Sentiment de marché, volatilité, signaux et analyse risque/rendement
               </p>
+
+              <WidgetsActionPlaybook series={series} />
 
               {/* Widget Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
