@@ -16,6 +16,14 @@ import { AddToCollectionDialog } from "@/components/collection/AddToCollectionDi
 import { addToCollection, isInCollection, generateItemId } from "@/lib/collection";
 import type { CollectionFormData } from "@/types/collection";
 
+function getSourcePlatform(url: string): string {
+  if (url.includes("vinted.")) return "Vinted";
+  if (url.includes("leboncoin.")) return "LeBonCoin";
+  if (url.includes("ebay.")) return "eBay";
+  if (url.includes("cardmarket.")) return "Cardmarket";
+  return "Source";
+}
+
 export default function ItemCard({ item }: { item: Item }) {
   const [open, setOpen] = useState(false);
   const [showNoTokensModal, setShowNoTokensModal] = useState(false);
@@ -58,11 +66,17 @@ export default function ItemCard({ item }: { item: Item }) {
     () => getChartAnalysis(item),
     [item]
   );
-  
+
   const chartData = analysis.data;
   const lastPrice = analysis.lastPrice;
   const trend7d = analysis.trend7d;
   const lastPriceUnavailable = analysis.lastPriceUnavailable;
+
+  const lastSourceUrl = useMemo(() => {
+    if (!item.prices?.length) return null;
+    const sorted = [...item.prices].sort((a, b) => b.date.localeCompare(a.date));
+    return sorted.find((p) => p.sourceUrl)?.sourceUrl || null;
+  }, [item.prices]);
   
   // Application des couleurs thématiques
   const trendColor = 
@@ -191,6 +205,20 @@ export default function ItemCard({ item }: { item: Item }) {
                 <span className="text-sm">{trend7d > 0 ? "+" : ""}{trend7d.toFixed(2)}% (7j)</span>
               )}
             </div>
+          )}
+
+          {/* Source du dernier prix */}
+          {lastSourceUrl && (
+            <a
+              href={lastSourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="mt-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition"
+            >
+              <Icons.external className="w-3 h-3" />
+              Source : {getSourcePlatform(lastSourceUrl)}
+            </a>
           )}
         </div>
       </div>

@@ -7,9 +7,16 @@ export async function GET(req: NextRequest) {
   const q = searchParams.get('q');
   if (!q) return new NextResponse('Missing query', { status: 400 });
 
-  // URL eBay : ventes réussies
-  const url = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
-  console.log('URL utilisée (sold items) :', url);
+  const mode = searchParams.get('mode'); // 'active' = ventes en cours + achat immédiat
+
+  let url: string;
+  if (mode === 'active') {
+    url = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_BIN=1`;
+    console.log('URL utilisée (active BIN) :', url);
+  } else {
+    url = `https://www.ebay.fr/sch/i.html?_nkw=${encodeURIComponent(q)}&LH_Sold=1&LH_Complete=1`;
+    console.log('URL utilisée (sold items) :', url);
+  }
 
   let browser;
 

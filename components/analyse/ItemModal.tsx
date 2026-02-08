@@ -20,6 +20,14 @@ import { Button } from "@/components/ui/button";
 
 type Point = { date: number; price: number };
 
+function getSourcePlatform(url: string): string {
+  if (url.includes("vinted.")) return "Vinted";
+  if (url.includes("leboncoin.")) return "LeBonCoin";
+  if (url.includes("ebay.")) return "eBay";
+  if (url.includes("cardmarket.")) return "Cardmarket";
+  return "Source";
+}
+
 export default function ItemModal({
   item,
   chartData,
@@ -121,6 +129,12 @@ export default function ItemModal({
     return [min, max];
   }, [filteredData, ma30, bollinger, showMA, showBB]);
   
+  const lastSourceUrl = useMemo(() => {
+    if (!item.prices?.length) return null;
+    const sorted = [...item.prices].sort((a, b) => b.date.localeCompare(a.date));
+    return sorted.find((p) => p.sourceUrl)?.sourceUrl || null;
+  }, [item.prices]);
+
   const isMobile = typeof window !== "undefined" ? window.innerWidth <= 768 : false;
 
   const timeFrameButtonStyle = (isActive: boolean) => (
@@ -198,6 +212,22 @@ export default function ItemModal({
             <p className="font-bold text-success text-lg sm:text-xl">{periodStats.max} €</p>
           </div>
         </div>
+
+        {/* Dernière source */}
+        {lastSourceUrl && (
+          <div className="flex items-center gap-1.5 mb-2 px-1">
+            <span className="text-xs text-muted-foreground">Dernière source :</span>
+            <a
+              href={lastSourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-primary transition flex items-center gap-1"
+            >
+              <Icons.external className="w-3 h-3" />
+              {getSourcePlatform(lastSourceUrl)}
+            </a>
+          </div>
+        )}
 
         {/* Boutons indicateurs */}
         <div className="flex gap-2 mb-2 flex-wrap items-center">

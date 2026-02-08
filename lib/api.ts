@@ -31,6 +31,12 @@ await handleRes(res);
 return res.text();
 };
 
+export const fetchEbayActive = async (q: string, signal?: AbortSignal) => {
+const res = await fetch(`/api/ebay-sold?q=${encodeURIComponent(q)}&mode=active`, { signal });
+await handleRes(res);
+return res.text();
+};
+
 
 export const postEbayFilter = async (query: string, items: any[], signal?: AbortSignal) => {
 const res = await fetch('/api/ebay-filter', {

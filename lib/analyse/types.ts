@@ -1,4 +1,4 @@
-export type PricePoint = { date: string; price: number };
+export type PricePoint = { date: string; price: number; sourceUrl?: string | null };
 
 export type Item = {
   name: string;

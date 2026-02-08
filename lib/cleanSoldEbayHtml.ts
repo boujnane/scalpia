@@ -29,9 +29,9 @@ export interface CleanSoldItem {
       // Image
       const img = item.querySelector("img.s-card__image")?.getAttribute("src") ?? null;
   
-      // Prix
+      // Prix (positive = vendu, primary = en vente)
       const price = item.querySelector(
-        "span.su-styled-text.positive.bold.large-1.s-card__price, span.su-styled-text.positive.italic.large-1.s-card__price"
+        "span.s-card__price"
       )?.textContent?.trim() ?? "Prix inconnu";
   
       // Date de vente
