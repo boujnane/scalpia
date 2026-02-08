@@ -38,7 +38,10 @@ export async function getAnalyseItemsServer(options?: { forceRefresh?: boolean }
   const itemPromises = itemsSnap.docs.map(async (docSnap) => {
     const data = docSnap.data() as Omit<Item, "prices">
     const pricesSnap = await db.collection("items").doc(docSnap.id).collection("prices").get()
-    const prices = pricesSnap.docs.map((p) => p.data() as { date: string; price: number })
+    const prices = pricesSnap.docs.map((p) => {
+      const data = p.data();
+      return { date: data.date, price: data.price, sourceUrl: data.sourceUrl || null };
+    })
     return { ...data, prices } as Item
   })
 

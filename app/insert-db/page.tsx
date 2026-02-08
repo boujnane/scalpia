@@ -31,7 +31,7 @@ import LBCItemCard from "@/components/leboncoin/LBCItemCard";
 import {
   fetchLeboncoinSearch,
   postLeboncoinFilter,
-  fetchEbaySold,
+  fetchEbayActive,
   postEbayFilter,
 } from "@/lib/api";
 import Fuse from "fuse.js";
@@ -132,8 +132,9 @@ export default function InsertDbPage() {
       });
   
       setItemsWithPriceToday(itemsToday);
-    };
-  
+
+};
+
     fetchItemsWithPriceToday();
   }, []);
   
@@ -278,7 +279,7 @@ export default function InsertDbPage() {
 
       const ebayPromise = (async () => {
         try {
-          const ebayHtml = await fetchEbaySold(queryStr, controller.signal);
+          const ebayHtml = await fetchEbayActive(queryStr, controller.signal);
           const rawEbay = ebayHtml ? cleanSoldEbayHtml(ebayHtml) : [];
 
           if (rawEbay.length === 0) {
@@ -654,7 +655,7 @@ export default function InsertDbPage() {
     setEbayResults(null);
 
     try {
-      const ebayHtml = await fetchEbaySold(queryStr);
+      const ebayHtml = await fetchEbayActive(queryStr);
       const rawEbay = ebayHtml ? cleanSoldEbayHtml(ebayHtml) : [];
       if (rawEbay.length === 0) {
         setCurrentError("Aucune annonce eBay");
@@ -1199,7 +1200,7 @@ export default function InsertDbPage() {
                     )}
                     {ebayResults?.valid?.length > 0 && (
                       <section>
-                        <h3 className="font-medium mb-2 text-foreground">Annonces eBay vendues</h3>
+                        <h3 className="font-medium mb-2 text-foreground">Annonces eBay en vente</h3>
                         <div className="flex flex-row gap-4 overflow-x-auto pb-2">
                           {ebayResults.valid
                             .slice()
