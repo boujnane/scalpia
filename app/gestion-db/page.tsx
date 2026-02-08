@@ -74,6 +74,7 @@ export type PriceEntry = {
   id: string; // Firestore ID ou local
   date: string;
   price: number | null;
+  sourceUrl?: string | null;
 };
 
 type PriceChange = {
@@ -81,6 +82,7 @@ type PriceChange = {
   id: string; // identifiant unique (date ou uuid)
   date: string;
   price?: number | null;
+  sourceUrl?: string | null;
 };
 
 // --- COMPONENT PRINCIPAL ---
@@ -99,6 +101,7 @@ export default function ItemsAdminPage() {
   
   const [newPrice, setNewPrice] = useState<number | undefined>(undefined);
   const [newPriceUnavailable, setNewPriceUnavailable] = useState(false);
+  const [newSourceUrl, setNewSourceUrl] = useState<string>("");
   const [historicPrices, setHistoricPrices] = useState<PriceEntry[]>([]);
   const [pricesLoading, setPricesLoading] = useState(false);
   const [editingPriceEntry, setEditingPriceEntry] = useState<PriceEntry | null>(null);
@@ -159,6 +162,7 @@ export default function ItemsAdminPage() {
       setEditingItem(null);
       setNewPrice(undefined);
       setNewPriceUnavailable(false);
+      setNewSourceUrl("");
       setHistoricPrices([]);
       setEditingPriceEntry(null);
       setPendingPriceChanges([]);
@@ -250,18 +254,20 @@ export default function ItemsAdminPage() {
     const id = today; // utiliser la date comme id
     const priceToSave = newPriceUnavailable ? null : newPrice!;
 
+    const sourceUrlToSave = newSourceUrl.trim() || null;
     const existingIndex = historicPrices.findIndex(p => p.date === today);
 
     if (existingIndex !== -1) {
-      setHistoricPrices(prev => prev.map(p => p.date === today ? { ...p, price: priceToSave } : p));
-      setPendingPriceChanges(prev => [...prev, { type: 'update', id, date: today, price: priceToSave }]);
+      setHistoricPrices(prev => prev.map(p => p.date === today ? { ...p, price: priceToSave, sourceUrl: sourceUrlToSave } : p));
+      setPendingPriceChanges(prev => [...prev, { type: 'update', id, date: today, price: priceToSave, sourceUrl: sourceUrlToSave }]);
     } else {
-      setHistoricPrices(prev => [{ id, date: today, price: priceToSave }, ...prev]);
-      setPendingPriceChanges(prev => [...prev, { type: 'add', id, date: today, price: priceToSave }]);
+      setHistoricPrices(prev => [{ id, date: today, price: priceToSave, sourceUrl: sourceUrlToSave }, ...prev]);
+      setPendingPriceChanges(prev => [...prev, { type: 'add', id, date: today, price: priceToSave, sourceUrl: sourceUrlToSave }]);
     }
 
     setNewPrice(undefined);
     setNewPriceUnavailable(false);
+    setNewSourceUrl("");
     setHasUnsavedPriceChanges(true);
   };
 
@@ -269,7 +275,7 @@ export default function ItemsAdminPage() {
     if (!editingPriceEntry) return;
 
     setHistoricPrices(prev => prev.map(p => p.id === editingPriceEntry.id ? editingPriceEntry : p));
-    setPendingPriceChanges(prev => [...prev, { type: 'update', id: editingPriceEntry.id, date: editingPriceEntry.date, price: editingPriceEntry.price }]);
+    setPendingPriceChanges(prev => [...prev, { type: 'update', id: editingPriceEntry.id, date: editingPriceEntry.date, price: editingPriceEntry.price, sourceUrl: editingPriceEntry.sourceUrl }]);
     setEditingPriceEntry(null);
     setHasUnsavedPriceChanges(true);
   };
@@ -298,7 +304,11 @@ export default function ItemsAdminPage() {
           await deleteDoc(priceDocRef);
         } else if (change.type === 'add' || change.type === 'update') {
           const priceValue = change.price === null ? null : Number(change.price);
-          await setDoc(priceDocRef, { date: change.date, price: priceValue });
+          const data: Record<string, unknown> = { date: change.date, price: priceValue };
+          if (change.sourceUrl) {
+            data.sourceUrl = change.sourceUrl;
+          }
+          await setDoc(priceDocRef, data);
         }
       }
 
@@ -587,6 +597,14 @@ export default function ItemsAdminPage() {
                             Ajouter
                         </Button>
                     </div>
+                    <div className="space-y-1 col-span-4">
+                        <Label>Source URL (optionnel)</Label>
+                        <Input
+                            placeholder="https://www.vinted.fr/..."
+                            value={newSourceUrl}
+                            onChange={(e) => setNewSourceUrl(e.target.value)}
+                        />
+                    </div>
                 </div>
                 
                 {/* Tableau des prix historiques */}
@@ -594,15 +612,16 @@ export default function ItemsAdminPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-1/3">Date</TableHead>
-                                <TableHead className="w-1/3">Prix (€)</TableHead>
-                                <TableHead className="w-1/3 text-right">Actions</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Prix (€)</TableHead>
+                                <TableHead>Source</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {historicPrices.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={3} className="text-center text-muted-foreground">Aucun historique de prix</TableCell>
+                                    <TableCell colSpan={4} className="text-center text-muted-foreground">Aucun historique de prix</TableCell>
                                 </TableRow>
                             ) : (
                                 historicPrices.map((entry) => (
@@ -613,6 +632,20 @@ export default function ItemsAdminPage() {
                                                 <span className="text-orange-600 font-medium">Non disponible</span>
                                             ) : (
                                                 `${entry.price} €`
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {entry.sourceUrl ? (
+                                                <a href={entry.sourceUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 flex items-center gap-1" title={entry.sourceUrl}>
+                                                    <ExternalLink className="h-3 w-3" />
+                                                    <span className="text-xs truncate max-w-[120px]">
+                                                        {(() => {
+                                                            try { return new URL(entry.sourceUrl).hostname.replace("www.", ""); } catch { return "Lien"; }
+                                                        })()}
+                                                    </span>
+                                                </a>
+                                            ) : (
+                                                <span className="text-muted-foreground text-xs">-</span>
                                             )}
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -671,6 +704,19 @@ export default function ItemsAdminPage() {
                   })
                 }
                 disabled={editingPriceEntry?.price === null}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Source URL</Label>
+              <Input
+                value={editingPriceEntry?.sourceUrl || ""}
+                onChange={(e) =>
+                  setEditingPriceEntry({
+                    ...editingPriceEntry!,
+                    sourceUrl: e.target.value || null,
+                  })
+                }
+                placeholder="https://..."
               />
             </div>
             <Button

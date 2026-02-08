@@ -508,7 +508,9 @@ export default function InsertDbPage() {
   const handleUseYesterdayPrice = () => {
     if (yesterdayPrice !== null) {
       setCurrentMinPrice(yesterdayPrice);
-      setSourceUrl(yesterdaySourceUrl);
+      if (yesterdaySourceUrl) {
+        setSourceUrl(yesterdaySourceUrl);
+      }
     }
   };
 
