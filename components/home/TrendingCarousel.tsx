@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useReducedMotion } from "framer-motion";
 
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -23,10 +23,12 @@ type TrendingItem = {
   image?: string;
   lastPrice: number | null;
   trend7d: number | null;
+  sourceUrl?: string | null;
 };
 
 export default function TrendingCarousel() {
   const prefersReducedMotion = useReducedMotion();
+  const router = useRouter();
   const { items, loading, error } = useAnalyseItems();
 
   const trendingItems = useMemo(() => {
@@ -35,12 +37,18 @@ export default function TrendingCarousel() {
     const itemsWithTrend: TrendingItem[] = items
       .map((item) => {
         const analysis = getChartAnalysis(item);
+        // Récupérer le sourceUrl du prix le plus récent
+        const sortedPrices = [...(item.prices ?? [])].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        const lastSourceUrl = sortedPrices[0]?.sourceUrl ?? null;
         return {
           name: item.name,
           type: item.type,
           image: item.image,
           lastPrice: analysis.lastPrice,
           trend7d: analysis.trend7d,
+          sourceUrl: lastSourceUrl,
         };
       })
       .filter((it) => it.trend7d !== null && it.lastPrice !== null);
@@ -118,64 +126,78 @@ export default function TrendingCarousel() {
 
         return (
           <SwiperSlide key={`${item.type}-${item.name}-${index}`}>
-            <Link href="/analyse?tab=products" className="block h-full">
-              <div
-                className="
-                  group h-full border border-border rounded-xl
-                  bg-card overflow-hidden
-                  hover:shadow-lg hover:border-primary/50
-                  transition-all duration-300 cursor-pointer
-                "
-              >
-                {/* Image */}
-                <div className="relative h-32 sm:h-36 bg-gradient-to-br from-secondary/30 to-secondary/10 overflow-hidden">
-                  {item.image && (
-                    <Image
-                      src={item.image}
-                      alt={`${item.type} ${item.name}`}
-                      fill
-                      sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 25vw"
-                      className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-                      priority={index < 2} // petit boost perf pour les 2 premiers
-                    />
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="p-4 space-y-3">
-                  {/* Type + Name */}
-                  <div>
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      {item.type}
-                    </span>
-                    <h3 className="font-semibold text-foreground line-clamp-2 text-sm sm:text-base mt-0.5">
-                      {item.name}
-                    </h3>
-                  </div>
-
-                  {/* Price and Trend */}
-                  <div className="flex items-center justify-between gap-2">
-                    {/* Price */}
-                    <span className="text-lg font-bold text-primary">
-                      {item.lastPrice?.toFixed(2)} €
-                    </span>
-
-                    {/* Trend Badge */}
-                    <div
-                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${trendColor}`}
-                      aria-label="Variation 7 jours"
-                    >
-                      <TrendIcon className="h-3 w-3" />
-                      <span>
-                        {item.trend7d !== null
-                          ? `${item.trend7d > 0 ? "+" : ""}${item.trend7d.toFixed(1)}%`
-                          : "N/A"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+            <div
+              className="
+                group h-full border border-border rounded-xl
+                bg-card overflow-hidden
+                hover:shadow-lg hover:border-primary/50
+                transition-all duration-300 cursor-pointer
+              "
+              onClick={() => router.push("/analyse?tab=products")}
+              role="link"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter") router.push("/analyse?tab=products"); }}
+            >
+              {/* Image */}
+              <div className="relative h-32 sm:h-36 bg-gradient-to-br from-secondary/30 to-secondary/10 overflow-hidden">
+                {item.image && (
+                  <Image
+                    src={item.image}
+                    alt={`${item.type} ${item.name}`}
+                    fill
+                    sizes="(max-width: 640px) 80vw, (max-width: 1024px) 40vw, 25vw"
+                    className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                    priority={index < 2}
+                  />
+                )}
               </div>
-            </Link>
+
+              {/* Content */}
+              <div className="p-4 space-y-3">
+                {/* Type + Name */}
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    {item.type}
+                  </span>
+                  <h3 className="font-semibold text-foreground line-clamp-2 text-sm sm:text-base mt-0.5">
+                    {item.name}
+                  </h3>
+                </div>
+
+                {/* Price and Trend */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-lg font-bold text-primary">
+                    {item.lastPrice?.toFixed(2)} €
+                  </span>
+
+                  <div
+                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${trendColor}`}
+                    aria-label="Variation 7 jours"
+                  >
+                    <TrendIcon className="h-3 w-3" />
+                    <span>
+                      {item.trend7d !== null
+                        ? `${item.trend7d > 0 ? "+" : ""}${item.trend7d.toFixed(1)}%`
+                        : "N/A"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Source link */}
+                {item.sourceUrl && (
+                  <a
+                    href={item.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Icons.external className="h-3 w-3" />
+                    <span>Voir l&apos;annonce source</span>
+                  </a>
+                )}
+              </div>
+            </div>
           </SwiperSlide>
         );
       })}

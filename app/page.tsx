@@ -261,22 +261,23 @@ export default function HomePage() {
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
                   </span>
                   <span className="text-xs sm:text-sm font-semibold text-primary">
-                    100% Gratuit · Index des prix Pokémon
+                    Prix vérifiés par un humain · 100% Gratuit
                   </span>
                 </motion.div>
 
                 <div className="space-y-5 sm:space-y-7">
                   <h1 id="hero-title" className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] tracking-tight">
-                    <span className="block">Maîtrisez le marché</span>
+                    <span className="block">Quel est le prix réel</span>
                     <span className="block mt-2 sm:mt-3 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                      secondaire Pokémon
+                      de votre scellé Pokémon ?
                     </span>
                   </h1>
 
                   <p className="text-base sm:text-lg lg:text-xl text-muted-foreground/90 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                    Accédez gratuitement à un{" "}
-                    <span className="font-semibold text-foreground">index des prix du marché secondaire Pokémon</span>.
-                    Nous analysons Cardmarket, LeBonCoin, eBay et Vinted pour trouver les prix planchers.
+                    On compare les prix sur Cardmarket, eBay, LeBonCoin et Vinted pour vous donner{" "}
+                    <span className="font-semibold text-foreground">le vrai prix plancher de chaque produit scellé</span>.
+                    Pas un algo, pas une estimation :{" "}
+                    <span className="font-semibold text-foreground">chaque prix est vérifié à la main</span>, annonce par annonce.
                   </p>
                 </div>
 
@@ -467,7 +468,7 @@ export default function HomePage() {
                 </span>
               </h2>
               <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
-                Les items avec les plus grandes variations de prix cette semaine (Prix le plus bas observé sur une des marketplaces aujourd’hui)
+                Les produits avec les plus grandes variations de prix cette semaine (prix plancher observé la veille sur les marketplaces)
               </p>
             </motion.div>
 
