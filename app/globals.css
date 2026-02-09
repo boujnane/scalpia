@@ -295,11 +295,125 @@
 }
 
 
-/* --- IMPORTS SWIPER --- */
-@import "swiper/css";
-@import "swiper/css/free-mode";
-@import "swiper/css/pagination";
-@import "swiper/css/navigation";
+/* --- HERO CSS ANIMATIONS (replaces Framer Motion) --- */
+@keyframes hero-fade-in-up {
+  from { opacity: 0; transform: translate3d(0, 50px, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes hero-fade-in-right {
+  from { opacity: 0; transform: translate3d(50px, 0, 0); }
+  to   { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes hero-scale-in {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes hero-float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -20px, 0); }
+}
+
+@keyframes hero-bob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(0, -10px, 0); }
+}
+
+@keyframes hero-slide-right {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(10px, 0, 0); }
+}
+
+@keyframes hero-slide-left {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(-10px, 0, 0); }
+}
+
+@keyframes hero-glow {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+@keyframes hero-bar {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.hero-animated.hero-fade-in-up {
+  animation: hero-fade-in-up 0.8s ease both;
+  will-change: transform, opacity;
+}
+
+.hero-animated.hero-fade-in-right {
+  animation: hero-fade-in-right 0.8s ease both;
+  will-change: transform, opacity;
+}
+
+.hero-animated.hero-scale-in {
+  animation: hero-scale-in 0.5s ease both;
+  will-change: transform, opacity;
+}
+
+.animate-hero-float {
+  animation: hero-float 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-hero-bob {
+  animation: hero-bob 2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-hero-slide-right {
+  animation: hero-slide-right 3s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-hero-slide-left {
+  animation: hero-slide-left 3s ease-in-out infinite;
+  animation-delay: 1s;
+  will-change: transform;
+}
+
+.animate-hero-glow {
+  animation: hero-glow 2s ease-in-out infinite;
+  will-change: opacity;
+}
+
+.animate-hero-bar {
+  transform-origin: left;
+  animation: hero-bar 1.5s ease both;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  will-change: transform;
+}
+
+/* Reduced motion: no animations */
+.hero-no-motion.hero-fade-in-up,
+.hero-no-motion.hero-fade-in-right,
+.hero-no-motion.hero-scale-in {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-animated.hero-fade-in-up,
+  .hero-animated.hero-fade-in-right,
+  .hero-animated.hero-scale-in,
+  .animate-hero-float,
+  .animate-hero-bob,
+  .animate-hero-slide-right,
+  .animate-hero-slide-left,
+  .animate-hero-glow,
+  .animate-hero-bar {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
 
 /* --- TRENDING CAROUSEL STYLES --- */
 .trending-carousel .swiper-button-prev,
