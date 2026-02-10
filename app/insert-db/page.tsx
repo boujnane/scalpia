@@ -48,11 +48,21 @@ type ItemEntry = {
   cardmarketUrl?: string | null;
 };
 
+type RejectedItem = {
+  title: string;
+  reason: string;
+  thumbnail?: string;
+  url?: string;
+};
+
 type PrefetchData = {
   vinted?: any;
   lbc?: LBCOffer[];
   ebay?: any;
   minPrice?: number;
+  rejectedVinted?: RejectedItem[];
+  rejectedLbc?: RejectedItem[];
+  rejectedEbay?: RejectedItem[];
   error?: string;
   timestamp?: number;
 };
@@ -72,6 +82,11 @@ export default function InsertDbPage() {
   const [cardmarketUrl, setCardmarketUrl] = useState<string | null>(null);
   const [priceUnavailable, setPriceUnavailable] = useState(false);
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
+
+  const [rejectedVinted, setRejectedVinted] = useState<RejectedItem[]>([]);
+  const [rejectedLbc, setRejectedLbc] = useState<RejectedItem[]>([]);
+  const [rejectedEbay, setRejectedEbay] = useState<RejectedItem[]>([]);
+  const [openRejected, setOpenRejected] = useState(false);
 
   const [openVinted, setOpenVinted] = useState(true);
   const [openCardmarket, setOpenCardmarket] = useState(true);
@@ -228,14 +243,14 @@ export default function InsertDbPage() {
           
           if (!lbcRaw?.offers || lbcRaw.offers.length === 0) {
             console.log(`ℹ️ Pas d'offres LBC pour: ${item.name}`);
-            return { offers: [], minPrice: null };
+            return { offers: [], minPrice: null, rejected: [] };
           }
 
           const normalizedOffers = normalizeLBCOffers(lbcRaw.offers);
-          
+
           if (normalizedOffers.length === 0) {
             console.log(`⚠️ Aucune offre LBC valide pour: ${item.name}`);
-            return { offers: [], minPrice: null };
+            return { offers: [], minPrice: null, rejected: [] };
           }
 
           const filtered = await postLeboncoinFilter(queryStr, normalizedOffers, controller.signal);
@@ -260,7 +275,7 @@ export default function InsertDbPage() {
 
           if (validOffers.length === 0) {
             console.log(`⚠️ Toutes les offres LBC rejetées pour: ${item.name}`);
-            return { offers: [], minPrice: null };
+            return { offers: [], minPrice: null, rejected: filtered.rejected || [] };
           }
 
           const sorted = validOffers
@@ -269,11 +284,11 @@ export default function InsertDbPage() {
 
           const minLBCPrice = sorted.length > 0 ? parseLBCPrice(sorted[0].price) : null;
 
-          return { offers: sorted, minPrice: minLBCPrice };
+          return { offers: sorted, minPrice: minLBCPrice, rejected: filtered.rejected || [] };
         } catch (err: any) {
           if (err.name === 'AbortError') throw err;
           console.error(`❌ Erreur LBC pour ${item.name}:`, err);
-          return { offers: [], minPrice: null };
+          return { offers: [], minPrice: null, rejected: [] };
         }
       })();
 
@@ -318,12 +333,15 @@ export default function InsertDbPage() {
 
       const finalMinPrice = prices.length > 0 ? Math.min(...prices) : null;
 
-      // Stocker dans le cache avec timestamp
+      // Stocker dans le cache avec timestamp (inclut les rejets pour évaluation)
       prefetchCache.current.set(item.id, {
         vinted: vintedData,
         lbc: lbcData.offers,
         ebay: ebayData,
         minPrice: finalMinPrice ?? undefined,
+        rejectedVinted: vintedData?.filteredVinted?.rejected || [],
+        rejectedLbc: lbcData.rejected || [],
+        rejectedEbay: ebayData?.rejected || [],
         timestamp: Date.now(),
       });
 
@@ -438,11 +456,17 @@ export default function InsertDbPage() {
         setLbcResults([]);
         setEbayResults(null);
         setCurrentMinPrice(null);
+        setRejectedVinted([]);
+        setRejectedLbc([]);
+        setRejectedEbay([]);
       } else {
         setVintedResults(cached.vinted || null);
         setLbcResults(cached.lbc || []);
         setEbayResults(cached.ebay || null);
         setCurrentMinPrice(cached.minPrice ?? null);
+        setRejectedVinted(cached.rejectedVinted || []);
+        setRejectedLbc(cached.rejectedLbc || []);
+        setRejectedEbay(cached.rejectedEbay || []);
         setCurrentError(null);
       }
     } else {
@@ -453,6 +477,9 @@ export default function InsertDbPage() {
       setEbayResults(null);
       setCurrentMinPrice(null);
       setCurrentError(null);
+      setRejectedVinted([]);
+      setRejectedLbc([]);
+      setRejectedEbay([]);
     }
   }, [currentItem]);
 
@@ -1287,6 +1314,66 @@ export default function InsertDbPage() {
                     )}
                   </CollapsibleContent>
                 </Collapsible>
+
+                {/* Section annonces rejetées par l'IA */}
+                {(rejectedVinted.length > 0 || rejectedLbc.length > 0 || rejectedEbay.length > 0) && (
+                  <Collapsible open={openRejected} onOpenChange={setOpenRejected}>
+                    <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer font-medium text-muted-foreground hover:text-foreground transition-colors">
+                      {openRejected ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      Annonces rejetées par l'IA ({rejectedVinted.length + rejectedLbc.length + rejectedEbay.length})
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-3 space-y-3">
+                      {rejectedVinted.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-1">Vinted ({rejectedVinted.length})</h4>
+                          <div className="space-y-1">
+                            {rejectedVinted.map((item, i) => (
+                              <div key={i} className="flex items-center gap-3 text-sm p-2 bg-destructive/5 rounded border border-destructive/10">
+                                {item.thumbnail && (
+                                  <img src={item.thumbnail} alt={item.title} className="w-12 h-12 object-contain rounded flex-shrink-0" />
+                                )}
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-foreground flex-1 hover:underline">{item.title}</a>
+                                <span className="text-destructive text-xs whitespace-nowrap">{item.reason}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {rejectedEbay.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-1">eBay ({rejectedEbay.length})</h4>
+                          <div className="space-y-1">
+                            {rejectedEbay.map((item, i) => (
+                              <div key={i} className="flex items-center gap-3 text-sm p-2 bg-destructive/5 rounded border border-destructive/10">
+                                {item.thumbnail && (
+                                  <img src={item.thumbnail} alt={item.title} className="w-12 h-12 object-contain rounded flex-shrink-0" />
+                                )}
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-foreground flex-1 hover:underline">{item.title}</a>
+                                <span className="text-destructive text-xs whitespace-nowrap">{item.reason}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {rejectedLbc.length > 0 && (
+                        <div>
+                          <h4 className="text-sm font-medium text-muted-foreground mb-1">LeBonCoin ({rejectedLbc.length})</h4>
+                          <div className="space-y-1">
+                            {rejectedLbc.map((item, i) => (
+                              <div key={i} className="flex items-center gap-3 text-sm p-2 bg-destructive/5 rounded border border-destructive/10">
+                                {item.thumbnail && (
+                                  <img src={item.thumbnail} alt={item.title} className="w-12 h-12 object-contain rounded flex-shrink-0" />
+                                )}
+                                <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-foreground flex-1 hover:underline">{item.title}</a>
+                                <span className="text-destructive text-xs whitespace-nowrap">{item.reason}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
 
                 {(currentMinPrice === null || !!currentError) && !priceUnavailable && (
                   <div className="flex flex-wrap gap-3 p-3 bg-muted/40 border border-border rounded-lg">

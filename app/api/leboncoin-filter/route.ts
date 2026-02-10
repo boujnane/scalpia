@@ -71,7 +71,7 @@ FORMAT DE SORTIE ATTENDU (JSON) :
   ],
   "minPrice": number | null,
   "rejected": [
-    { "title": string, "reason": string } // Raison courte : "Carte seule", "Ouvert", "Boite vide", etc.
+    { "title": string, "reason": string, "thumbnail": string, "url": string } // Raison courte : "Carte seule", "Ouvert", "Boite vide", etc.
   ]
 }
 `;
@@ -119,7 +119,8 @@ if (result.valid && Array.isArray(result.valid)) {
   result.minPrice = null;
 }
 
-result.rejected = rejected;
+// Fusionner les rejets du LLM avec ceux détectés côté serveur (prix invalide)
+result.rejected = [...(result.rejected || []), ...rejected];
 
 return NextResponse.json(result);
 } catch (err: any) {

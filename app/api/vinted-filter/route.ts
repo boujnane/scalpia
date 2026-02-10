@@ -90,7 +90,7 @@ Produire un JSON STRICT, sans texte additionnel :
   ],
   "minPrice": number | null,
   "rejected": [
-    { "title": string, "reason": string }
+    { "title": string, "reason": string, "thumbnail": string, "url": string }
   ]
 }
 

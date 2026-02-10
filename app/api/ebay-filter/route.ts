@@ -61,7 +61,7 @@ Règles :
 - Toujours rejeter : lots de cartes, classeurs, sleeves, top loaders, proxies, stickers, codes online.
 - Produits scellés complets uniquement (non ouverts, tous boosters inclus).
 - Priorité aux produits scellés si la recherche le mentionne.
-- Sortie JSON STRICT : { valid: [{title, price, thumbnail, soldDate, condition, seller, url}], rejected: [{title, reason}] }
+- Sortie JSON STRICT : { valid: [{title, price, thumbnail, soldDate, condition, seller, url}], rejected: [{title, reason, thumbnail, url}] }
 `;
 
     const completion = await client.chat.completions.create({
